@@ -1,0 +1,40 @@
+* emacs flycheck-checker: eslint
+emacs run 'flycheck-select-checker'
+choose javascript-eslint
+
+* eslint not work
+manually run eslint to find what's wrong
+in my case, there is error in .eslintrc.js, which block eslint
+
+
+add to script in package.json
+ "lint": "eslint --fix --ext .js ."
+
+run:
+    npm run lint -- --fix
+* auto fix
+npm install -g eslint_d
+eslintd-fix is much faster than eslint-fix
+which use a direct network connection to eslint_d rather than a node shell command.
+
+(package! eslintd-fix)
+
+* ESLint with React gives `no-unused-vars` errors
+yarn add eslint-plugin-react -D
+'extends': [
+    'plugin:react/recommended'
+]
+* yarn run eslint app.js
+
+* eslint --print-config src/config.js
+
+* npm run lint -- --fix
+It is very common for programs to use -- as an indicator to stop processing arguments from that point as command line options, for instance rm -- * would not trigger force removal even if there is a file named -f. So for this particular command line the -- makes the npm command not interpret --fix as a command line option that it should interpret, but will instead will just pass it along "raw" to the program for the run sub-command. So the end result and objective is that the --fix argument is passed on to lint and not consumed by npm.
+
+* Expected a conditional expression and instead saw an assignment
+while((match = regex.exec(a.search))) {
+  if(param != match[1]) {
+    str.push(match[1] + (match[2] ? '=' + match[2] : ''));
+  }
+}
+you need that extra set of parentheses

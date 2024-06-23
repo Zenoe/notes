@@ -1,0 +1,12 @@
+#+TITLE:
+SELECT user_sk as UID, user_id as XH , login_time/1000 as SXSJ, logout_time/1000 as XXSJ,
+from_unixtime(unix_timestamp(ymd,"yyyyMMdd"),"yyyy-MM-dd") as RQ ,
+hour FROM dwd_user_online where
+from_unixtime(unix_timestamp(ymd,"yyyyMMdd"),"yyyy-MM-dd") = to_date(hours_sub(now(), 1)) and hour(hours_sub(now(),1)) = cast(hour as bigint)
+* convert the type of value to bigint
+select cast(hour as bigint) from dwd_user_online limit 2
+* convert 20190314 to 2019-03-14
+select from_unixtime(unix_timestamp(ymd,"yyyyMMdd"),"yyyy-MM-dd") from dwd_user_online limit 1
+* select to_date(hours_sub(now(), 1)); => 2019-03-29
+* select hour(hours_sub(now(),1)) to get hour value
+* select now()  => 2019-03-29 14:38:20.273337000

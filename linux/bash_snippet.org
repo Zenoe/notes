@@ -1,0 +1,94 @@
+* wait for
+max_retry=5
+retry=0
+sleep 1 # Minimum time for st_new.sh to finish
+while [ ${retry} -lt ${max_retry} ]; do
+if [ ! -z $rg_res ]; then
+    echo "get result"
+    break # call results.sh outside loop
+else
+    retry=$((retry + 1))
+    echo "retry: ${retry}"
+    echo $rg_res
+    sleep 1
+fi
+done
+if [ -f /tmp/st_new.tmp ]; then
+source ../../results.sh
+rm -f /tmp/st_new.tmp
+else
+echo Something wrong with st_new.sh
+fi
+
+
+* timestamp, latest file
+fileDir="/cygdrive/c/Users/ab/Documents/WXWork/1688851803303537/Cache/File"
+cd $fileDir
+latestDir=$(ls -td */ | head -n 1)
+echo "latest dir: $latestDir"
+
+pwd
+cd "$fileDir/$latestDir"
+pwd
+latestFile=$(ls -t | head -n 1)
+echo $latestFile;
+timestamp=$(date +%Y%m%d_%H%m%s)
+scp $latestFile root@172.29.32.10:/root/lzy/monitor/yml/$timestamp$latestFile
+
+* for in cat read file
+# each element is divided by space or newline
+for i in $(cat ./caselist)
+do
+    echo $i
+done
+
+# better way is using read
+# read one line in each loop
+while read -r i; do
+    echo "$i"
+done < ./caselist
+
+* bash menu
+#!/usr/bin/bash
+title="Select example"
+prompt="Pick an option:"
+options=("A" "B" "C")
+
+echo "$title"
+PS3="$prompt "
+select opt in "${options[@]}" "Quit"; do
+    case "$REPLY" in
+    1) echo "You picked $opt which is option 1";;
+    2) echo "You picked $opt which is option 2";;
+    3) echo "You picked $opt which is option 3";;
+    $((${#options[@]}+1))) echo "Goodbye!"; break;;
+    *) echo "Invalid option. Try another one.";continue;;
+    esac
+done
+
+while opt=$(zenity --title="$title" --text="$prompt" --list \
+                   --column="Options" "${options[@]}")
+do
+    case "$opt" in
+    "${options[0]}") zenity --info --text="You picked $opt, option 1";;
+    "${options[1]}") zenity --info --text="You picked $opt, option 2";;
+    "${options[2]}") zenity --info --text="You picked $opt, option 3";;
+    *) zenity --error --text="Invalid option. Try another one.";;
+    esac
+done
+
+# sh
+# echo "select the operation ************"
+# echo "  1)operation 1"
+# echo "  2)operation 2"
+# echo "  3)operation 3"
+# echo "  4)operation 4"
+
+# read n
+# case $n in
+#   1) echo "You chose Option 1";;
+#   2) echo "You chose Option 2";;
+#   3) echo "You chose Option 3";;
+#   4) echo "You chose Option 4";;
+#   *) echo "invalid option";;
+# esac

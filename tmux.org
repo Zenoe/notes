@@ -1,0 +1,403 @@
+start new:
+tmux
+
+start new with session name:
+tmux new -s myname
+
+attach:
+tmux a  #  (or at, or attach)
+
+attach to named:
+tmux a -t myname
+
+list sessions:
+tmux ls
+
+kill session:
+tmux kill-session -t myname
+
+Kill all the tmux sessions:
+tmux ls | grep : | cut -d. -f1 | awk '{print substr($1, 0, length($1)-1)}' | xargs kill
+
+
+* select lines using mouse drag without zooming and mouse wheeling to scroll pane
+with mouse on, old copy paste behaviour is not available
+Copy the text: select the text and press mouse left-button with shift key press too.
+Paste the text with shift key + middle-button
+
+# Linux only
+set -g mouse on
+bind -n WheelUpPane if-shell -F -t = "#{mouse_any_flag}" "send-keys -M" "if -Ft= '#{pane_in_mode}' 'send-keys -M' 'select-pane -t=; copy-mode -e; send-keys -M'"
+bind -n WheelDownPane select-pane -t= \; send-keys -M
+bind -n C-WheelUpPane select-pane -t= \; copy-mode -e \; send-keys -M
+bind -T copy-mode-vi    C-WheelUpPane   send-keys -X halfpage-up
+bind -T copy-mode-vi    C-WheelDownPane send-keys -X halfpage-down
+bind -T copy-mode-emacs C-WheelUpPane   send-keys -X halfpage-up
+bind -T copy-mode-emacs C-WheelDownPane send-keys -X halfpage-down
+
+# To copy, left click and drag to highlight text in yellow,
+# once you release left click yellow text will disappear and will automatically be available in clibboard
+# # Use vim keybindings in copy mode
+setw -g mode-keys vi
+# Update default binding of `Enter` to also use copy-pipe
+unbind -T copy-mode-vi Enter
+bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "xclip -selection c"
+bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"
+
+# macOS only
+set -g mouse on
+bind -n WheelUpPane if-shell -F -t = "#{mouse_any_flag}" "send-keys -M" "if -Ft= '#{pane_in_mode}' 'send-keys -M' 'select-pane -t=; copy-mode -e; send-keys -M'"
+bind -n WheelDownPane select-pane -t= \; send-keys -M
+bind -n C-WheelUpPane select-pane -t= \; copy-mode -e \; send-keys -M
+bind -T copy-mode-vi    C-WheelUpPane   send-keys -X halfpage-up
+bind -T copy-mode-vi    C-WheelDownPane send-keys -X halfpage-down
+bind -T copy-mode-emacs C-WheelUpPane   send-keys -X halfpage-up
+bind -T copy-mode-emacs C-WheelDownPane send-keys -X halfpage-down
+
+# To copy, left click and drag to highlight text in yellow,
+# once you release left click yellow text will disappear and will automatically be available in clibboard
+# # Use vim keybindings in copy mode
+setw -g mode-keys vi
+# Update default binding of `Enter` to also use copy-pipe
+unbind -T copy-mode-vi Enter
+bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel "pbcopy"
+bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "pbcopy"
+
+* bind -T
+for tmux versions >=2.5)
+
+bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel 'xclip -in -selection clipboard'
+Then hit Ctrl+b [ to enter copy mode. Then hit Space followed by whatever vi movement keys to make a selection. Then, instead of hitting Enter, hit y and the selection will be copied to the clipboard.
+
+* display
+After you attach tmux, by default it will update DISPLAY in the session environment, but it can only apply this to new panes. To apply it to an existing pane you should be able to do something like:
+eval "$(tmux showenv -s DISPLAY)"
+
+DISPLAY is used by X clients (application programs) to find the corresponding X server to connect. It's of the form hostname:displaynr.screennr, but usually you only see something like :0, which means the first display of the X server running on localhost.
+
+Using a hostname in there is not secure, because the X protocol is not encrypted. So ssh with X forwarding piggybacks on this schema by finding a free display number, usually 10 or larger, and pretending to be an X server at this display number. But in reality it just forwards the X protocol over the ssh connection to the X server running on the host where the ssh client was called.
+
+So that's why you get different DISPLAY contents when you reconnect with ssh - each connection with ssh sets this variable, possibly to a different value.
+
+This new correct value is visible before you attach to tmux. It's also visible when you open a new terminal, because a new terminal will copy the freshly set DISPLAY variable, while an old terminal will keep the DISPLAY variable it already has.
+
+So if instead of attaching to tmux you run a self-written script, which reads out DISPLAY, attaches to tmux, and then sets DISPLAY in the existing sessions, you can automate what you need to do.
+
+However, doing that with tmux doesn't seem to be straightforward. Here is another question with a few suggestions how to do that that may work for you (or not).
+https://unix.stackexchange.com/questions/591293/how-do-i-correctly-reset-display
+* bind Alt
+bind -n M-l select-pane -L
+bind -n M-h select-pane -R
+bind -n M-k select-pane -U
+bind -n M-j select-pane -D
+or:
+bind -n M-Left select-pane -L
+...
+
+* Switching tmux zoom between panes without zooming out
+After zooming in to a tmux pane, I'd like to zoom in on another pane (preferably the next) without zooming out first.
+Add this line to your .tmux.conf file
+
+bind -r a select-pane -t .+1 \;  resize-pane -Z
+Now press (prefixa) will loop through current window's panes (select-pane -t .+1) and zooming them (resize-pane -Z) , after pressing the prefix key just once , you can press a again and again to loop through panes because of the -r option (bind -r a).
+
+You have the freedom to change the a key to another one.
+
+* Sessions
+:new<CR>  new session
+s  list sessions
+$  name session
+* Windows (tabs)
+c  create window
+w  list windows
+n  next window
+p  previous window
+f  find window
+,  name window
+&  kill window
+
+* Panes (splits)
+!	将当前面板置于新窗口,即新建一个窗口,其中仅包含当前面板
+Ctrl+方向键	以1个单元格为单位移动边缘以调整当前面板大小
+Alt+方向键	以5个单元格为单位移动边缘以调整当前面板大小
+空格键	可以在默认面板布局中切换，试试就知道了
+Alt+o	逆时针旋转当前窗口的面板
+Ctrl+o	顺时针旋转当前窗口的面板
+
+%  vertical split
+"  horizontal split
+
+o  swap panes
+x  kill pane
++  break pane into window (e.g. to select text by mouse to copy)
+-  restore pane from window
+space - toggle between layouts
+
+<prefix> q (Show pane numbers, when the numbers show up type the key to goto that pane)
+<prefix> { (Move the current pane left)
+<prefix> } (Move the current pane right)
+<prefix> z toggle pane zoom
+
+* Copy mode:
+Pressing PREFIX [ places us in Copy mode.
+
+We can then use our movement keys to move our cursor around the screen. By default, the arrow keys work. we set our configuration file
+to use Vim keys for moving between windows and resizing panes so we wouldn’t have to take our hands off the home row. tmux has a vi mode
+for working with the buffer as well. To enable it, add this line to .tmux.conf:
+
+setw -g mode-keys vi
+With this option set, we can use h, j, k, and l to move around our buffer.
+
+To get out of Copy mode, we just press the ENTER key. Moving around one character at a time isn’t very efficient. Since we enabled vi mode, we can also use some other visible shortcuts to move around the buffer.
+
+For example, we can use "w" to jump to the next word and "b" to jump back one word. And we can use "f", followed by any character, to jump to that character on the same line, and "F" to jump backwards on the line.
+
+   Function                vi             emacs
+   Back to indentation     ^              M-m
+   Clear selection         Escape         C-g
+   Copy selection          Enter          M-w
+   Cursor down             j              Down
+   Cursor left             h              Left
+   Cursor right            l              Right
+   Cursor to bottom line   L
+   Cursor to middle line   M              M-r
+   Cursor to top line      H              M-R
+   Cursor up               k              Up
+   Delete entire line      d              C-u
+   Delete to end of line   D              C-k
+   End of line             $              C-e
+   Goto line               :              g
+   Half page down          C-d            M-Down
+   Half page up            C-u            M-Up
+   Next page               C-f            Page down
+   Next word               w              M-f
+   Paste buffer            p              C-y
+   Previous page           C-b            Page up
+   Previous word           b              M-b
+   Quit mode               q              Escape
+   Scroll down             C-Down or J    C-Down
+   Scroll up               C-Up or K      C-Up
+   Search again            n              n
+   Search backward         ?              C-r
+   Search forward          /              C-s
+   Start of line           0              C-a
+   Start selection         Space          C-Space
+   Transpose chars                        C-t
+* Misc
+d  detach
+t  big clock
+?  list shortcuts
+:  prompt
+Configurations Options:
+
+# Mouse support - set to on if you want to use the mouse
+* setw -g mode-mouse off
+* set -g mouse-select-pane off
+* set -g mouse-resize-pane off
+* set -g mouse-select-window off
+
+# Set the default terminal mode to 256color mode
+set -g default-terminal "screen-256color"
+
+# enable activity alerts
+setw -g monitor-activity on
+set -g visual-activity on
+
+# Center the window list
+set -g status-justify centre
+
+# Maximize and restore a pane
+unbind Up bind Up new-window -d -n tmp \; swap-pane -s tmp.1 \; select-window -t tmp
+unbind Down
+bind Down last-window \; swap-pane -s tmp.1 \; kill-window -t tmp
+* 把以下脚本内容加入到~/.bashrc，即可每次登录进入到tmux,自动split好 panes
+
+tmux_init()
+{
+    tmux new-session -s "kumu" -d -n "local"    # 开启一个会话
+    tmux new-window -n "other"          # 开启一个窗口
+    tmux split-window -h                # 开启一个竖屏
+    tmux split-window -v "top"          # 开启一个横屏,并执行top命令
+    tmux -2 attach-session -d           # tmux -2强制启用256color，连接已开启的tmux
+}
+
+# 判断是否已有开启的tmux会话，没有则开启
+if which tmux 2>&1 >/dev/null; then
+    test -z "$TMUX" && (tmux attach || tmux_init)
+fi
+* sample tmux.conf
+#
+# author   : Xu Xiaodong <xxdlhy@gmail.com>
+# modified : 2012 Jul 22
+#
+
+#-- base settings --#
+set -g default-terminal "screen-256color"
+set -g display-time 3000
+set -g escape-time 0
+set -g history-limit 65535
+set -g base-index 1
+set -g pane-base-index 1
+
+#-- bindkeys --#
+# prefix key (Ctrl+a)
+set -g prefix ^a
+unbind ^b
+bind a send-prefix
+
+# split window
+unbind '"'
+# vertical split (prefix -)
+bind - splitw -v
+unbind %
+bind | splitw -h # horizontal split (prefix |)
+
+# select pane
+bind k selectp -U # above (prefix k)
+bind j selectp -D # below (prefix j)
+bind h selectp -L # left (prefix h)
+bind l selectp -R # right (prefix l)
+
+# resize pane
+bind -r ^k resizep -U 10 # upward (prefix Ctrl+k)
+bind -r ^j resizep -D 10 # downward (prefix Ctrl+j)
+bind -r ^h resizep -L 10 # to the left (prefix Ctrl+h)
+bind -r ^l resizep -R 10 # to the right (prefix Ctrl+l)
+
+
+# swap pane
+# swap with the previous pane (prefix Ctrl+u)
+bind ^u swapp -U
+# swap with the next pane (prefix Ctrl+d)
+bind ^d swapp -D
+
+# misc
+# select the last pane (prefix e)
+bind e lastp
+# select the last window (prefix Ctrl+e)
+bind ^e last
+# kill pane (prefix q)
+bind q killp
+# kill window (prefix Ctrl+q)
+bind ^q killw
+
+# copy mode
+# enter copy mode (prefix Escape)
+bind Escape copy-mode
+# paste buffer (prefix Ctrl+p)
+bind ^p pasteb
+# select (v)
+bind -t vi-copy v begin-selection
+# copy (y)
+bind -t vi-copy y copy-selection
+
+# zoom pane <-> window
+#http://tmux.svn.sourceforge.net/viewvc/tmux/trunk/examples/tmux-zoom.sh
+bind ^z run "tmux-zoom"
+
+# app
+# htop (prefix !)
+bind ! splitw htop
+# man (prefix m)
+bind m command-prompt "splitw 'exec man %%'"
+# perl func (prefix @)
+bind @ command-prompt "splitw 'exec perldoc -t -f %%'"
+# perl var (prefix *)
+bind * command-prompt "splitw 'exec perldoc -t -v %%'"
+# perl doc (prefix %)
+bind % command-prompt "splitw 'exec perldoc -t %%'"
+# ruby doc (prefix /)
+bind / command-prompt "splitw 'exec ri %%'"
+
+# reload config (prefix r)
+bind r source ~/.tmux.conf \; display "Configuration reloaded!"
+
+#-- statusbar --#
+set -g status-utf8 on
+set -g status-interval 1
+set -g status-keys vi
+
+setw -g mode-keys vi
+setw -g automatic-rename off
+
+#-- colorscheme --#
+#https://github.com/daethorian/conf-tmux/blob/master/colors/zenburn.conf
+
+# modes
+setw -g clock-mode-colour colour223
+setw -g mode-attr bold
+setw -g mode-fg colour223
+setw -g mode-bg colour235
+
+# panes
+set -g pane-border-bg colour234
+set -g pane-border-fg colour234
+set -g pane-active-border-bg colour232
+set -g pane-active-border-fg colour232
+
+# statusbar
+set -g status-justify centre
+set -g status-bg colour235
+set -g status-fg colour248
+set -g status-attr dim
+#[default]» #[fg=colour187]#S #[default]• #[fg=colour187]w#I.p#P#[default]"
+set -g status-left "
+set -g status-left-attr bright
+set -g status-left-length 20
+#[fg=colour174]#(/home/xiaodong/bin/uptime) #[default]• #[fg=colour174]#(cut -d ' ' -f 1-3 /proc/loadavg)"
+set -g status-right "
+set -g status-right-attr bright
+set -g status-right-length 80
+
+setw -g window-status-current-fg colour223
+setw -g window-status-current-bg colour237
+setw -g window-status-current-attr bold
+setw -g window-status-current-format "#I:#W#F"
+
+#setw -g window-status-alert-attr bold
+#setw -g window-status-alert-fg colour255
+#setw -g window-status-alert-bg colour160
+
+# messages
+set -g message-attr bold
+set -g message-fg colour223
+set -g message-bg colour235
+* Copy from tmux buffer to system buffer (clipboard)
+In newer iTerm2, you need to enable one option in settings to copy a
+text into both tmux buffer and clipboard at the same time. Go to
+iTerm2 > Preferences > “General” tab, and in the “Selection” section,
+check the box which says “Applications in terminal may access
+clipboard” if it isn’t checked.
+* babun tmux 127
+Tmux not working on fresh install
+execute update.bat
+
+* rename pane
+Ctrl b , if you have C-b as send prefix (it's by default)
+Also C-b :rename-window <new name> and tmux rename-window <new name>
+
+* rename session
+C b $
+or
+Long way: prefix, then colon:
+C b :
+
+Then type this command at the prompt:
+rename-session [-t current-name] [new-name]
+* move window
+C b : move-window
+Calling move-window without parameters moves current window to first free position. movew -r will renumber all the windows at once.
+* send cmd to other pane
+tmux send-keys -t {right} 'python test.py' C-m
+
+You can use C-m instead of Enter. It's the same thing. Also, tmux makes it easy to send to the right / left pane by using -t right or -t left. And if you want to address a pane in another window, just prefix it with the window number and period, like -t 0.right.
+
+ also use select-pane -t {last} for the last (previous) active pane
+
+* windows git tmux
+In a msys2 window, use Pacman to install tmux (pacman -S tmux).
+Copy tmux and msys-event binaries from msys2 bin folder (probably C:\msys64\usr\bin) to git bash bin folder (probably C:\Program Files\Git\usr\bin).
+Restart your git bash and try tmux command.
+** Backspace not working in tmux command prompt
+change termial to xterm256?
+kill tmux process and restart tmux

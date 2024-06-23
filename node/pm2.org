@@ -1,0 +1,36 @@
+# auto start on boot
+pm2 startup
+
+pm2 stop app.js
+//结束所有进程
+pm2 stop all
+删除进程
+pm2 delete www
+//删除所有进程
+pm2 delete all
+查看进程
+//列出所有进程
+pm2 list
+//查看某个进程情况
+pm2 describe app.js
+//查看进程资源消耗情况
+pm2 monit
+PM2日志
+pm2 logs
+//查看某个进程的日志
+pm2 logs app.js
+重启进程
+pm2 restart app.js
+//重启所有进程
+pm2 restart all
+
+命名进程名
+ pm2 start npm --name test -- run dev
+
+ pm2 start npm --name test -- start
+语法： pm2 start npm --watch --name <taskname> -- run <scriptname>
+
+其中 -- watch监听代码变化，-- name重命名任务名称，-- run后面跟脚本名字
+
+
+#### pm2 update ####

@@ -1,0 +1,154 @@
+#+TITLE:
+#main {
+  width: 600px;
+  margin: 0 auto;
+}
+
+The only problem occurs when the browser window is narrower than the width of
+your element. The browser resolves this by creating a horizontal scrollbar on
+the page. Let's improve the situation...
+
+#main {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+Using max-width instead of width in this situation will improve the browser's
+handling of small windows. This is important when making a site usable on
+mobile. Resize this page to check it out!
+
+* box-sizing
+a new CSS property called box-sizing was created. When you set box-sizing:
+border-box; on an element, the padding and border of that element no longer
+increase its width.
+.simple {
+  width: 500px;
+  margin: 20px auto;
+  -webkit-box-sizing: border-box;
+     -moz-box-sizing: border-box;
+          box-sizing: border-box;
+}
+
+.fancy {
+  width: 500px;
+  margin: 20px auto;
+  padding: 50px;
+  border: solid blue 10px;
+  -webkit-box-sizing: border-box;
+     -moz-box-sizing: border-box;
+          box-sizing: border-box;
+}
+Since this is so much better, some authors want all elements on all their pages to always work this way. Such authors put the following CSS on their pages:
+
+* {
+  -webkit-box-sizing: border-box;
+     -moz-box-sizing: border-box;
+          box-sizing: border-box;
+}
+
+对border padding 有作用，margin不受影响
+This ensures that all elements are always sized in this more intuitive way.
+
+Since box-sizing is pretty new, you should use the -webkit- and -moz- prefixes
+for now, as I have in these examples.
+
+* [[http://learnlayout.com/position.html][position]]
+* clear float
+.box {
+  float: left;
+  width: 200px;
+  height: 100px;
+  margin: 1em;
+}
+.after-box {
+  clear: left;
+}
+* .clearfix {
+  overflow: auto;
+}
+when a floating element like an img is higher than div that containing it ,  and
+it's floated, so it's overflowing outside of its container!,
+in this case we need to use clearfixe for the div
+
+ If you want to support IE6 you will want to add the following:
+.clearfix {
+  overflow: auto;
+  zoom: 1;
+}
+
+* [[http://learnlayout.com/percent.html][percent width]]
+article img {
+  float: right;
+  width: 50%;
+}
+
+nav {
+  float: left;
+  width: 25%;
+}
+section {
+  margin-left: 25%;
+}
+When this layout is too narrow, the nav gets squished. Worse, you can't use
+  min-width on the nav to fix it, because the right column wouldn't respect it.
+
+* [[http://learnlayout.com/media-queries.html][media queries]]
+@media screen and (min-width:600px) {
+  nav {
+    float: left;
+    width: 25%;
+  }
+  section {
+    margin-left: 25%;
+  }
+}
+@media screen and (max-width:599px) {
+  nav li {
+    display: inline;
+  }
+}
+
+* inline-block elements are like inline elements but they can have a width and height.
+the element after the inline-block element does not have to use clear
+You can create a grid of boxes that fills the browser width and wraps nicely.
+This has been possible for a long time using float, but now with inline-block
+it's even easier.
+
+You can also use inline-block for layouts. There are a few things to keep in mind:
+
+inline-block elements are affected by the vertical-align property, which you probably want set to top.
+You need to set the width of each column
+There will be a gap between the columns if there is any whitespace between them in the HTML
+nav {
+  display: inline-block;
+  vertical-align: top;
+  width: 25%;
+}
+.column {
+  display: inline-block;
+  vertical-align: top;
+  width: 75%;
+}
+
+* column
+There is a new set of CSS properties that let you easily make multi-column text. Have a look:
+
+.three-column {
+  padding: 1em;
+  -moz-column-count: 3;
+  -moz-column-gap: 1em;
+  -webkit-column-count: 3;
+  -webkit-column-gap: 1em;
+  column-count: 3;
+  column-gap: 1em;
+}
+
+* [[https://hackernoon.com/the-ultimate-css-battle-grid-vs-flexbox-d40da0449faf][flex is content-first]]
+header {
+    display: flex;
+}
+Now we can set the logout button to the right:
+
+header > div:nth-child(3) {
+    margin-left: auto;
+}

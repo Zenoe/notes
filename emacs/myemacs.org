@@ -1,0 +1,232 @@
+#+title: Myemacs
+emacs -q --eval '(load-file "~/emacs/prelude/init.el")'
+* question mark
+In Emacs Lisp, the question mark is usually used for character literals. For example, ?a denotes the character a, and this is the same as its character code 97.
+
+(equal ?a 97) ; ⇒ t
+
+(elt "aye" 0) ; ⇒ 97
+
+(char-to-string ?a) ; ⇒ "a"
+(char-to-string 97) ; ⇒ "a"
+* Disable +default--newline-indent-and-continue-comments-a in Coq mode
+(setq-hook! 'coq-mode-hook comment-line-break-function nil)
+
+;;;###autoload
+(defun +default/newline-below ()
+  "Insert an indented new line after the current one."
+  (interactive)
+  (if (featurep 'evil)
+      (call-interactively 'evil-open-below)
+    (end-of-line)
+    (newline-and-indent)))
+
+* vertico search with pcre (look head)
+- enable pcre-mode
+- search for: projectile\(?!-\)   projectile without - after it
+
+- limit file type
+  xxx -- -g"*.el"
+* buildin space escaping
+\s-  ==> match space instead of serving as seperator for example in orderless completion
+* stop recording macro in insert mode
+q to stop recording if I am in normal or visual mode.
+<c-o>q to stop recording if I am in insert mode.
+* todo
+ 1. path auto complete
+* load non-default configuration
+emacs -q --eval '(load-file "~/emacs/prelude/init.el")'
+
+export emacs1=~/.emacs1.d/init.el
+emacs -q -l $emacs1
+
+* signature check failure
+set package-check-signature to nil, e.g. M-: (setq package-check-signature nil) RET
+download the package gnu-elpa-keyring-update and run the function with the same name, e.g. M-x package-install RET gnu-elpa-keyring-update RET.
+reset package-check-signature to the default value allow-unsigned, e.g. M-: (setq package-check-signature "allow-unsigned") RET
+* delete package: M-x package-delete
+* load from the same directory
+(load-file
+ (expand-file-name "escreen.el" (file-name-directory (load-file-name))))
+
+ ;; buffer-file-name is nil during loading process
+ (expand-file-name "escreen.el" (file-name-directory (buffer-file-name))
+
+* minor-mode-map-alist
+[[https://stackoverflow.com/questions/683425/globally-override-key-binding-in-emacs][I use a minor mode for all my "override" key bindings:]]
+(defvar my-keys-minor-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "C-i") 'some-function)
+    map)
+  "my-keys-minor-mode keymap.")
+
+(define-minor-mode my-keys-minor-mode
+  "A minor mode so that my key settings override annoying major modes."
+  :init-value t
+  :lighter " my-keys")
+
+(my-keys-minor-mode 1)
+This has the added benefit of being able to turn off all my modifications in one fell swoop (just disable the minor mode) in case someone else is driving the keyboard or if I need to see what a default key binding does.
+
+Note that you may need to turn this off in the minibuffer:
+
+(defun my-minibuffer-setup-hook ()
+  (my-keys-minor-mode 0))
+
+(add-hook 'minibuffer-setup-hook 'my-minibuffer-setup-hook)
+* c-h c-h : help for help
+* repeat-complex-command
+it is conveniently bound to the key C-x ESC ESC and C-x M-:.
+* define-key change key binding in a map
+(define-key python-mode-map (kbd "<f12>") 'python-shell-switch-to-shell)
+* apropos-variable
+Listing all the Mode Maps
+If you type this Emacs will give you an apropos buffer with all the known mode maps that follow the major mode naming scheme:
+
+C-u M-x apropos-variable RET -mode-map$ RET
+You can also use M-x describe-keymap and then pick the mode map you want from the candidate list.
+
+* load require load-file
+load-file takes a literal filename (relative or absolute) and loads the code. Example: (load-file "/usr/local/share/site-lisp/foo.el")
+load is like load-file, except that it is more flexible--you can leave out the extension and it will automatically load the "elc" or "el" file as appropriate.
+It also looks into the load-path directories.
+Example: (load "foo") (if "foo.el" is in the current directory or in the load-path").
+load-library is an interactive interface for load.
+require is similar to load, except it prevents the file from being loaded more than once (it also requires a corresponding provide statement at the end of the file in question). Example: (require 'foo)
+* group
+a group makes it possible to act on it as a whole. some commands or functions act on a given group or set or groups
+** view all options in a given group
+ M-x customize-group RET python, you will get a list of all options that relate to python-mode.
+* redo undo
+   Short version: by undoing the undo. If you undo, and then do a non-editing command such as C-f, then the next undo will undo the undo, resulting in a redo.
+
+Longer version:
+
+You can think of undo as operating on a stack of operations. If you perform some command (even a navigation command such as C-f) after a sequence of undo operations, all the undos are pushed on to the operation stack. So the next undo undoes the last command
+
+* eval-after-load and with-eval-after-load
+eval-after-load is considered ill-behaved because it is a function, not a macro, and thus requires the code inside it to be quoted, which means that it cannot be byte-compiled. It also accepts only one form, so if you have more than one, you need to use progn. For example:
+
+(eval-after-load "foo"
+  '(progn
+     (setq foo 42)
+     (setq bar 17)))
+The equivalent version with with-eval-after-load would be:
+
+(with-eval-after-load "foo"
+  (setq foo 42)
+  (setq bar 17))
+
+* Automatic refreshing of package archives for Emacs
+(defcustom package-last-refresh-date nil
+  "Date and time when package lists have been refreshed.
+
+  This variable is then used to check whether
+  `package-refresh-contents' call is needed before calling
+  `package-install'. The value of this variable is updated when
+  `package-refresh-contents' is called.
+
+  See `package-refresh-hour-threshold' for the amount of time needed to
+  trigger a refresh."
+  :type 'string
+  :group 'package)
+
+(defcustom package-automatic-refresh-threshold 24
+  "Amount of hours since last `package-refresh-contents' call
+  needed to trigger automatic refresh before calling `package-install'."
+  :type 'number
+  :group 'package)
+With these two helper variables we can start “patching” package.el so it would use it. We don’t need to modify code, thanks to the advanced advice system:
+
+(define-advice package-install (:before (&rest _) package-refresh-contents-maybe)
+  (when (or (null package-last-refresh-date)
+            (> (/ (float-time
+                   (time-subtract (date-to-time (format-time-string "%Y-%m-%dT%H:%M"))
+                                  (date-to-time package-last-refresh-date)))
+                  3600)
+               package-automatic-refresh-threshold))
+    (package-refresh-contents)))
+
+(define-advice package-refresh-contents (:after (&rest _) update-package-refresh-date)
+  (customize-save-variable 'package-last-refresh-date
+                           (format-time-string "%Y-%m-%dT%H:%M")))
+* Minibuffers for File Names
+https://www.gnu.org/software/emacs/manual/html_node/emacs/Minibuffer-File.html
+
+* check if one pkg is installed
+(featurep FEATURE &optional SUBFEATURE)
+(package-installed-p. 'xxx)
+* check if one mode is on
+(and (boundp 'flymake-mode) flymake-mode)
+
+Which, as Thom point out in the comments, can be expressed using the convenient macro:
+
+(bound-and-true-p flymake-mode)
+Which we can use as the condition for an if or when or unless expression:
+
+(if (bound-and-true-p flymake-mode)
+    (message "flymake-mode is on")
+  (message "flymake-mode is off"))
+
+* prog1 useful for variable swap! (setq a (prog1 b (setq b a)))
+* compile
+
+;; in this way load-path does not include packages installed by package-install
+;; require 'somepkg would cause error
+emacs --batch --eval '(byte-recompile-directory "./")'
+M-x: byte-recompile-directory is a right way
+or
+M-x: byte-force-recompile
+
+C-u 0 M-x byte-recompile-directory
+will compile all the .el files in the directory and in all subdirectories below.
+The C-u 0 part is to make it not ask about every .el file that does not have a .elc counterpart
+* Completion in region
+From now on, ivy-mode will also set completion-in-region-function. This means that functions like:
+
+C-M-i complete-symbol in many major modes,
+TAB while in the M-: (eval-expression) minibuffer,
+TAB in a shell buffer,
+will use ivy for completion.
+
+cd ~/.emacs.d/
+find . -name '*.elc' | xargs rm
+* company mode
+Completion will start automatically after you type a few letters. Use M-n and M-p to select, <return> to complete or <tab> to complete the common part. Search through the completions with C-s, C-r and C-o. Press M-(digit) to quickly complete with one of the first 10 candidates.
+
+Type M-x company-complete to initiate completion manually
+
+When the completion candidates are shown, press <f1> to display the documentation for the selected candidate, or C-w to see its source. Not all back-ends support this.
+
+(add-hook 'after-init-hook 'global-company-mode)
+
+* flychecker
+You don't disable warning messages at the flycheck level; you disable them using the underlying checker, which in your case for latex-mode is chktex. One can find the underlying checker by running M-x flycheck-describe-checker RET.
+
+* join dir
+(defun joindirs (root &rest dirs)
+  "Joins a series of directories together, like Python's os.path.join,"
+  (if (not dirs)
+      root
+    (apply 'joindirs
+           (expand-file-name (car dirs) root)
+           (cdr dirs))))
+;; (joindirs "/tmp" "a" "b")
+;; "/tmp/a/b"
+;; (joindirs "~" ".emacs.d" "src")
+;; "/Users/dbr/.emacs.d/src"
+
+* (with)-eval-after-load
+eval-after-load is considered ill-behaved because it is a function, not a macro, and thus requires the code inside it to be quoted, which means that it cannot be byte-compiled. It also accepts only one form, so if you have more than one, you need to use progn
+
+* with-eval-after-load vs hook
+Code wrapped in eval-after-load will be executed only once, so it is typically used to perform one-time setup such as setting default global values and behaviour. An example might be setting up a default keymap for a particular mode. In eval-after-load code, there's no notion of the "current buffer".
+
+Mode hooks execute once for every buffer in which the mode is enabled, so they're used for per-buffer configuration. Mode hooks are therefore run later than eval-after-load code; this lets them take actions based upon such information as whether other modes are enabled in the current buffer.
+*  two  frame-alist toggle-frame-maximized
+(add-to-list 'initial-frame-alist '(fullscreen . maximized))
+(add-to-list 'default-frame-alist '(fullscreen . fullheight))
+
+* debug
+toggle-debug-on-error: print error stack when error happens during a command
+when error occurs, execute M-x: xxx-continue to continue

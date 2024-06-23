@@ -1,0 +1,3 @@
+#+title: Trap
+-  if (!rowSetting || rowSetting !== 0) {
++  if (rowSetting === undefined || rowSetting !== 0) {

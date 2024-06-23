@@ -1,0 +1,78 @@
+ssh -o "StrictHostKeyChecking=no" user@host
+* ask for password after ssh-copy-id
+check log： /var/log/auth.log
+---->
+Authentication refused: bad ownership or modes for directory /root
+
+turns out my /root is drwxrwxrwx
+fixed by : "chmod 700 /root"
+
+* ssh and running
+ssh user1@server1 command1
+ssh user1@server1 'command2'
+# pipe #
+ssh user1@server1 'command1 | command2'
+# multiple commands (must enclose in quotes #
+ssh admin@box1 "command1; command2; command3"
+
+ssh user@server_name < commands.txt
+
+* ssh nat
+https://www.xmodulo.com/access-linux-server-behind-nat-reverse-ssh-tunnel.html
+How to access a Linux server behind NAT via reverse SSH tunnel
+
+1. need another host (so-called relay host) outside your restrictive home network, which you can connect to via SSH from where you are. You could set up a relay host using a VPS instance with a public IP address.
+
+2. set up a persistent SSH tunnel from the server in your home network to the public relay host.
+
+Let's see how we can create and use a reverse SSH tunnel. We assume the following. We will be setting up a reverse SSH tunnel from homeserver to relayserver, so that we can SSH to homeserver via relayserver from another computer called clientcomputer. The public IP address of relayserver is 1.1.1.1.
+
+On homeserver, open an SSH connection to relayserver as follows.
+    homeserver~$ ssh -fN -R 10022:localhost:22 relayserver_user@1.1.1.1
+
+Here the port 10022 is any arbitrary port number you can choose. Just make sure that this port is not used by other programs on relayserver.
+
+The -R 10022:localhost:22 option defines a reverse tunnel. It forwards traffic on port 10022 of relayserver to port 22 of homeserver.
+
+With -fN option, SSH will go right into the background once you successfully authenticate with an SSH server. This option is useful when you do not want to execute any command on a remote SSH server, and just want to forward ports, like in our case.
+
+After running the above command, you will be right back to the command prompt of homeserver.
+
+Log in to relayserver, and verify that 127.0.0.1:10022 is bound to sshd. If so, that means a reverse tunnel is set up correctly.
+
+    sudo netstat -nap | grep 10022
+    tcp      0    0 127.0.0.1:10022          0.0.0.0:*               LISTEN      8493/sshd
+
+Now from any other computer (e.g., clientcomputer), log in to relayserver. Then access homeserver as follows.
+    relayserver~$ ssh -p 10022 homeserver_user@localhost
+
+One thing to take note is that the SSH login/password you type for localhost should be for homeserver, not for relayserver, since you are logging in to homeserver via the tunnel's local endpoint. So do not type login/password for relayserver. After successful login, you will be on homeserver.
+
+While the above method allows you to reach homeserver behind NAT, you need to log in twice: first to relayserver, and then to homeserver. This is because the end point of an SSH tunnel on relayserver is binding to loopback address (127.0.0.1).
+
+* bind ssh server to the address specified by client( default binds to the loopback address  )
+Open /etc/ssh/sshd_config at relayserver and add the following line.
+
+    GatewayPorts clientspecified
+
+Restart sshd.
+
+Now let's initiate a reverse SSH tunnel from homeserver as follows.
+
+    homeserver~$ ssh -fN -R 1.1.1.1:10022:localhost:22 relayserver_user@1.1.1.1
+    ssh -fN -R 172.28.57.44:10022:localhost:22 root@172.28.57.44
+
+Log in to relayserver and confirm with netstat command that a reverse SSH tunnel is established successfully.
+
+    relayserver~$ sudo netstat -nap | grep 10022
+    tcp      0      0 1.1.1.1:10022     0.0.0.0:*           LISTEN      1538/sshd: dev
+Unlike a previous case, the end point of a tunnel is now at 1.1.1.1:10022 (relayserver's public IP address), not 127.0.0.1:10022. This means that the end point of the tunnel is reachable from an external host.
+
+Now from any other computer (e.g., clientcomputer), type the following command to gain access to NATed homeserver.
+
+    clientcomputer~$ ssh -p 10022 homeserver_user@1.1.1.1
+
+* capture output of remote script via ssh
+local RESULTS
+RESULTS=$(ssh user@server /usr/local/scripts/test_ping.sh)
+echo $?

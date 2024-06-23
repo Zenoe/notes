@@ -1,0 +1,431 @@
+* get system user
+(defvar prelude-user
+  (getenv
+   (if (equal system-type 'windows-nt) "USERNAME" "USER")))
+
+* string operation
+** (require 'subr-x)
+eg: get string prefix
+
+* delete item from list
+(mapc 'load (delete
+               "/path/tobedelete.el"
+               (directory-files prelude-personal-dir 't "^[^#\.].*\\.el$")))
+
+here delete filter out if any "tobedelete.el" from list of files in prelude-personal-dir
+
+* save file :mapcar:
+(defun update-all-autoloads ()
+(interactive)
+(cd init-base-dir)
+(let ((generated-autoload-file
+(expand-file-name "autoload/autoload-gen.el")))
+
+ (mapcar #'update-directory-autoloads
+         '("lisp" "search"))
+))
+
+
+* use hook over advice
+use advice when there is no hook
+(add-hook 'isearch-mode-end-hook 'recenter-top-bottom)
+
+(advice-add 'evil-ex-search-next :after
+            (lambda (&rest x) (evil-scroll-line-to-center (line-number-at-pos))))
+(advice-add 'evil-ex-search-previous :after
+            (lambda (&rest x) (evil-scroll-line-to-center (line-number-at-pos))))
+
+
+(defadvice evil-search-next
+      (after advice-for-evil-search-next activate)
+      (evil-scroll-line-to-center (line-number-at-pos)))
+
+(defadvice evil-search-previous
+      (after advice-for-evil-search-previous activate)
+      (evil-scroll-line-to-center (line-number-at-pos)))
+
+define-advice is a wrapper of advice-add and defun, it provides two benefits: 1) when you supply name, it will define a function name SYMBOL@NAME, so the prefix name convention is respected automatically. 2) The code is more compact since it is defun + advice-add
+* pass parameter to interactive function
+https://www.gnu.org/software/emacs/manual/html_node/elisp/Using-Interactive.html
+(defun hello (ch)
+  (interactive (list (read-char "Input char: " ";")))
+  (message "Hello Mr %s" ch))
+
+* (defun grep-current-word ()
+  "setting up grep-command using current word under cursor as a search string"
+  (interactive)
+  (let* ((cur-word (thing-at-point 'word))
+         (cmd (concat "grep -nH -r --exclude='TAGS' --include='*.h' --include='*.cpp' --include='*.pl' --include='*.c' -e " cur-word " /home/alex/code")))
+    (grep-apply-setting 'grep-command cmd)
+    (grep cmd)))
+* (defun ora-save-and-switch-buffer ()
+  (interactive)
+  (when (and (buffer-file-name)
+             (not (bound-and-true-p archive-subfile-mode)))
+    (save-buffer))
+  (ido-switch-buffer))
+
+* counsel ag at point
+(setq counsel-projectile-ag-initial-input  '( ivy-thing-at-point ) )
+(defun ivy-with-thing-at-point (cmd)
+  (let ((ivy-initial-inputs-alist
+         (list
+          (cons cmd (thing-at-point 'symbol)))))
+    (funcall cmd)))
+
+(defun counsel-ag-apt ()
+  (interactive)
+  (ivy-with-thing-at-point 'counsel-projectile-ag))
+
+(defun selection-or-thing-at-point ()
+  (cond ;; If there is selection use it
+   ((and transient-mark-mode mark-active (not (eq (mark) (point))))
+    (let ((mark-saved (mark)) (point-saved (point))) (deactivate-mark) (buffer-substring-no-properties mark-saved point-saved))) ;; Otherwise, use symbol at point or empty
+   (t (format "%s" (or (thing-at-point 'ymbol) "")))))
+
+(defun counsel-ag-at-point ()
+  (interactive)
+  (counsel-ag (selection-or-thing-at-point) (projectile-project-root)))
+
+* check if a character belongs to a particular set of characters?
+(defun foo ()
+  (interactive)
+  (if (memq (char-after) '(?a ?d ?x))
+      (message "yes")
+    (message "no")))
+
+* character
+char-before
+(char-before) return the unicode codepoint (integer) of character before cursor.
+
+char-after
+(char-after) return the unicode codepoint (integer) of character after cursor.
+
+char-to-string
+(char-to-string CHAR) convert a CHAR (unicode codepoint (integer)) to string of single character.
+(message (char-to-string (char-after)))
+
+string-to-char
+(string-to-char STRING) return the first char in string. (return a integer that's the char's unicode codepoint)
+
+char-equal
+(char-equal C1 C2). Return t if two characters match, optionally ignoring case. Case is ignored if case-fold-search is non-nil in the current buffer.
+
+[[https://www.gnu.org/software/emacs/manual/html_node/elisp/Char-Classes.html]]
+
+(characterp ?\")  ;; t
+(characterp ?\()  ;; t
+(characterp ?+)  ;; t
+
+(eq ?{ (char-after))
+
+(list (string-equal "(" (string ?\())
+      (string-equal "[" (string ?\[))
+      (string-equal "{" (string ?\{)))  ; => (t t t)
+
+* eval-after-load vs. mode hook
+Code wrapped in eval-after-load will be executed only once, so it is typically used to perform one-time setup such as setting default global values and behaviour. An example might be setting up a default keymap for a particular mode. In eval-after-load code, there's no notion of the "current buffer".
+Mode hooks execute once for every buffer in which the mode is enabled, so they're used for per-buffer configuration. Mode hooks are therefore run later than eval-after-load code; this lets them take actions based upon such information as whether other modes are enabled in the current buffer.
+
+after-load is a local macro wrapper for eval-after-load, to avoid the need to quote the form passed to eval-after-load. ie. instead of
+(eval-after-load 'foo '(progn (foo) (bar))) I can write (after-load 'foo (foo) (bar))
+* How to get folder path in dired-mode?\
+There's dired-directory, however this Q&A indicates that it is unreliable in
+certain circumstances, and that default-directory is a better choice
+(expand-file-name default-directory)  "~/dired-path" --> "/home/user/dired-path
+* dired-buffers: list current dired buffers
+* (defun hello (name) (insert "Hello " name))
+(progn
+( let (( va0 "va0sdf" ) ( va "ffflzy" ) )
+  (switch-to-buffer-other-window "*test*")
+  (erase-buffer)
+  (hello va)
+  (hello va0))
+  (other-window 1))
+
+
+(setq mylist '("ele1" "elel2" "ele3"))
+(car mylist)
+(cdr mylist)
+; (mapcar 'hello mylist)
+(defun greeting ()
+    (switch-to-buffer-other-window "*test*")
+    (erase-buffer)
+    (mapcar 'hello mylist)
+    (other-window 1))
+
+(greeting)
+(defun replace-hello-by-bonjour ()
+    (switch-to-buffer-other-window "*test*")
+    (goto-char (point-min))
+
+;; The `nil' argument says: the search is not bound to a position.
+;; The `t' argument says: silently fail when nothing is found.
+
+    (while (search-forward "Hello" nil t)
+      (replace-match "Bonjour"))
+    (other-window 1))
+(replace-hello-by-bonjour)
+
+;; Let's colorize the names:
+
+(defun boldify-names ()
+    (switch-to-buffer-other-window "*test*")
+    (goto-char (point-min))
+    (while (re-search-forward "Bonjour \\(.+\\)!" nil t)
+      (add-text-properties (match-beginning 1)
+                           (match-end 1)
+                           (list 'face 'bold)))
+    (other-window 1))
+
+(boldify-names)
+
+* (defun not-visible-buffers (buffers)
+  "given a list of buffers, return buffers which are not currently visible"
+  (remove nil
+        (mapcar
+         '(lambda (buf)
+        (unless (get-buffer-window-list buf) buf))
+         buffers)
+        ))
+(not-visible-buffers (buffer-list))
+
+* condition
+  http://emacswiki.org/emacs/WhenToUseIf
+** when unless
+ ¡®when¡¯ and ¡®unless¡¯ are equivalent to ¡®if¡¯ with a vacuous THEN part. IOW, they let you conditionally evaluate a sequence of sexps (an implicit ¡®progn¡¯)
+ (when CONDITION EVAL-IF-T...): (if (not CONDITION ) nil EVAL-IF-T...)
+ (unless CONDITION EVAL-IF-NIL...):  the same as (if CONDITION nil EVAL-IF-NIL...)
+** case
+¡®ecase¡¯ is like ¡®case¡¯ except it signals error if no test succeeds.
+
+  (defun my-got-what (x)
+    (ecase x
+      ((nil) :got-nil)
+      ((t) :got-t)
+      ((foo bar) :got-foo-or-bar)))
+  (my-got-what 'nil) ;   :got-nil
+  (my-got-what 'foo) ;   :got-foo-or-bar
+
+* Show unbound keys :bind-key:
+Check out the free-keys package, which gives you a function of the same name that shows you all your currently unused key-bindings.
+
+bind-key is also a helpful tool which gives you a cleaner syntax for defining your own bindings, i.e.:
+
+(bind-key "C-h C-k" 'free-keys)
+bind-key also comes with a handy defun called describe-personal-keybindings to see all the key-bindings you've set as well as if and what bindings you've overridden.
+
+* load autoload
+https://www.gnu.org/software/emacs/manual/html_node/eintr/Autoload.html Instead
+of installing a function by loading the file that contains it, or by evaluating
+the function definition, you can make the function available but not actually
+install it until it is first called. This is called autoloading. autoload is a
+built-in function that takes up to five arguments, the final three of which are
+optional. The first argument is the name of the function to be autoloaded; the
+second is the name of the file to be loaded. The third argument is documentation
+for the function, and the fourth tells whether the function can be called
+interactively. The fifth argument tells what type of object¡ªautoload can handle
+a keymap or macro as well as a function (the default is a function).
+
+   ´Ócygwin Æô¶¯emacs£¬emacs µÄµ±Ç°Ä¿Â¼ A Í¬cygwin Æô¶¯ emacs Ê±µÄÄ¿Â¼ A
+emacs Ö´ÐÐ load-file Ö»»á´Ó A ÕÒ
+
+load-file	Load a specific file.	Load one specific file. (¡°.el¡± or ¡°.elc¡± file name extentions are not auto added, but ¡°.gz¡± is.)	Use this when you don't want emacs to guess the file name extention of ¡°.el¡±, ¡°.elc¡± or none.
+
+load	Load a file.	Load a file by searching thru var load-path. Argument should be just the file name without full path, such as (load "undo"). It'll auto add ¡°.elc¡± for compiled version if exist, or add ¡°.el¡±, or with ¡°.gz¡±.	Use this if the exact file path is not known in advance.
+
+require	Load a package if it has not already been loaded.	Checks the var features, if symbol is not there, then call load to load it. File name is guessed from the feature name, or specified in the optional argument.	Best used in elisp libraries or scripts, similar to other lang's ¡°require¡± or ¡°import¡±.
+
+autoload	Load a file only when a function is called.	Associate a function name with a file path. When the function is called, load the file, and execute the function.	If you are writing a major mode, have your package installation go by autoload if possible. It saves startup time.
+
+* bind key in mode
+(eval-after-load 'latex 
+                    '(define-key LaTeX-mode-map [(tab)] 'outline-cycle)))
+
+(add-hook 'LaTeX-mode-hook
+          (lambda () (local-set-key (kbd "C-0") #'run-latexmk)))
+
+ (define-key LaTeX-mode-map [(tab)] 'outline-cycle))
+
+* convert list to string
+(format "%s" your-list)
+will return a representation of your list.  message uses format internally, so
+
+(message "%s" your-list)
+
+* add-to-list
+(add-to-list 'my-grep-ingore-dirs  "tmp")
+
+* (equal 97 ?a ) ;; t
+(equal 97 (string-to-char "a")) ;; t
+
+* #' all of the statements are equivalent
+pound key
+The read syntax #' is a short-hand for using function. The following forms are all equivalent:
+
+(lambda (x) (* x x))
+(function (lambda (x) (* x x)))
+#'(lambda (x) (* x x))
+
+(seq-reduce #'+ [1 2 3 4] 0)
+(seq-reduce #'(lambda(x y) (+ x y)) [1 2 3 4] 0)
+(seq-reduce '+ [1 2 3 4] 0)
+(seq-reduce '(lambda(x y) (+ x y)) [1 2 3 4] 0)
+(seq-reduce (lambda(x y) (+ x y)) [1 2 3 4] 0)
+
+Now-a-days¡ªor rather, now-a-decades¡ªthe lambda form sharp-quotes itself, meaning
+a plain (lambda (x) (* x x)) is identical to the #' version. In fact, you should
+never quote your lambdas with either quotes.
+
+According to [[http://endlessparentheses.com/get-in-the-habit-of-using-sharp-quote.html][this article]], one good reason for applying # to a lone symbol is to get diagnostics at compile time if that symbol is undefined
+can be used in front of a lambda expression indicating to the byte-compiler that
+the following expression can be byte compiled,
+
+* identity means  no transformation
+
+ (mapconcat 'identity '("" "home" "alex " "elisp" "erc") "/")
+ ==> "/home/alex /elisp/erc"
+
+
+* eval-last-sexp  C-x C-e
+* eval-region
+* ielm 打开一个交互式的elips命令行解释器。
+可以使用”Alt + x describe-function”(快捷键”C-h f”)来查找一个函数的用法。也可以使用”Alt+x elisp-index-search”在手参考手册中查询。
+打印
+  (message "hi")
+  (message "her age is:%d" 16) ;%d 数字
+  (message "her name is: %s" "Vicky") ;%s 字符串
+  (message "her min init is: %c" 86) ;%c 字符
+注意：你可以在*message* buffer中看到打印出来的结果。
+注意，如果你的操作数是小数，必须把后面的0带上。就是说你应该写2.0，而不是2.。
+  (integerp 3.)  ;T
+  (floatp 3.)    ;nil
+  (floatp 3.0)   ;T
+以字符p结尾的函数通常意味着它的返回值是True或者False。p意味着”predicate”(判定)。
+True和False
+在elisp中，标识”nil”代表false，其它的一切都是true,包括0。”nil”是空链表”()”的同义词。所以”()”也是false。
+按惯例，标识”t”用来表示true。
+  (and t nil) ; nil
+  (or t nil)  ; t
+在elisp中没有布尔型，只需记住”nil”和”()”是false，其它一切都是true。
+比较字符串
+  (string= "this" "thiS")
+  (string< "a" "b")
+  (string< "B" "b")
+在字符串比较中大小写是敏感的。比较依据是字典顺序。
+要比较两个sysbols是否有相同的数据类型和值，使用"equal"。
+(equal "abc" "abc") ;t
+(equal 3 3)         ;t
+(equal 3 3.0)       ;nil.类型不同
+(equal '(3 4 5) '(3 4 5))  ; t
+(equal '(3 4 5) '(3 4 "5"))  ;nil
+在Elisp中并没有"!="或者“not-equal”。判断不等，可以在对整个等式取非。
+  (not (= 3 4))  ;t
+全局和局部变量
+"setq"用于给变量赋值。格式一般为"setq 变量1 值1 变量2 值2..."
+在lisp中，变量不需要声时，并且是全局的。
+  (setq a 3 b 2 c 7)  ;三个变是，a=3 b=2 c=7
+定义局部变量，使用let。格式为"(let (变量1 变量2) body)"。"body"代表其它的表达式。其中最后一个表达式的取值是整个语句块的返回值。
+  (let (a b)
+  (setq a 3)
+  (setq b 4)
+  (+ a b)
+  )
+a和b都是这个语句块的局部变量，返值是最后一个表达式"(+ a b)"的取值。
+另一种格式是"(let ((变量1 值1)(变量2 值2)) body )"。例如：
+  (let ((a 3) (b 4))
+  (+ a b)
+  )
+如果你的变量很少，并且值都是已经确定的，可以用这种方法。
+表达式块
+有时需要把一些表达式括起来。这时可以使用"progn"。
+  (progn (message "hi"))
+它相当于
+  (message "hi")
+"progn"类似于C语言中的"{...}"。它使用于某些需要把语句合并起来的场合，其实这跟C语言中也是一样的。比如："(if something (progn this that))"。这里，如果把progn去掉，变成"(if somethong this that"，在lisp中表示如果something,那么this,否则that。在有progn把this和that括真情 为情况下，表示的是如果something，那么执行this和that。
+If then else
+格式为"(if test then?)"。"else"是可选的。例：
+  (if (< 3 2) (message "yes")))
+  (if (< 3 2) (message "yes") (message "no")))
+迭代循环
+使用while。
+  (setq x 0)
+  (while (< x 4)
+     (princ (format "yay %d." x))
+     (setq x (+ 1 x)))
+在elisp中，并没有for语句。
+Lists
+在lisp中的List是这样的：“'(x y z)”。括号前面那个单引号是很重要的。不需要太在意它的含义，把它当成句法的一部份即可。
+  (message "%S" '(a b c))
+  (setq mylist '(a b c))  ;定义
+  (let ((x 3) (y 4) (z 5))
+      (message "%S" (list x y z))
+  )
+以下是List的一些函数：
+Function目的(car mylist)取第一个元素(nth n mylist)最第n个元素(car (last mylist))取最后一个元素(cdr mylist)从第二个到最后一个(nthcdr n mylist)从第n个到最后一个元素(butlast mylist n)不包含n到最后一个元素这里所说的n，都是从0开始的。
+下列是一些例子。
+  (car (list "a" "b" "c"))
+  (nth 2 (list "a" "b" "c"))
+  (last (list "a" "b" "c"))
+Basic List FunctionsFunction目的(length mylist)List长度(cons x mylist)把x加到list前面(append mylist1 mylist2)连接两个List例如:
+  (length (list "a" "b" "c"))
+FunctionPurpose(pop mylist)删除第一个元素并返回(nbutlast mylist n)删除第n个元素，返回删除后的list.(setcar mylist x)替换第一个元素，并返回(setcdr mylist x)替换除第一个之外的所有元素遍历运算数组
+  (mapcar '1+ '(1 2 3 4))
+上例的做所是遍历list中的每一个元素，并对它进行"1+"的操作。
+当然，也可以用while循环来完成这件事。
+定义函数
+基本的函数定义方式是"defun?(param) "doc" "。
+  (defun myFunction () "testing" (message "Yay!"))
+myFunction是函数名，这个函数无参，函数注释"testing"，后面是函数体。
+可以在doctsing后面加一个"interactive"来使得函数能跟环境进行交互（在emacs中，就呆以可用"Alt + x"来调用）
+interactive的一些常用语法:
+* (interactive) 无参
+* (interactive "n") 一个数字参数
+* (interactive "s") 一个字符串参数
+
+
+
+* copy and cut one line
+还写了复制和剪切的函数，如果当前有选中区域就和默认的复制/剪切一样，如果没有
+选中区域，就复制/剪切当前行，这三个函数都可以接收C-u number做为数字参数，
+传入数字几就操作几行。
+
+(defun yp-copy (&optional arg)
+  "switch action by whether mark is active"
+  (interactive "P")
+  (if mark-active
+      (kill-ring-save (region-beginning) (region-end))
+    (let ((beg (progn (back-to-indentation) (point)))
+          (end (line-end-position arg)))
+      (copy-region-as-kill beg end))))
+
+(defun yp-kill (&optional arg)
+  "switch action by whether mark is active"
+  (interactive "P")
+  (if mark-active
+      (kill-region (region-beginning) (region-end))
+    (kill-whole-line arg)))
+
+(global-set-key (kbd "M-w") 'yp-copy)
+(global-set-key (kbd "C-w") 'yp-kill)
+
+* pound sign
+(eq 'my-add #'my-add)
+yields t
+
+The # can be used in front of a lambda expression indicating to the byte-compiler that the following expression can be byte compiled, see the docs for Anonymous Functions. But there's nothing to compile in the case of a symbol.
+
+* recursive directory
+(defun prelude-add-subfolders-to-load-path (parent-dir)
+  "Add all level PARENT-DIR subdirs to the `load-path'."
+  (dolist (f (directory-files parent-dir))
+    (let ((name (expand-file-name f parent-dir)))
+      (when (and (file-directory-p name)
+                 (not (string-prefix-p "." f)))
+        (add-to-list 'load-path name)
+        (prelude-add-subfolders-to-load-path name)))))
+
+* ;; load all files in a directory
+(when (file-exists-p prelude-personal-dir)
+  (message "[Prelude] Loading personal configuration files in %s..." prelude-personal-dir)
+  (mapc 'load (directory-files prelude-personal-dir 't "^[^#\.].*\\.el$")))

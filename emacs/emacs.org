@@ -1,0 +1,325 @@
+* vertico search result:
+        "C-M-j" #'vertico-next-group
+        "C-M-k" #'vertico-previous-group
+        "C-i" or tab : go to next vertico group
+* popup--display-buffer-alist
+https://github.com/emacsorphanage/popwin
+
+* exec-path:
+exec-path是一个Emacs内部变量 Emacs用来查找可执行文件。如M-x compile
+(setenv "PATH"): 设置Emacs进程的环境变量PATH。对于Emacs启动的子进程很重要
+* toggle-truncate-lines
+visual-line-mode
+when the logical line is long to exceed the width of window
+* evil easymotion: gs
+* vim-sneak
+; to go to the next match (or s again, if s_next is enabled;
+3; to skip to the third match from the current position.
+ctrl-o or `` to go back to the starting point.
+Type s<Enter> at any time to repeat the last Sneak-search.
+Type S to search backwards.
+* copy text from minibuffer
+C-x h (mark-whole-buffer) then M-w (kill-ring-save)
+* evil replace
+& 表示当前匹配的文本
+:%s/xxx/get& ==> 把 xxx 替换为 getxxx
+* some keys
+Remove parentheses around region: sp-splice-sexp : gb
+[ a: evil-backward-arg
+] a: evil-forward-arg
+* Alignment messed up in emacs  (dired buffer) :font:
+I started to find the font current used by emacs, and it was dejavu-sans. which
+I then though was not a fixed font.
+
+By luck I download Hack font recommended by some one from internet. and followed
+the instructions to install it on the linux host.
+Restart emacs X windows, everything was find!
+
+Linux
+Download the latest version of Hack.
+Extract the files from the archive (.zip).
+Copy the font files to either your system font folder (often /usr/share/fonts/) or user font folder (often ~/.local/share/fonts/ or /usr/local/share/fonts).
+Copy the font configuration file in config/fontconfig/ to either the system font configuration folder (often /etc/fonts/conf.d/) or the font user folder (often ~/.config/fontconfig/conf.d)
+Clear and regenerate your font cache and indexes with the following command:
+$ fc-cache -f -v
+You can confirm that the fonts are installed with the following command:
+
+$ fc-list | grep "Hack"
+
+* How to set major mode according to buffer name for non-file buffers
+(setq-default major-mode
+  (lambda ()
+  (if (db-regexp-match-p special-buffer-regexp (buffer-name))
+      (special-mode)(fundamental-mode))))
+
+* regex
+https://www.emacswiki.org/emacs/RegularExpression
+  .        any character (but newline)
+  *        previous character or group, repeated 0 or more time
+  +        previous character or group, repeated 1 or more time
+  ?        previous character or group, repeated 0 or 1 time
+  ^        start of line
+  $        end of line
+  [...]    any character between brackets
+  [^..]    any character not in the brackets
+  [a-z]    any character between a and z
+  \        prevents interpretation of following special char
+  \|       or
+  \w       word constituent
+  \b       word boundary
+  \sc      character with c syntax (e.g. \s- for whitespace char)
+  \( \)    start/end of group
+  \&lt; \&gt;    start/end of word (faulty rendering: backslash + less-than and backslash + greater-than)
+  \_< \_>  start/end of symbol
+  \` \'    start/end of buffer/string
+  \{3\}    previous character or group, repeated 3 times
+  \{3,\}   previous character or group, repeated 3 or more times
+  \{3,6\}  previous character or group, repeated 3 to 6 times
+  \=       match succeeds if it is located at point
+Some Regexp Examples
+ [-+[:digit:]]                     digit or + or - sign
+ \(\+\|-\)?[0-9]+\(\.[0-9]+\)?     decimal number (-2 or 1.5 but not .2 or 1.)
+ \&lt;\(\w+\) +\1\&gt;                     two consecutive, identical words
+ \&lt;[[:upper:]]\w*                  word starting with an uppercase letter
+  +$                               trailing whitespaces (note the starting SPC)
+ \w\{20,\}                         word with 20 letters or more
+ \w+phony\&gt;                        word ending by phony
+ \(19\|20\)[0-9]\{2\}              year 1900-2099
+ ^.\{6,\}                          at least 6 symbols
+ ^[a-zA-Z0-9_]\{3,16\}$            decent string for a user name
+ <tag[^> C-q C-j ]*>\(.*?\)</tag>  html tag
+
+* Incrementally replace a given string; multiple replace
+put cursor in the beginning of the text
+call replace-regexp
+type: nn
+type: \,(+ 1 \#)
+
+https://emacs.stackexchange.com/questions/37898/incrementally-replace-a-given-string
+Your replacement string can contain arbitrary lisp code.
+From the documentation for replace-regexp:
+
+In interactive calls, the replacement text may contain ‘\,’ followed by a Lisp
+expression used as part of the replacement text. Inside of that expression, ‘\&’
+is a string denoting the whole match, ‘\N’ a partial match, ‘#&’ and ‘#N’ the
+respective numeric values from ‘string-to-number’, and ‘#’ itself for
+‘replace-count’, the number of replacements occurred so far, starting from zero.
+
+We can use this technique in a number of ways.
+
+Starting at 25
+You can modify this by not just adding one, but (in your example) 25:
+
+C-M-% nn \,(+ 25 \#)
+
+Leading zeros
+Or we can use format to add leading zeros. This will replace nn with 000, 001, 002, etc. You can combine other lisp code above to start at 001, 025, or whatever you want.
+
+C-M-% nn \,(format "$03d" \#)
+
+......
+Yes, you can do that with [query-]replace-regexp in Emacs, by evaluating elisp in your replacement, and utilising the zero-based replacement counter \#. e.g.:
+M-x query-regexp-replace RET S1-S2 RET
+\,(let ((start (+ 1000 (* 4 \#)))) (format "%d-%d" start (+ start 3))) RET
+
+** You can also use cua-mode.
+
+Select the rectangle région (all the nn) and then M-x cua-rectangle-mark-mode.
+
+Next, M-n and accept the default values.
+* C -h e runs the command view-echo-area-messages
+* evil-surround
+({  Hello  } world!)
+({  Hello  } world!)
+cursor on 'e'
+ds( : remove ()
+ds{ : remove {}
+yse]: ({  H[ello]  } world!)
+ysiw[: ({ [ Hello ] } world!)     // space
+ysiw]: ({  [Hello]  } world!)     // no space
+ysiw<em>: ({ <em>Hello</em> } world!)
+dst: ({ Hello } world!) // t: tag
+
+* package management
+(use-package auto-package-update
+   :ensure t
+   :config
+   (setq auto-package-update-delete-old-versions t
+         auto-package-update-interval 4)
+   (auto-package-update-maybe))
+With that setup, packages will be updated every 4 days, and the old packages will be removed.
+
+* search in project
++ivy-project-search uses ripgrep. Ripgrep does not obey .projectile files, and I have no intention of implementing that, nor connecting it to projectile-rg because a) it's tremendously slow, b) projectile will be replaced with project.el in the future, and
+c) it is redundant with what ripgrep already supports through .ignore and .gitignore files, which all of Doom's file/search commands respect.
+Alternatively, you can adjust counsel-rg-base-command with exemption flags to apply to all searches.
+
+To only search lua files: #test -- -t lua. Run $ rg --type-list for comprehensive list of types that Ripgrep supports.
+
+To search any file that matches a glob: #test -- -g*.tar.gz
+
+To search for test, but filter out results with cd in it, use consult’s sub-search feature: #test#!cd.
+
+Everything before the second # is filtered by ripgrep.
+
+Everything after the second # is filtered by Vertico using Orderless 4, where ! (negatation), = (literal), ~ (fuzzy), % (case insensitive) prefixes are supported.
+
+The # delimiter can be replaced with any arbitrary character. E.g. %test%!cd or *test*!cd.
+
+#word -- -s: search for 'word' case sensitive
+* why i commented vi-tilde-fringe
+run emacs with --debug-init to find the hook on vi-tilde-fringe-mode thrown an error,
+which in turn prevent other hooks being called
+
+that's why my following config didn't work
+(add-hook 'js2-mode-hook 'eslintd-fix-mode)
+
+* encoding
+以指定编码重读当前buffer(revert-buffer-with-coding-system)
+改变当前buffer的编码(set-buffer-file-coding-system):
+file (gbk coded) copy from windows, change to utf8 on linux
+
+* quoted-insert C-q
+input enter, will type ^M
+search and replace with ^J
+
+insert Tab
+
+^M
+13	0D	CR	^M	\r	Carriage Return[h]
+
+^J
+quoted-insert
+C-j
+10	0A	LF	^J	\n	Line Feed
+
+%s/^M/^J
+https://en.wikipedia.org/wiki/ASCII#ASCII_control_characters
+* gm: move the cursor to the middle of current visual line
+* Kill process buffer without confirmation?
+Remove the corresponding function from the relevant variable :
+(setq kill-buffer-query-functions (delq 'process-kill-buffer-query-function kill-buffer-query-functions))
+How did I find this ?
+kill-this-buffer uses kill-buffer internally, which references the variable kill-buffer-query-functions.
+* dired
+** bach rename filename
+dired-toggle-read-only Ctrl+x Ctrl+q.
+wdired-finish-edit Ctrl+c Ctrl+c to commit the changes.
+wdired-abort-changes Ctrl+c Ctrl+k to abort the changes.
+** sort
+In dired, type 【Ctrl+u s】, then in prompt, modify it to be -alS.
+http://ergoemacs.org/emacs/dired_sort.html
+The command is dired-sort-toggle-or-edit: s
+c → last modification time.
+u → access time.
+S → file size.
+X → file extension.
+* \ runs the comman
+d evil-execute-in-emacs-stat1e
+* font set default font
+* tty pty
+A tty is a terminal (it stands for teletype - the original terminals used a line
+printer for output and a keyboard for input!). A terminal is a basically just a
+user interface device that uses text for input and output.
+
+A pty is a pseudo-terminal - it's a software implementation that appears to the
+attached program like a terminal, but instead of communicating directly with a
+"real" terminal, it transfers the input and output to another program.
+
+For example, when you ssh in to a machine and run ls, the ls command is sending
+its output to a pseudo-terminal, the other side of which is attached to the SSH
+daemon.
+* spc j j   contary to J
+spc jh/l  go to the beginning/end of line (and set a mark(use ~ to navigate back) at the previous location in the line)
+spc jk  : jump to next line and auto indent if if necessary
+spc jJ  : split a quoted string or s-expression and auto-indent
+spc J split a quoted string or s-expression in place  : (aabb) --> (aa)(bb)
+* / M-y   粘贴查找内容
+* / C-w  粘贴光标所在位置文本到minibuffer
+* Set custom keybinding for specific Emacs mode
+To bind a key in a mode, you need to wait for the mode to be loaded before defining the key. One could require the mode, or use eval-after-load
+(add-hook 'emacs-lisp-mode-hook
+          (lambda () (local-set-key (kbd "C-c C-o") 'imenu)))
+* 替换
+语法 :[addr]s/源字符串/目的字符串/[option]
+全局：:%s/源字符串/目的字符串/g
+[addr] 表示检索范围，省略时表示当前行。
+如：1，20 ：表示从第1行到20行；
+% ：表示整个文件，同“1,$”；
+“. ,$” ：从当前行到文件尾；
+s : 表示替换
+[option] : 表示操作类型
+如：g 全局替换;
+c 表示进行确认
+p 表示替代结果逐行显示（Ctrl + L恢复屏幕）
+省略option时仅对每行第一个匹配串进行替换
+源字符串和目的字符串中出现特殊字符，需要用\转义
+** 例子
+#将That or this 换成 This or that
+:%s/\(That\) or \(this\)/\u\2 or \l\1/
+—-
+#将mgi/r/abox换成mgi/r/asquare
+:g/mg\([ira]\)box/s//mg//my\1square/g    <=>  :g/mg[ira]box/s/box/square/g
+—-
+—-
+#使用空格替换句号或者冒号后面的一个或者多个空格
+:%s/\([:.]\)  */\1 /g
+—-
+#删除所有空行
+:g/^$/d
+—-
+#删除所有的空白行和空行
+:g/^[  ][  ]*$/d
+—-
+#在接下来的6行末尾加入.
+:.,5/$/./
+—-
+#颠倒文件的行序
+:g/.*/m0O  <=> :g/^/m0O
+—-
+#寻找不是数字的开始行,并将其移到文件尾部
+:g!/^[0-9]/m$ <=> g/^[^0-9]/m$
+—-
+#将文件的第12到17行内容复制10词放到当前文件的尾部
+:1,10g/^/12,17t$
+~~~~重复次数的作用
+—-
+#将chapter开始行下面的第二行的内容写道begin文件中
+:g/^chapter/.+2w>>begin
+—-
+:/^part2/,/^part3/g/^chapter/.+2w>>begin
+—-
+:/^part2/,/^part3/g/^chapter/.+2w>>begin|+t$
+* C-M-o  split-line
+Split current line, moving portion beyond point vertically down.
+If the current line starts with `fill-prefix', insert it on the new
+line as well.  With prefix ARG, don't insert `fill-prefix' on new line.
+* _ (有参数) “2_”: 移动到下一行首非空
+*  rEnter: split line
+* C-o 在插入模式下：暂时进入Normal mode ，任一命令执行后，回到Insert Mode
+* [0-9][a-z][x-y]可以匹配对于字符 空格匹配空格不是\s  %s/ +$//g 删除行尾所有空格
+* whitespace mode lets u examine invisible chcracter such as tab, the end char of a line
+* ssh remote
+ /ssh:sdk@172.28.48.113#18022:/
+C-x C-f /ssh:user@192.168.1.5:/usr/share/nginx/html/index.html
+you can write shortcuts for machines that you use frequently:
+
+dired "/root@192.168.1.5:/"
+
+(defun connect-remote ()
+  (interactive)
+  (dired "/root@192.168.1.5:/"))
+This will open a dired buffer on a remote machine. You can navigate this buffer as you would a local one.
+
+在mac中, 由于unix domain socket的文件名长度有限(104字符), 往往指定了端口会导致最终的socket文件名恰好超过了这个限制, 于是报错: “too long for unix domain socket”.
+ 方法： (setq tramp-ssh-controlmaster-options "-o ControlPath=%%C -o ControlMaster=auto -o ControlPersist=no")
+
+* chinese Input
+apt -y install fcitx
+下载词库
+M-X  运行 pyim-dicts-manager
+配置见 https://github.com/tumashu/pyim
+
+* install on windows
+windows native built version can not open from git bash or mintty
+can be opened from native cmd, or just dbclick to open it

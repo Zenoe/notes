@@ -1,0 +1,563 @@
+Vim tabs just provide another viewport to alternatively organise splits (windows).
+
+source $MYVIMRC | PackerSync
+
+:set runtimepath?
+
+On a terminal, Alt+char is normally the same as Esc char. (It's possible to configure some terminals differently.)
+* only source one plugin (netrw)
+vim --clean or gvim --clean
+:source $VIMRUNTIME/plugin/netrwPlugin.vim
+:Explore
+* command line mode
+:h cmdline-window for details.
+Tap Ctrl+F while in command-line mode (just after :). There you'll get command-line window which could be edited&navigated as a regular vim window (hjkl etc.).
+
+:h cmdline-editing
+:h ins-special-keys.
+
+ctrl-b: cursor to beginning of command-line
+ctrl-e: cursor to end of command-line
+ctrl-w: delete the word before the cursor
+ctrl-u: remove all characters between the cursor position and the beginning of the line
+ctrl-h: backspace
+alt-b: go back a word
+
+** paste in command line
+<ctrl+r>"  default
+cnoremap <C-y> <C-r>+
+
+* delete multiple buffers
+:bd *.js <C-a>  --> delete all js buffers
+:bd <C-a>
+:.,$-bd[elete]    " to delete buffers from the current one to last but one
+    :%bd[elete]       " to delete all buffers
+    :3,5bd[elete]
+* custom ex command
+:fun! Hellosir()
+:    echo 'hello sir'
+:endfun
+
+==>now in command line, one could Call Hellosir()
+
+fun! s:hellosir()
+  echo 'hello sir'
+endfun
+command Hello call s:hellosir()
+
+==> in command line, one could input :Hello
+
+* exclainmation
+:wq! :q!	do it anyway!
+:autocmd! {group} {event} {pat} cmd	override specific autocommands (:help autocmd-remove*)
+:function!	override existing
+:com[mand][!] [{attr}...] {cmd} {repl}	override existing
+:set number!	(override 0 with 1， or 1 → 0) toggle an option
+:!ls	shell command
+* jump
+gf: goto file under cursor
+[m, ]m, goto Go to [count] next start of a method (for Java or structured language).
+When not before the start of a method, jump to the start or end of the class.
+
+va}
+vap
+
+using regular expressions to select until the next far left-indented closing curly brace:
+    v/^}Enter
+** match jump
+  Block Type       Move to previous   Move to next   Inner text obj.   Outer text obj.
+========================================================================================
+  curly bracket    [{                 ]}             iB                aB
+----------------------------------------------------------------------------------------
+  parentheses      [(                 ])             ib                ab
+----------------------------------------------------------------------------------------
+  square bracket                                     i[                a[
+----------------------------------------------------------------------------------------
+  xml/html                                           it                at
+----------------------------------------------------------------------------------------
+  paragraph        {                  }              ip                ap
+----------------------------------------------------------------------------------------
+  section          [[ []              ]] ][
+----------------------------------------------------------------------------------------
+  method           [m [M              ]m ]M
+----------------------------------------------------------------------------------------
+  matchit/-up      [%                 ]%             i%                a%
+* vim.api.nvim_create_user_command('Rel', 'source $MYVIMRC', {})
+
+*  Smart indent when entering insert mode on blank line --> press cc in normal mode
+* :find filename
+* /pattern/offset<cr>
+if the pattern part is left out, the search looks for the last pattern that was searched for. If the offset is left out, no offset is applied
+The offset is basically what to do to the cursor once you've found your pattern item.
+[num]         [num] lines downwards, in column 1
++[num]        [num] lines downwards, in column 1
+-[num]        [num] lines upwards, in column 1
+e[+num]       [num] characters to the right of the end of the match
+e[-num]       [num] characters to the left of the end of the match
+s[+num]       [num] characters to the right of the start of the match
+s[-num]       [num] characters to the left of the start of the match
+b[+num]       [num] identical to s[+num] above (mnemonic: begin)
+b[-num]       [num] identical to s[-num] above (mnemonic: begin)
+;{pattern}    perform another search, see |//;|
+* v /foo  select a block of text until foo
+select from your current position to the next instance of "foo." If you actually wanted to expand to the next instance of "foo," on line 35, for example, just press n to expand selection to the next instance, and so on
+If you need to include the pattern you can use v/foo/e. The e stands for "end" of the matched pattern.
+* to packer plugins' config to take effect must run :PackerSync
+
+* manually compile telescope-fzf-native.nvim
+download visualstudiosetup.exe
+install 单个组件：vs2022 c++ x64/x86 spectre 缓解库
+install 工作负荷:使用C++桌面开发(没有这个会出现找不到MSVCRTD.lib,即使 lib 存在)
+nmake,exe 和 vcvars64.bat 加入PATH
+set PATH=%PATH%;C:\your\path\here\
+
+** 无法解析的外部符号 __guard_eh_cont_table - Google Search
+安装vc2017导致的，要安装最新的2022,但是，现在会出现下面的问题(CMake Error at CMakeLists.txt:2 (project):)
+** must delete cmake cache  (I just removed build directory)
+CMake Error at CMakeLists.txt:2 (project):
+  The CMAKE_C_COMPILER:
+
+    C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.16.27023/bin/HostX64/x64/cl.exe
+
+  is not a full path to an existing compiler tool.
+To use the NMake generator with Visual C++, cmake must be run from a shell
+...
+
+* list all functions
+" where was an option set
+:scriptnames            : list all plugins, _vimrcs loaded (super)
+:verbose set history?   : reveals value of history and where set
+:function               : list functions
+:func SearchCompl       : List particular function
+* copy message
+:put =execute('messages')
+* windows
+install fzf
+install packer , vimplug
+要运行  packadd packer.nvim | PackerInstall
+vim.cmd [ [packadd packer.nvim]]
+加载了pakcer.nvim后才有 "PackerInstall"
+PlugInstall
+PackerInstall
+* plug install location
+~/.local/share/nvim/plugged
+* file and directory
+** open file
+:find path/to/file.txt
+To open a file in a vertical split use the following. This also supports tab completion.
+
+:vs path/to/file.txt
+To open a file in a horizontal split use the following. This also supports tab completion.
+
+:sp path/to/file.txt
+To open a file in a new tab use the following. This also supports tab completion.
+
+:tabnew path/to/file.txt* insert mode traverse text
+** change dir to current file's
+:cd %:p:h
+  %: current file
+  %:p get full path of current file
+  :h get header of full path( remove the last component and any separators)
+
+  in vim input :h %:p  to see the help info
+
+* What is the meaining of '#' symbol in function name?
+That's part of the autoload mechanism. From Autoloading at Learn Vimscript the Hard Way and :help autoload:
+
+Autoload lets you delay loading code until it's actually needed, so if the following function
+
+execute pathogen#infect()
+has already been loaded, Vim will simply call it normally. Otherwise Vim will look for a file called autoload/pathogen.vim in your ~/.vim directory . If this file exists, Vim will load/source the file. It will then try to call the function normally.
+
+Every # in the function name works like a path separator. Thus when calling a function:
+
+:call foo#bar#func()
+Vim will look for the file autoload/foo/bar.vim
+* call vim from lua
+ vim.cmd('colorscheme onedark')
+ allows us to use vimscript inside lua.
+* call lua from vim
+lua << EOF
+require('Comment').setup()
+EOF
+* netrw
+:help netrw
+vim.keymap.set('n', '<F2>', '<cmd>Lexplore<cr>')
+* new file
+From within Vim, new files are created like existing files are edited, via commands like :edit filename or :split filename.
+
+Like a command prompt, Vim has a notion of current directory (:pwd lists it). All file paths are relative to it. You don't need to duplicate the path to your current file, there are some nice shortcuts for them: % refers to the current file, :h is a modifier for its directory, minus the file name (cp. :help filename-modifiers). So,
+
+:e %:h/filename
+:w
+will create a new file named filename in the same directory as the currently open file, and write it.
+
+Alternatively, some people like Vim to always change to the current file's directory. This can be configured by placing
+
+:set autochdir
+into your ~/.vimrc file (which is read on Vim startup). Then, above becomes simply
+
+:e filename
+* reload init.lua
+:source $MYVIMRC | PackerSync
+
+* start
+call mkdir(stdpath("config"), "p")
+echo stdpath("config")
+exe "edit" stdpath("config") . "/init.lua"
+
+* recent file
+:ol[dfiles]
+Then to open one of the listed files, use: '0, '1, '2, ... '9
+
+List the files that have marks stored in the viminfo file.
+
+:bro[wse] ol[dfiles][!]
+List file names as with :oldfiles, and then prompt for a number. When the number is valid that file from the list is edited. Use ! to abandon a modified buffer.
+* vim.keymap.set('n', '<space>w', '<cmd>write<cr>', {desc = 'Save'})
+Now let me explain vim.keymap.set parameters.
+vim.keymap.set({mode}, {lhs}, {rhs}, {opts})
+{mode} mode where the keybinding should execute. It can be a list of modes. We need to specify the mode's short name. Here are some of the most common.
+n: Normal mode.
+i: Insert mode.
+x: Visual mode.
+s: Selection mode.
+v: Visual + Selection.
+t: Terminal mode.
+o: Operator-pending.
+'': Yes, an empty string. Is the equivalent of n + v + o.
+{lhs} is the key we want to bind.
+{rhs} is the action we want to execute. It can be a string with a command or an expression. You can also provide a lua function.
+{opts} this must be a lua table. If you don't know what is a "lua table" just think is a way of storing several values in one place. Anyway, it can have these properties.
+desc: A string that describes what the keybinding does. You can write anything you want.
+
+remap: A boolean that determines if our keybinding can be recursive. The default value is false. Recursive keybindings can cause some conflicts if used incorrectly. Don't enable it unless you know what you're doing. I will explain this recursive thing later.
+
+buffer: It can be a boolean or a number. If we assign the boolean true it means the keybinding will only be effective in the current file. If we assign a number, it needs to be the "id" of an open buffer.
+
+silent: A boolean. Determines whether or not the keybindings can show a message. The default value is false.
+
+expr: A boolean. If enabled it gives the chance to use vimscript or lua to calculate the value of {rhs}. The default value is false.
+
+* autocmd group
+main reason to use augroups is to allow greater control over ranges of autocommands, e.g. to delete a bunch of autocommands in one go. A common pattern is to use the au! as the first part of a group. This removes all existing autocommands in the group, and allows one to start afresh. If you did not use a group, then au! would remove all/many autocommands that you did not want to remove
+
+* Error: deoplete requires msgpack 1.0.0+.
+pip3 install --user pynvim --upgrade msgpack
+
+* tab
+Next tab: gt
+
+Prior tab: gT
+
+Numbered tab: nnngt
+
+" Go to tab by number
+noremap <leader>1 1gt
+noremap <leader>2 2gt
+noremap <leader>3 3gt
+noremap <leader>4 4gt
+noremap <leader>5 5gt
+noremap <leader>6 6gt
+noremap <leader>7 7gt
+noremap <leader>8 8gt
+noremap <leader>9 9gt
+noremap <leader>0 :tablast<cr>
+You can use the settings below to toggle between the current and last active tab (here it is mapped to Ctrl+L, i.e., <c-l>):
+
+" Go to last active tab
+
+au TabLeave * let g:lasttab = tabpagenr()
+nnoremap <silent> <c-l> :exe "tabn ".g:lasttab<cr>
+vnoremap <silent> <c-l> :exe "tabn ".g:lasttab<cr   >
+
+* buffer
+** close buffer
+:bd
+
+to select
+:bd txt <Tab>
+
+Note that the matching string does not have to be at the start of the file name.
+
+The above displays the list of file names that match 'txt' at the bottom of the screen and keeps the :bd command I initially typed untouched, ready to be completed.
+
+Here's an example:
+
+doc1.txt doc2.txt
+:bd txt
+I could backspace over the 'txt' bit and type in the file name I wish to delete, but where this becomes really convenient is that I don't have to: if I hit the Tab key a second time, Vim automatically completes my command with the first match:
+
+:bd doc1.txt
+
+** select buffer
+<c-^>/<c-6> - jump to the alternative file or if providing a count to a certain buffer number. See :h CTRL-6
+:b <tab>
+:sb - split variant of :b
+# used to represent the alternative file which is often the previous buffer. e.g. :b#.
+Common mapping nnoremap <leader>b :ls<cr>:b<space>
+* packer
+修改 compile_path 导致每次PackerSync 时会让删除已安装的plugin
+require("packer").init {
+  --  Neovim itself needs to find compile_path, not related to packer
+	compile_path = require('packer.util').join_paths(vim.fn.stdpath('data'), 'plugin', 'packer_compiled.lua')
+}
+
+setup expect a lua table as its argument to modify configurations
+plugins that is written in vimscript, there is no .setup
+
+* keymappings
+local builtin = require('telescope.builtin')
+vim.keymap.set('n', 'ff', builtin.find_files, {})
+vim.keymap.set('n', 'fg', builtin.live_grep, {})
+vim.keymap.set('n', 'fb', builtin.buffers, {})
+vim.keymap.set('n', 'fh', builtin.help_tags, {})
+
+vim script:
+nnoremap <M-p> <cmd>lua require('telescope.builtin').find_files( { cwd = vim.fn.expand('%:p:h') })<cr>
+
+* lua getevn
+print (os.getenv("LOCALAPPDATA") and os.getenv("LOCALAPPDATA") .. "/nvim/")
+
+* chain command
+'|' can be used to separate commands, so you can give multiple commands in one
+line.  If you want to use '|' in an argument, precede it with '\'.
+These commands see the '|' as their argument, and can therefore not be
+followed by another Vim command:
+:help :\bar
+
+map <F6> <ESC>:echo "test" <bar> :echo "test2"
+:execute 'normal "ayiw' | echo @a
+
+* filetype
+
+get current ft
+:set ft?
+
+access the value
+let my_filetype = &filetype
+let my_filetype = &ft
+execute 'edit tmp/other.' . &filetype
+
+* autopairs
+<CR>  : Insert new indented line after return if cursor in blank brackets or quotes.
+<BS>  : Delete brackets in pair
+<M-p> : Toggle Autopairs (g:AutoPairsShortcutToggle)
+<M-e> : Fast Wrap (g:AutoPairsShortcutFastWrap)
+<M-n> : Jump to next closed pair (g:AutoPairsShortcutJump)
+<M-b> : BackInsert (g:AutoPairsShortcutBackInsert)
+
+* autosave
+autocmd TextChanged,TextChangedI <buffer> silent write
+
+* To display all the buffer-local mappings for the current buffer, use the following commands:
+:map <buffer>
+:map! <buffer>
+
+* map
+:map	{lhs} {rhs}		mapmode-nvo  		:map
+:nm[ap]	{lhs} {rhs}		mapmode-n  		:nm :nmap
+:vm[ap]	{lhs} {rhs}		mapmode-v  		:vm :vmap
+:xm[ap]	{lhs} {rhs}		mapmode-x  		:xm :xmap
+:smap	{lhs} {rhs}		mapmode-s  		    :smap
+:om[ap]	{lhs} {rhs}		mapmode-o  		:om :omap
+:map!	{lhs} {rhs}		mapmode-ic  		:map!
+:im[ap]	{lhs} {rhs}		mapmode-i  		:im :imap
+:lm[ap]	{lhs} {rhs}		mapmode-l  		:lm :lma :lmap
+:cm[ap]	{lhs} {rhs}		mapmode-c  		:cm :cmap
+:tma[p]	{lhs} {rhs}		mapmode-t  		:tma :tmap
+
+* Exchange point and mark in Vim selection
+o in visual mode, aka v_o.
+Reading :h v_$ we learn we can move to any corner of the selection
+
+* tab and buffer
+Buffers are not specific to one tab: buffer A may be displayed in windows 3 and 4 of tab 1 and in window 1 of tab 2 or… nowhere. You'll probably need to hack MBE a little to narrow down the list to the buffers currently visible in the current tab.
+
+But what would be the point?
+
+If you have buffers A and B already displayed in windows 1 and 2 of the current tab, displaying a list of those two buffers sounds beyond useless to me.
+
+
+-- a different layout of windows of all of your existing buffers.
+* delete suround parentheses/brackets
+ma%x`ax (mark position in register a, go to matching paren, delete char, go to mark a, delete char).
+%x``x does the same thing
+* inccommand
+For substitution, the inccommand (:h icm) option shows the effects of :substitute, :smagic, :snomagic and user commands with the :command-preview flag as we type.
+
+The possible values for this option are
+
+nosplit — Shows the effects of a command incrementally in the buffer.
+split — Like nosplit, but also shows partial off-screen results in a preview window.
+
+* register
+-- Copy to clipboard.
+vim.keymap.set({'n', 'x'}, 'cp', '"+y')
+-- Paste from clipboard.
+vim.keymap.set({'n', 'x'}, 'cv', '"+p')
+-- Delete without changing the registers
+vim.keymap.set({'n', 'x'}, 'x', '"_x')
+
+----------------------------lua
+* lua
+** install luarocks (new version)
+1. install lua and lua-dev first
+   apti lua5.1
+   apti liblua5.1-dev
+2. install luarocks
+wget https://luarocks.org/releases/luarocks-3.9.1.tar.gz
+tar zxpf luarocks-3.9.1.tar.gz
+cd luarocks-3.9.1
+./configure && make && sudo make install
+
+
+** nvim wilder when set_pcre2_pattern = 1, lead to "can not find pcre2.so"
+luarocks install pcre2
+mkdir -p /usr/local/lib/lua/5.1/
+cp  lua_modules/lib/lua/5.1/pcre2.so /usr/local/lib/lua/5.1/
+
+** edit buffer
+nvim_buf_set_text
+nvim_buf_get_lines
+nvim_buf_set_lines()
+
+
+insert a
+vim.cmd('normal Aa')
+
+** Mapping functions in Lua
+local M = {}
+function M.funcname()
+  print('foo')
+end
+-- require"myscript" has to match the filename of this script, so lua/myscript.lua
+vim.api.nvim_set_keymap('n', 'key', ':lua require"myscript".funcname()<CR>', {noremap = true})
+return M
+
+Or you can define the function in the global scope:
+
+function _G.funcname()
+  print('foo')
+end
+vim.api.nvim_set_keymap('n', 'key', ':lua funcname()<CR>', {noremap = true})
+You can also create a function registry that stores functions and automatically assigns them unique identifiers that you can later call from the mapping.
+
+** clear cache
+for k, v in pairs(package.loaded) do
+  if string.match(k, "^my_lua_config") then
+    package.loaded[k] = nil
+  end
+end
+
+if package.loaded['plugins'] then
+  package.loaded['plugins'] = nil
+end
+require('plugins')
+** exec
+exec(
+  [[
+  augroup YankHighlight
+    autocmd!
+    autocmd TextYankPost * silent! lua vim.highlight.on_yank{higroup="IncSearch", timeout=500, on_visual=true}
+  augroup end
+]],
+  false
+)
+
+-- jump to the last position when reopening a file
+cmd(
+  [[
+if has("autocmd")
+  au BufReadPost * if line("'\"") > 0 && line("'\"") <= line("$") | exe "normal! g`\"" | endif
+endif
+]]
+)
+
+* vimscript
+function! EnterEnter()
+  if getline(".") =~ '^\s*\(//\|#\|"\)\s*$'
+    " disable auto-comment in new line
+    return "\<C-u>"
+  else
+    return "\<CR>"
+  endif
+endfunction
+
+imap <expr> <CR> EnterEnter()
+** help
+:h list-functions
+:h index()
+** variable
+:help internal-variables
+
+It lists the following types:
+                (nothing) In a function: local to a function; otherwise: global
+buffer-variable    b:     Local to the current buffer.
+window-variable    w:     Local to the current window.
+tabpage-variable   t:     Local to the current tab page.
+global-variable    g:     Global.
+local-variable     l:     Local to a function.
+script-variable    s:     Local to a :source'ed Vim script.
+function-argument  a:     Function argument (only inside a function).
+vim-variable       v:     Global, predefined by Vim.
+
+** bind function to key
+function! ToggleBackground()
+    let toggles = { "dark": "light", "light": "dark" }
+    let &background = toggles[&background]
+    call system(toggles[&background])
+endfunction
+nnoremap <C-b> <Cmd>call ToggleBackground()<CR>
+
+** toggle background
+let toggles = { "dark": "light", "light": "dark" }
+let &background = toggles[&background]
+call system(toggles[&background])
+
+** The execute function takes a string as argument, it expands the string and execute it a a regular ex command. Thus you can do:
+
+"This should move the cursor someArg steps to the right
+function! MyFunction(someArg)
+    execute "normal! ". a:someArg. "l"
+endfunction
+The . is a standard vimscript operator to concatenate strings.
+
+execute can be shortened to exe.
+
+See :h :execute
+
+** execute
+:execute is useful to build a command as a string and execute it as an ex command. In your example, it's useless. But it becomes handy in other cases, as an example when you have a variable holding a line number and wants to use its value in a command:
+
+:let i=4
+:exec "2," . i . "d"
+Which is just the same as
+
+:2,4d
+
+** check os
+has() sounds like a good idea until you try it on Mac OS X: in the default /usr/bin/vim, has('unix') is true but both has('macunix') and has('mac') are false while, in the regular MacVim download, all three are true whether you use the GUI or the TUI.
+
+So the best solution is a mix of has('winXX') for Windows and uname on unix-like systems. Note that the output of uname ends with a newline so it must be cleaned before use.
+
+Here is the code I've been using for a while, updated for win64:
+
+if !exists("g:os")
+    if has("win64") || has("win32") || has("win16")
+        let g:os = "Windows"
+    else
+        let g:os = substitute(system('uname'), '\n', '', '')
+    endif
+endif
+After that, you can use the g:os variable anywhere in your vimrc:
+
+if has("gui_running")
+    if g:os == "Darwin"
+        set guifont=Fira\ Mono:h12
+    elseif g:os == "Linux"
+        set guifont=Fira\ Mono\ 10
+    elseif g:os == "Windows"
+        set guifont=Fira_Mono:h12:cANSI
+    endif
+endif

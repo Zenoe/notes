@@ -1,0 +1,142 @@
+The fieldset element is used to group related inputs and labels together in a web form. fieldset elements are block-level elements
+The legend element acts as a caption for the content in the fieldset element. It gives users context about what they should enter into that part of the form.
+All pages should begin with <!DOCTYPE html>. This special string is known as a declaration and ensures the browser tries to meet industry-wide specifications.
+
+* 2
+The title is one of several elements that provide extra information not visible on the web page, but it is useful for search engines or how the page gets displayed.
+For the styling of the page to look similar on mobile as it does on a desktop or laptop, you need to add a meta element with a special content attribute.
+Add the following within the head element:
+<meta name="viewport" content="width=device-width, initial
+center the div horizontally. You can do this by setting its margin-left and margin-right properties to auto
+article elements commonly contain multiple elements that have related information. In this case, it will contain a coffee flavor and a price for that flavor
+
+all p element with class of 'item'
+.item p{display: inline-block}
+inline-block elements only take up the width of their content.
+
+step41
+simply move the price p element to be on the same line and make sure there is no space between them.
+
+max-width
+The current width of the menu will always take up 80% of the body element's width. On a very wide screen, the coffee and dessert appear far apart from their prices.
+
+Add a max-width property to the menu class with a value of 500px to prevent it from growing too wide.
+
+hr
+hr {
+  height: 3px;
+  background-color: brown;
+  border-color:brown;
+}
+
+The default value of a property named border-width is 1px for all edges of hr elements.
+
+** color of a href
+The default color of a link that has not yet been clicked on is typically blue. The default color of a link that has already been visited from a page is typically purple.
+
+To make the footer links the same color regardless if a link has been visited, use a type selector for the anchor element (a) and use the value black for the color property.
+a{color:black}
+
+a:visited {
+  color: grey;
+}
+a:hover{color:brown}
+
+ change properties of a link when the link is actually being clicked by using a pseudo-selector that looks like a:active { propertyName: propertyValue; }.
+
+ a:active{color:white}
+
+** default margin top of h1
+ The menu text CAMPER CAFE has a different space from the top than the address at the bottom of the menu. This is due to the browser having some default top margin for the h1 element.
+
+Change the top margin of the h1 element to 0 to remove all the top margin.
+** center img
+img{
+  display:block;
+  margin-left:auto;
+  margin-right:auto;
+  }
+** negative margin
+step 92
+It would be nice if the vertical space between the h2 elements and their associated icons was smaller. The h2 elements have default top and bottom margin space, so you could change the bottom margin of the h2 elements to say 0 or another number.
+
+There is an easier way, simply add a negative top margin to the img elements to pull them up from their current positions. Negative values are created using a - in front of the value. To complete this project, go ahead and use a negative top margin of 25px in the img type selector.
+* 3
+** change bg color from green to rgb(0,255,0)
+While the red and blue markers look the same, the green one is much lighter than it was before. This is because the green color keyword is actually a darker shade, and is about halfway between black and the maximum value for green.
+
+In the two CSS rule, set the green value in the rgb function to 127 to lower its intensity.
+
+** rgba or opacity set tranparent color
+
+
+box-shadow: 0 0 20px 0 #3B7E20CC; // 38 for red, 7E for green, 20 for blue, cc for alpha
+
+
+fieldset:not(:last-of-type) {
+  border-bottom: 3px solid #3b3b4f;
+}
+
+
+have the label text appear above the form elements.
+Select all input, textarea, and select elements, and make them take up the full width of their parent elements.
+input, textarea, select{
+  width: 100%
+}
+
+Select only the .inline elements, and give them width of unset. This will remove the earlier rule which set all the input elements to width: 100%.
+.inline {
+width: unset;
+
+}
+
+If you look close enough, you will notice the .inline elements are too high on the line.
+
+To combat this, set the vertical-align property to middle.
+.inline {
+  width: unset;
+  margin: 0 0.5em 0 0;
+  vertical-align: middle;
+}
+** 47
+To make the input and textarea elements blend in with the background theme, set their background-color to #0a0a23. Then, give them a 1px, solid border with a color of #0a0a23.
+
+** attribute selector
+input[name="password"]
+input[type='submit']{
+  display:block;
+  width: 60%;
+}
+
+** It's helpful to have your margins push in one direction.
+
+In this case, the bottom margin of the .one element pushes .two down 20 pixels.
+
+In the .two selector, use margin shorthand property to set top margin to 0, horizontal margin to auto, and bottom margin to 20px.
+
+.one {
+margin: 20px auto;
+}
+.two {
+margin: 0 auto 20px;
+}
+
+** box-sizing: border-box
+is the default styling that browsers use for the <table>, <select>, and <button> elements, and for <input> elements whose type is radio, checkbox, reset, button, submit, color, or search.
+* flexbox
+The justify-content property determines how the items inside a flex container are positioned along the main axis, affecting their position and the space around them.
+The align-items property positions the flex content along the cross axis.
+
+ object-fit property and set it to cover. This will tell the image to fill the img container while maintaining aspect ratio, resulting in cropping to fit.
+
+* The header element will be used to introduce the page, as well as provide a navigation menu.
+The main element will contain the core content of your page.
+   <body>
+    <header></header>
+    <main></main>
+  </body>
+
+  #logo {
+  width: max(100px, 18vw);
+	aspect-ratio: 35/4;
+    }

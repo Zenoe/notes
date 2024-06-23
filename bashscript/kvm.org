@@ -1,0 +1,889 @@
+* delete and restore virbr0
+del：
+ifconfig virbr0 down
+brctl delbr virbr0
+restore:
+virsh net-start default
+
+00-installer-config.yaml 恢复后无法ping路由
+解决：
+删除默认路由，再netplan apply 自动生成默认路由
+删除 br0
+* guest can only ping host
+修改/etc/sysctl.conf，加入
+
+net.bridge.bridge-nf-call-ip6tables = 0
+net.bridge.bridge-nf-call-iptables = 0
+net.bridge.bridge-nf-call-arptables = 0
+
+执行sysctl -p
+
+如果发现执行sysctl -p 之后发现没有/proc/sys/net/bridge/bridge-nf-call-iptables 没有这个文件
+
+执行 modprobe br_netfilter 命令即可
+* guest can not get ip address from dhcp server
+Restart DHCP service:
+    virsh net-destroy default
+    virsh net-start default
+Restart guest vir machine
+
+https://www.cyberciti.biz/faq/linux-kvm-libvirt-dnsmasq-dhcp-static-ip-address-configuration-for-guest-os/
+ps aux | grep dhc
+    libvirt+ 40969  0.0  0.0  49988  3204 ?        S    09:57   0:00 /usr/sbin/dnsmasq --conf-file=/var/lib/libvirt/dnsmasq/default.conf --leasefile-ro --dhcp-script=/usr/lib/libvirt/libvirt_leaseshelper
+    root     40970  0.0  0.0  49960   368 ?        S    09:57   0:00 /usr/sbin/dnsmasq --conf-file=/var/lib/libvirt/dnsmasq/default.conf --leasefile-ro --dhcp-script=/usr/lib/libvirt/libvirt_leaseshelper
+    libvirt+ 41875  0.0  0.0  50136   392 ?        S    10:09   0:00 /usr/sbin/dnsmasq --conf-file=/var/lib/libvirt/dnsmasq/default.conf --leasefile-ro --dhcp-script=/usr/lib/libvirt/libvirt_leaseshelper
+
+    dnsmasq: dns and dhcp server
+     an instance of dnsmasq dhcpd server is automatically configured and started by libvirt for each virtual network switch needing it. Each virtual network switch can given a range of IP addresses provided to guests through DHCP. The default networking switch uses dnsmasq server.
+* find ip of guest
+1. virsh net-dhcp-leases default virtual machine
+2. virsh domifaddr host
+3.  virsh list
+    virsh dumpxml VM_NAME | grep "mac address" | awk -F\' '{ print $2}'
+    arp -an | grep 52:54:00:ce:8a:c4
+* replace default bridge that provides nat
+https://levelup.gitconnected.com/how-to-setup-bridge-networking-with-kvm-on-ubuntu-20-04-9c560b3e3991
+* bridge.sh
+modprobe kvm_intel
+egrep '(vmx|svm)' /proc/cpuinfo
+
+#!/bin/bash
+lsmod |grep --color kvm
+if [ $? -ne 0 ]; then
+echo "kvm mode not found"
+exit 1
+fi
+
+cd /etc/sysconfig/network-scripts/
+if [ $# -ne 1 ]; then
+echo "usage: $0 ifcfg-file"
+exit 1
+fi
+
+IFCFG_FILE="$1"
+yum install -y kvm libvirt bridge-utils qemu-kvm qemu-img virt-install seabios.x86_64  virt-viewer
+
+ipaddr=$(cat $IFCFG_FILE | grep -i IPADDR | cut -d = -f 2)
+gateway=$(cat $IFCFG_FILE | grep -i GATEWAY | cut -d = -f 2)
+prefix=$(cat $IFCFG_FILE | grep -i PREFIX | cut -d = -f 2)
+dns=$(cat $IFCFG_FILE | grep -i dns)
+
+echo "DEVICE=br0
+TYPE=Bridge
+BOOTPROTO=static
+ONBOOT=yes
+IPADDR=$ipaddr
+GATEWAY=$gateway
+PREFIX=$prefix
+$dns" > ifcfg-br0
+
+sed -i 's/^UUID/#UUID/' $IFCFG_FILE
+sed -i 's/^IPADDR/#IPADDR/' $IFCFG_FILE
+sed -i 's/^GATEWAY/#GATEWAY/' $IFCFG_FILE
+sed -i 's/^PREFIX/#PREFIX/' $IFCFG_FILE
+sed -i 's/^DNS/#DNS/' $IFCFG_FILE
+echo "BRIDGE=br0" >> $IFCFG_FILE
+
+service libvirtd restart
+chkconfig libvirtd on
+service network restart
+
+systemctl stop firewalld
+
+* virsh
+## it seems that this step is unnecessary
+pool-list --all
+pool-define-as kvm_images1 dir - - - - "/data/kvm/images1"
+pool-build kvm_images1
+pool-start kvm_images1
+pool-autostart kvm_images1
+
+pool-destroy  kvm_images1
+pool-delete kvm_images1
+pool-undefine kvm_images1
+
+验证存储池
+ pool-info kvm_images
+名称：      kvm_images
+UUID:          89a6434f-2106-4a98-d34c-d6b32bef6a0c
+状态：      running
+Persistent:    yes
+自动启动： yes
+容量：      170.84 GB
+分配：      187.38 MB
+可用：      170.66 GB
+
+* virt-install
+spice://172.18.235.51:5900
+CentOS-7-x86_64-Minimal-1611.iso 要放在image同一磁盘上,不然virt-install 会没有权限访问
+
+virt-install --help
+--graphics spice/vnc/none
+--virt-type kvm : Hypervisor name to use (kvm, qemu, xen, ...)
+
+# but spice TLS is disabled in qemu.conf.<== remove the option of port=5911
+virt-install -n vs -r 16384 -f /opt/kvm/vs.qcow2 -s 300 --vcpus=8 --network bridge=br0 --graphics spice,port=5911,listen=0.0.0.0 --video qxl --channel spicevmc --cdrom=/root/CentOS-7-x86_64-Minimal-1611.iso
+
+console:
+virt-install \
+--virt-type=kvm \
+--name=vs65 \
+--vcpus=16 \
+--memory=32768 \
+--location=/tmp/CentOS-7-x86_64-Minimal-1611.iso \
+--disk path=/data/data1/vs65.qcow2,size=1024,format=qcow2 \
+--network bridge=br0 \
+--graphics none \
+--extra-args='console=ttyS0' \
+--force
+
+--network network=default \  #nat模式
+** 参数选项
+*** 一般选项
+-n NAME, --name=NAME：虚拟机名称，需全局惟一；
+-r MEMORY, --ram=MEMORY：虚拟机内在大小，单位为MB；
+--vcpus=VCPUS[,maxvcpus=MAX][,sockets=#][,cores=#][,threads=#]：VCPU个数及相关配置；
+ --cpu=CPU：CPU模式及特性，如coreduo等；可以使用qemu-kvm -cpu ?来获取支持的CPU模式；
+-c CDROM, --cdrom=CDROM：光盘安装介质；
+ -l LOCATION, --location=LOCATION：安装源URL，支持FTP、HTTP及NFS等，如ftp://172.16.0.1/pub；
+--pxe：基于PXE完成安装； --livecd: 把光盘当作LiveCD；
+--os-type=DISTRO_TYPE：操作系统类型，如Linux、unix或windows等；
+--os-variant=DISTRO_VARIANT：某类型操作系统的变体，如rhel5、fedora8等；
+-x EXTRA, --extra-args=EXTRA：根据--location指定的方式安装GuestOS时，用于传递给内核的额外选项，例如指定kickstart文件的位置，
+--extra-args "ks=http://172.16.0.1/class.cfg"
+--boot=BOOTOPTS：指定安装过程完成后的配置选项，如指定引导设备次序、使用指定的而非安装的kernel/initrd来引导系统启动等 ；例如： --boot cdrom,hd,network：指定引导次序；
+--boot kernel=KERNEL,initrd=INITRD,kernel_args=”console=/dev/ttyS0”：指定启动系统的内核及initrd文件；
+*** 硬盘
+--disk=DISKOPTS：指定存储设备及其属性；格式为--disk /some/storage/path,opt1=val1，opt2=val2等；
+常用的选项有：
+device：设备类型，如cdrom、disk或floppy等，默认为disk；
+bus：磁盘总结类型，其值可以为ide、scsi、usb、virtio或xen；
+perms：访问权限，如rw、ro或sh（共享的可读写），默认为rw；
+size：新建磁盘映像的大小，单位为GB；
+cache：缓存模型，其值有none、writethrouth（缓存读）及writeback（缓存读写）；
+format：磁盘映像格式，如raw、qcow2、vmdk等；
+sparse：磁盘映像使用稀疏格式，即不立即分配指定大小的空间；
+--nodisks：不使用本地磁盘，在LiveCD模式中常用；
+*** 网络
+-w NETWORK, --network=NETWORK,opt1=val1,opt2=val2：将虚拟机连入宿主机的网络中，其中NETWORK可以为：
+bridge=BRIDGE：连接至名为“BRIDEG”的桥设备；
+network=NAME：连接至名为“NAME”的网络；
+虚拟化
+-v, --hvm：当物理机同时支持完全虚拟化和半虚拟化时，指定使用完全虚拟化；
+ -p, --paravirt：指定使用半虚拟化；
+ --virt-type：使用的hypervisor，如kvm、qemu、xen等；所有可用值可以使用’virsh capabilities’命令获取；
+*** 图像
+--graphics TYPE,opt1=val1,opt2=val2：指定图形显示相关的配置，此选项不会配置任何显示硬件（如显卡），而是仅指定虚拟机启动后对其进行访问的接口；
+TYPE：指定显示类型，可以为vnc、sdl、spice或none等，默认为vnc； port：
+TYPE为vnc或spice时其监听的端口； listen：TYPE为vnc或spice时所监听的IP地址，默认为127.0.0.1，可以通过修改/etc/libvirt/qemu.conf定义新的默认值； password：TYPE为vnc或spice时，为远程访问监听的服务进指定认证密码； --noautoconsole：禁止自动连接至虚拟机的控制台；
+
+* install on ubuntu
+apt install qemu-kvm libvirt-daemon-system libvirt-clients bridge-utils virtinst virt-manager
+
+systemctl is-active libvirtd
+
+virt-install \
+--virt-type=kvm \
+--name=ub22 \
+--vcpus=16 \
+--memory=16384 \
+--cdrom=/opt/kvm/ubuntu-22.04.1-live-server-amd64.iso \
+--disk path=/data/kvm/u22.qcow2,size=2408,format=qcow2 \
+--network bridge=virbr0 \
+--graphics none \
+--graphics spice,listen=0.0.0.0
+
+无法ping
+root@s50:/opt/tools# brctl show
+bridge name     bridge id               STP enabled     interfaces
+br0             8000.0e7de332f70b       no              enp94s0f1
+docker0         8000.024290ba5bc8       no
+virbr0          8000.525400214310       yes             vnet1
+
+root@s50:/opt/tools# ip link set vnet1 master br0
+
+root@s50:/opt/tools# ping 10.110.198.150
+PING 10.110.198.150 (10.110.198.150) 56(84) bytes of data.
+64 bytes from 10.110.198.150: icmp_seq=1 ttl=64 time=0.313 ms
+
+* insvm
+#!/usr/bin/env bash
+
+# sh insvm 8 8 200 v6 /home/images/CentOS-7-x86_64-Minimal-1708.iso /data/data1/vm/v6.qcow2
+if [ $# -ne 6 ]; then
+echo "usage: $0 cores memsize dicksize name iospath qcowpath"
+exit 1
+fi
+
+cores=$1
+# unit GB
+memsize=$2
+memsize=$((memsize * 1024))
+disksize=$3
+name=$4
+iospath=$5
+qcowpath=$6
+
+virt-install -n $name -r $memsize -f $qcowpath -s $disksize --vcpus=$cores --network bridge=br0 --graphics spice,listen=0.0.0.0 --video qxl --channel spicevmc --cdrom=$iospath
+
+* 分区 格式化
+fdisk -l
+fdisk /dev/sdb #分区，按照提示操作，我这里是n/p/1//w后只分了1个分区
+
+mkfs.ext4 /dev/sdb1 #ex4格式化
+mkfs.xfs /dev/sdb1
+
+mkdir /data/
+mount /dev/sdb1 /data/
+vi /etc/fstab
+
+/dev/sdb1 /data/ ext4 defaults 0 0
+
+1. parted -l  #查看所有磁盘状态
+2. parted /dev/vdb   #通过parted工具来创建大于2T的分区
+3. mklabel gpt   #创建创建磁盘标签
+4. mkpart primary 0% 100% #创建整个分区
+5. q #退出
+
+#其他命令
+-------------------
+(parted) mklabel    #创建创建磁盘标签
+New disk labeltype? gpt
+(parted) p  #查看分区状态
+(parted) mkpart
+Partition name? []? gpt2t   #指定分区名称
+File system type? [ext2]ext4    #指定分区类型
+Start? 1    #指定开始位置
+End? 2190GB #指定结束位置
+(parted) P  #显示分区信息
+(parted) Q  #退出
+* Deleting a Storage Pool Using virsh
+https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/6/html/Virtualization_Administration_Guide/delete-lvm-storage-pool-virsh.html
+
+To avoid any issues with other guests using the same pool, it is best to stop the storage pool and release any resources in use by it.
+# virsh pool-destroy guest_images_disk
+Optionally, if you want to remove the directory where the storage pool resides use the following command:
+# virsh pool-delete guest_images_disk
+Remove the storage pool's definition
+# virsh pool-undefine guest_images_disk
+* Active console session exists for this domain
+[root@localhost ~]# virsh console <Virtual Machine Name>
+Connected to domain <Virtual Machine Name>
+Escape character is ^]
+error: operation failed: Active console session exists for this domain
+この場合、解決方法としては二種類の方法があります。
+
+サービス再起動による解決
+
+[root@localhost ~]# service libvirtd restart
+プロセスkillによる解決
+
+[root@localhost ~]# ps aux | grep console
+root     11449  0.0  0.0 300964  3648 pts/1    Sl    2016  33:33 /usr/bin/virsh --connect qemu:///system console 2
+
+[root@localhost ~]# kill -9 11449
+* Centos7 Kvm 虚拟机基本管理
+virsh shutdown oel1    #关闭vm,需要在vm,安装acpid服务才可使用(默认最小化安装不可以)
+virsh destory oel1        #直接关闭vm的电源
+
+virsh suspend oel1            #挂起的vm，从远端的vnc连接是不会断开
+virsh resume oel1        #从挂起恢复的vm，vnc连接可以接着操作域 oel1 被重新恢复
+
+3、vm的删除(分为两部分，一部分是xml配置文件，一部分是vm的磁盘镜像文件)
+
+[root@node71 ~]# ls /etc/libvirt/qemu/            #vm的xml配置文件存放位置
+networks  oel1.xml  oel2.xml
+
+[root@node71 ~]# virsh undefine oel1            #删除正在运行vm的xml配置文件
+[root@node71 ~]# ls /etc/libvirt/qemu/
+networks  oel2.xml
+
+virsh dumpxml oel1 > /etc/libvirt/qemu/oel1.xml    #在运行的vm中dump出当前vm的xml配置文件
+[root@node71 ~]# virsh define /etc/libvirt/qemu/oel1.xml             #重新将xml配置文件注册到kvm
+定义域 oel1（从 /etc/libvirt/qemu/oel1.xml）
+
+#oel2在删除xml配置文件后，在此重启虚拟机是报错    #存在xml文件，只是没有注册到kvm
+[root@node71 ~]# virsh start oel2
+错误：获得域 'oel2' 失败
+错误：未找到域: 没有与名称 'oel2' 匹配的域
+
+[root@node71 ~]# virsh define /etc/libvirt/qemu/oel2.xml 
+定义域 oel2（从 /etc/libvirt/qemu/oel2.xml）
+
+#误操作删除xml文件，又没有xml文件的备份，恢复办法
+[root@node71 ~]# virt-install -n oel1 --ram 512 --vcpus=2 --disk path=/data/vm/oel1/oel1_raw.img,format=raw,size=20,bus=virtio --network bridge=br0,model=virtio --vnc --vncport=5910 --vnclisten=0.0.0.0 --noautoconsole --import
+#指定import参数，说明是通过磁盘导入启动虚拟机，并不是全新安装，会自动在配置目录下生成oel1.xml的配置文件
+#彻底删除vm就是直接删除xml与磁盘镜像文件，后续迁移也是根据此两文件进行vm的迁移
+
+4、vm的基本信息查看
+
+[root@node71 ~]# virsh dominfo oel1
+
+#查看vm的块设备
+[root@node71 ~]# virsh domblklist oel1
+目标     源
+------------------------------------------------
+vda        /data/vm/oel1/oel1_raw.img
+hda        -
+
+[root@node71 ~]# qemu-img info /data/vm/oel1/oel1_raw.img
+image: /data/vm/oel1/oel1_raw.img
+file format: raw
+virtual size: 20G (21474836480 bytes)
+disk size: 2.8G
+[root@node71 ~]#
+#查看vm的cpu使用
+[root@node71 ~]# virsh vcpuinfo oel1
+VCPU:           0
+CPU:            1
+状态：       running
+CPU 时间：   26.5s
+CPU关系:      yyyy
+
+#查看vm的内存
+[root@node71 ~]# virsh dommemstat oel1
+actual 524288
+swap_in 0
+rss 267004
+
+#查看vm的网络
+[root@node71 ~]# virsh domiflist oel1
+接口     类型     源        型号      MAC
+-------------------------------------------------------
+vnet0      bridge     br0        virtio      52:54:00:a4:a5:fe
+
+[root@node71 ~]# virsh domifstat oel1 vnet0
+vnet0 rx_bytes 2739316
+vnet0 rx_packets 36055
+vnet0 rx_errs 0
+vnet0 rx_drop 0
+vnet0 tx_bytes 1022
+vnet0 tx_packets 11
+vnet0 tx_errs 0
+vnet0 tx_drop 0
+
+5、vm的自启动(随着kvm启动而启动)
+
+[root@node71 ~]# ls /etc/libvirt/qemu/
+networks  oel1.xml  oel2.xml
+[root@node71 ~]# virsh autostart oel1
+域 oel1标记为自动开始
+
+[root@node71 ~]# ls /etc/libvirt/qemu/            #在配置目录下建立autostart目录，将vm配置文件链接至此目录下表示开机自启动
+autostart  networks  oel1.xml  oel2.xml
+[root@node71 ~]# ls /etc/libvirt/qemu/autostart/
+oel1.xml
+
+6、vm运行时调整(cpu,内存)
+
+#只有在启动vm是指定vm的最大内存，与最大cpu，vm在运行时才能调整，否则命令执行报错，调整值只能是小于或者等于定义的max值
+#setvcpus    调整cpu数量
+#setmem        调整内存大小
+
+* clone
+virt-clone -o omc1 -n v29 -f /data/data1/vm/v29.qcow2
+
+virt-clone --original v121 --name v122 --file /data/kvm/v122/vs1.qcow2
+mkdir -p /data/data2/kvm && virt-clone -o vs66 -n vs66 --file /data/data2/kvm/v66.qcow2
+
+- vi /etc/sysconfig/network-scripts/ifcfg-eth0
+- modify ip and uuid (get from output by executing domuuid command from host machine)
+* add more vcpu for kvm guest
+virsh edit vm
+modify the value of memory and cpu and restart vm
+use virsh dominfo to show the result
+http://www.thegeekstuff.com/2015/02/add-memory-cpu-disk-to-kvm-vm/
+
+** Add Disk to VM
+
+In this example, we have only two virtual disks (vda1 and vda2) on this VM.
+# fdisk -l | grep vd
+Disk /dev/vda: 10.7 GB, 10737418240 bytes
+/dev/vda1   *           3        1018      512000   83  Linux
+/dev/vda2            1018       20806     9972736   8e  Linux LVM
+There are two steps involved in creating and attaching a new storage device to Linux KVM guest VM:
+
+First, create a virtual disk image
+Attach the virtual disk image to the VM
+Let us create one more virtual disk and attach it to our VM. For this, we first need to create a disk image file using qemu-img create command as shown below.
+
+In the following example, we are creating a virtual disk image with 7GB of size. The disk images are typically located under /var/lib/libvirt/images/ directory.
+
+# cd /var/lib/libvirt/images/
+
+# qemu-img create -f raw vs1-disk2.img 7G
+Formatting 'myRHELVM1-disk2.img', fmt=raw size=7516192768
+To attach the newly created disk image, use the virsh attach-disk command as shown below:
+
+# virsh attach-disk vs1 --source /datac/libvirt/images/vs1-disk2.img --target vdb --persistent
+Disk attached successfully
+The above virsh attach-disk command has the following parameters:
+
+myRHELVM1 The name of the VM
+–source The full path of the source disk image. This is the one that we created using qemu-image command above. i.e: myRHELVM1-disk2.img
+–target This is the device mount point. In this example, we want to attach the given disk image as /dev/vdb. Please note that we don’t really need to specify /dev. It is enough if you just specify vdb.
+–persistent indicates that the disk that attached to the VM will be persistent.
+As you see below, the new /dev/vdb is now available on the VM.
+
+# fdisk -l | grep vd
+Disk /dev/vda: 10.7 GB, 10737418240 bytes
+/dev/vda1   *           3        1018      512000   83  Linux
+/dev/vda2            1018       20806     9972736   8e  Linux LVM
+Disk /dev/vdb: 7516 MB, 7516192768 bytes
+
+Now, you can partition the /dev/vdb device, and create multiple partitions
+/dev/vdb1, /dev/vdb2, etc, and mount it to the VM. Use fdisk to create the
+partitions as we explained earlier.
+
+Similarly to detach a disk from the guest VM, you can use the below command. But
+be careful to specify the correct vd* otherwise you may end-up removing wrong
+device.
+
+virsh detach-disk vs1 vdb
+Disk detached successfully
+4. Save Virtual Machine Configuration
+
+If you make lot of changes to your VM, it is recommended that you save the configurations.
+
+Use the virsh dumpxml file to take a backup and save the configuration information of your VM as shown below.
+
+# virsh dumpxml myRHELVM1 > myrhelvm1.xml
+
+# ls myrhelvm1.xml
+myrhelvm1.xml
+Once you have the configuration file in the XML format, you can always recreate your guest VM from this XML file, using virsh create command as shown below:
+
+virsh create myrhelvm1.xml
+5. Delete KVM Virtual Machine
+
+If you’ve created multiple VMs for testing purpose, and like to delete them, you should do the following three steps:
+
+Shutdown the VM
+Destroy the VM (and undefine it)
+Remove the Disk Image File
+In this example, let us delete myRHELVM2 VM. First, shutdown this VM:
+
+# virsh shutdown myRHELVM2
+Domain myRHELVM2 is being shutdown
+Next, destory this VM as shown below:
+
+# virsh destroy myRHELVM2
+Domain myRHELVM2 destroyed
+Apart from destroying it, you should also undefine the VM as shown below:
+
+# virsh undefine myRHELVM2
+Domain myRHELVM2 has been undefined
+Finally, remove any disk image file that you’ve created for this VM from the /var/lib/libvirt/images directory:
+Now you can remove the disk img file under /var/lib/libvirt/images
+
+rm /var/lib/libvirt/images/myRHELVM2-disk1.img
+rm /var/lib/libvirt/images/myRHELVM2-disk2.img
+* GLib-WARNING **: gmem.c:482: custom memory allocation vtable not supported
+qemu: could not load PC BIOS 'bios-256k.bin'
+yum -y install seabios.x86_64
+* Could not access KVM kernel module: Permission denied
+failed to initialize KVM: Permission denied
+
+uncomment /etc/libvert/qenu.conf
+user = "root"
+group = "root"
+* move vm to another host
+copy the VM's disks from /var/lib/libvirt/images on src host to the same dir on destination host
+on the source host run virsh dumpxml VMNAME > domxml.xml and copy this xml to the dest. host
+on the destination host run virsh define domxml.xml
+start thew VM.
+[the original vm is exclusive from the one on the target host]
+If the disk location differs, you need to edit the xml's devices/disk node to point to the image on the destination host
+If the VM is attached to custom defined networks, you'll need to either edit them out of the xml on the destination host or redefine them as well (virsh net-dumpxml > netxml.xml and the virsh net-define netxml.xml && virsh net-start NETNAME & virsh net-autostart NETNAME)
+* rename vm
+virsh dumpxml name_of_vm > name_of_vm.xml
+Undefine the old vm to prevent an error because of an duplicate UUID.
+
+virsh undefine name-of-vm
+Edit the xml file then import it.
+
+virsh define name_of_vm.xml
+Of course you will have to stop and start the vm for the changes to take effect
+
+virsh destroy name_of_vm
+virsh start name_of_vm
+* qemu-system-x86_64 command not found when virsh define domxml.xml
+  :PROPERTIES:
+  :POST_DATE: 2017-10-18 11:27:27
+  :UPDATE_DATE: 2017-10-18 11:27:27
+  :POST_SLUG: qemu-system-x86_64-command-not-found-when-virsh-define-domxml-xml
+  :END:
+https://www.tecmint.com/how-to-enable-epel-repository-for-rhel-centos-6-5/
+RHEL/CentOS 7 64 Bit
+enable  EPEL Repository
+# wget http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-10.noarch.rpm
+# rpm -ivh epel-release-7-10.noarch.rpm
+yum -y install qemu-system-x86.x86_64
+
+RHEL/CentOS 6 32-64 Bit
+
+## RHEL/CentOS 6 32-Bit ##
+# wget http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+# rpm -ivh epel-release-6-8.noarch.rpm
+## RHEL/CentOS 6 64-Bit ##
+# wget http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+# rpm -ivh epel-release-6-8.noarch.rpm
+
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <target dev='hda' bus='ide'/>
+      <readonly/>
+      <address type='drive' controller='0' bus='0' target='0' unit='0'/>
+    </disk>
+* 通过python获取kvm虚拟机的监控信息(基于libvirt API)
+http://10616534.blog.51cto.com/10606534/1878609
+* expand kvm disk size
+** way 1
+https://fatmin.com/2016/12/20/how-to-resize-a-qcow2-image-and-filesystem-with-virt-resize/
+Below, I have used qemu image to inspect the disk size. This disk is only 10G in size.
+
+# qemu-img info undercloud.qcow2
+
+Let’s add 20G to the disk. Note, the VM must be powered down before proceeding.
+
+# qemu-img resize undercloud.qcow2 +20G
+Image resized.
+
+Now we need to resize the underlying filesystems using “virt-resize“. Note,
+however, that that “virt-resize” CANNOT resize disk images in-place. So we need
+to use make a backup copy and use the backup copy of the qcow as input and use
+the original qcow as output. See example below.
+
+First, we make a backup copy of the disk as shown below.
+
+# cp undercloud.qcow2 undercloud-orig.qcow2
+
+not convinent when the size of the image is too large. too much time to copy
+
+Then we run the command below to grow /dev/sda
+
+# virt-resize –expand /dev/sda1 undercloud-orig.qcow2 undercloud.qcow2
+
+Output shown below:
+
+virt-resize: warning: unknown/unavailable method for expanding the xfs
+filesystem on /dev/sda1
+/dev/sda1: This partition will be resized from 10.0G to 30.0G.
+
+We now inspect new disk
+
+# qemu-img info undercloud.qcow2
+image: undercloud.qcow2
+file format: qcow2
+virtual size: 30G (32212254720 bytes)
+disk size: 9.4G
+cluster_size: 65536
+Format specific information:
+compat: 0.10
+
+Finally, we verify that the filesystems have grown.
+
+# virt-filesystems –long -h –all -a undercloud.qcow2
+Name Type VFS Label MBR Size Parent
+/dev/sda1 filesystem xfs – – 30G –
+/dev/sda1 partition – – 83 30G /dev/sda
+/dev/sda device – – – 30G –
+
+** way2 GParted Live
+http://www.randomhacks.co.uk/how-to-resize-a-qcow2-harddrive-images/
+
+u can drag to resize the partition in GParted 
+
+1 – Shutdown the guest.. It’s important to shutdown the vm properly rather than pausing it or forcing it to a stop because you need the file system to be a perfect condition before resizing it.
+
+virsh shutdown hostname
+2 – Increase the qcow2 disk. It a simple command to increase the size of the disk. Here I am adding 5GB to an Ubuntu Server disk.
+qemu-img resize ubuntu-server.qcow2 +5GB
+
+3 – Resize the partition Now that the virtual disk has been resized you need to resize the guest’s partitions within the image. I recommend using a small live Linux distrobution such as GParted Live. First download an iso image of GParted and attach it to the virtual machine by editing the vm settings.
+
+virsh edit hostname
+Add a boot order at the top. By default there will be one node that should read:
+
+<boot dev='hd'/>
+Simply change this to:
+
+<boot dev='cdrom'/>
+Add a cdrom after the hard disk. Make sure to change the /path/to/image.iso to the ISO image you want to boot from. If you don’t set this correctly the VM will not boot.
+
+<disk type='file' device='cdrom'>
+<source file='/root/iso/gparted-live-0.29.0-1-amd64.iso'/>
+<target dev='hdc' bus='ide'/>
+<readonly/>
+</disk>
+
+** important step
+lvextend --size +30G /dev/mapper/cl-root
+lvdisplay /dev/mapper/cl-root
+
+xfs_growfs /dev/mapper/cl-root
+
+* Get link speed of an virtio-net network adapter
+What I tried so far:
+# ethtool eth0
+Settings for eth0:
+Link detected: yes
+It seems that ethtool does not support virtio-net(yet?) I have the version 3.16-1 from debian jessie, does ethtool support it in newer version? It seams version 6 is the newest one.
+
+ # cat /sys/class/net/eth0/speed
+cat: /sys/class/net/eth0/speed: Invalid argument
+
+Virtio is a para-virtualized driver, which means the os and driver are aware that it's not a physical Device. The driver is really an API between the guest and the hypervisor so it's speed is totally disconnected from any physical device or Ethernet standard. This is a good thing as this is faster than the hypervisor pretending to be a physical device and applying an arbitrary "link speed" concept to flow. The VM just dumps frames onto a bus and it's the host job to deal with the physical devices; no need for the vm to know or care what the link speed of hosts physical devices are.
+
+One of the advantages of this is that When packets are moving between 2 VMs on the same host they can send packets as fast as the host's cpu can move them from one set of memory to anouther, setting a linkspeed here just puts in an unneeded speed limit.
+
+This also allows the host to do adaptor teaming and spread traffic across multiple links without every VM needing to be explicitly configured to get the full bandwidth of the setup.
+
+If you want to know how fast you can actually transfer data from your VM to anouther location you need to do actual throughput tests with tools like iperf
+
+
+The reported 'speed' setting for emulated NICs is basically irrelevant
+since this is emulated hardware. The original real hardware may have
+been specced as 100mb/s, but that has no bearing on its speed in a
+virtual environment. The QEMU emulated devices will send/recv data until
+the hit a bottleneck, typically the CPU usage of the QEMU process is
+hit first. So you want a NIC that entails a low CPU overhead in QEMU.
+In order of prefernce you'll want to try virtio, e1000, rtl8139, ne2k_pci
+This can be set in libvirt xml with <model type='virtio'/> in the guest
+XML <interface> section. Obviously you need to adjust your guest OS to
+load correct drivers to match.
+
+* auto start kvm vm
+chkconfig libvirtd on / systemctl enable libvirtd
+virsh autostart vmName
+virsh autostart VMNameHere --disable
+* what's  virbr0, virbr1... and vnet0, vnet2.
+Those are network interfaces, not IP addresses. A network interface can have
+packets from any protocol exchanged on them, including IPv4 or IPv6, in which
+case they can be given one or more IP addresses. virbr are bridge interfaces.
+They are virtual in that there's no network interface card associated to them.
+Their role is to act like a real bridge or switch, that is switch packets (at
+layer 2) between the interfaces (real or other) that are attached to it just
+like a real ethernet switch would.
+
+You can assign an IP address to that device, which basically gives the host an IP address on that subnet which the bridge connects to. It will then use the MAC address of one of the interfaces attached to the bridge.
+
+The fact that their name starts with vir doesn't make them any different from any other bridge interface, it's just that those have been created by libvirt which reserves that name space for bridge interfaces
+
+vnet interfaces are other types of virtual interfaces called tap interfaces. They are attached to a process (in this case the process runnin the qemu-kvm emulator). What the process writes to that interface will appear as having been received on that interface by the host and what the host transmits on that interface is available for reading by that process. qemu typically uses it for its virtualized network interface in the guest.
+
+Typically, a vnet will be added to a bridge interface which means plugging the VM into a switch.
+
+* parted -s -a optimal /dev/sde mklabel gpt -- mkpart primary ext4 1 -1
+
+parted /dev/sde
+mklabel gpt
+mkpart primary ext4 1 -1
+q
+
+mkfs.ext4 /dev/sde1
+
+* parted -s -a optimal /dev/sde mklabel mbr -- mkpart primary ext4 1 -1
+* spice
+http://blog.csdn.net/qq_21398167/article/details/46408391
+http://www.361way.com/kvm-spice-vnc/4821.html
+spice（独立计算环境简单协议）是红帽企业虚拟化桌面版的主要技术组件之一，具有自适应能力的远程提交协议，能够提供与物理桌面完全相同的最终用户体验。其包含三个组件。
+
+SPICE Driver ：SPICE驱动器 存在于每个虚拟桌面内的组件；
+
+SPICE Device：SPICE设备 存在于红帽企业虚拟化Hypervisor内的组件；
+
+SPICE Client：SPICE客户端 存在于终端设备上的组件，可以是瘦客户机或专用的PC，用于接入每个虚拟桌面。
+
+这三个组件协作运行，确定处理图形的最高效位置，以能够最大程度改善用户体验并降低系统负荷。如果客户机足够强大，SPICE向客户机发送图形命令，并在客户机中对图形进行处理，显著减轻服务器的负荷。另一方面，如果客户机不够强大，SPICE在主机处理图形，从CPU的角度讲，图形处理并不需要太多费用。
+
+* virt-sysprep 
+virt-sysprep –list-operations
+virt-sysprep -d v51  --hostname v51 --root-password password:123456
+virsh destroy v54
+virsh destroy v55
+virsh destroy v56
+
+virt-sysprep -d v54  --root-password password:Admin123
+virt-sysprep -d v55  --root-password password:Admin123
+virt-sysprep -d v56  --root-password password:Admin123
+
+http://www.unixarena.com/2015/12/how-to-clone-a-kvm-virtual-machines-and-reset-the-vm.html
+* not work!!! Install libguestfs-tools-1.36.3-6_el7_4.3
+https://bugzilla.redhat.com/show_bug.cgi?id=1478226
+yum install libguestfs-tools ,只能安装_4.3 
+但4.3无法 使用guestmount
+要安装libguestfs-tools-1.36.3-6_el7,下载好rpm 包，需要很多依赖
+
+lvm2-libs-2.02.166-1.el7_3.4.x86_64
+lvm2-2.02.166-1.el7_3.4.x86_64
+
+It works after I revert to libguestfs-tools-1.36.3-6.el7
+
+Version-Release number of selected component (if applicable):
+libguestfs-tools-1.36.3-6.el7_4.2
+
+rpm -ivh libguestfs-tools-c-1.36.3-6.el7.x86_64.rpm
+error: Failed dependencies:
+        libguestfs = 1:1.36.3-6.el7 is needed by libguestfs-tools-c-1:1.36.3-6.el7.x86_64
+
+# install 4.3
+yum install libguestfs libguestfs-tools
+
+remove **_4.3
+rpm -e --nodeps libguestfs-tools-1.36.3-6.el7_4.3.noarch
+rpm -e --nodeps libguestfs-1.36.3-6.el7_4.3.x86_64
+rpm -e --nodeps libguestfs-tools-c-1:1.36.3-6.el7_4.3.x86_64
+ --> uninstall libguestfs-*.4.3, leave all dependencies untouched
+
+rpm -ivh libguestfs-tools-c-1.36.3-6.el7.x86_64.rpm
+rpm -ivh libguestfs-1.36.3-6.el7.x86_64.rpm
+rpm -ivh libguestfs-tools-1.36.3-6.el7.noarch.rpm
+
+guestmount -V
+==>
+guestmount 1.36.3rhel=7,release=6.el7,libvirt
+* ip link
+https://wiki.archlinux.org/index.php/Network_bridge
+
+sh makevm 179 172.31.138.107:~
+
+virt-install -n centos_node3 -r 65536 -f /data/data3/centos_node3.qcow2 -s 1536 --vcpus=16 --network bridge=br0 --graphics spice,port=5911,listen=0.0.0.0 --video qxl --channel spicevmc --cdrom=/root/CentOS-7-x86_64-Minimal-1611.iso --extra-args='console=ttyS0'
+
+is seems that --extra-args='console=ttyS0' couldn't coexist with graphics parameter
+
+virt-install \
+--name=centos_node3 \
+--vcpus=16 \
+--memory=65536 \
+--cdrom=/tmp/CentOS-7-x86_64-Minimal-1611.iso \
+--disk path=/data/data3/centos_node3.qcow2,size=1536,format=qcow2 \
+--network bridge=br0 \
+--extra-args='console=ttyS0' \
+--graphics spice,port=5911,listen=0.0.0.0 \
+--video qxl \
+--channel spicevmc \
+--force
+
+virt-install -n vs -r 16384 -f /data/data3/test.qcow2 -s 300 --vcpus=8 --network bridge=br0 --graphics spice,port=5911,listen=0.0.0.0 --video qxl --channel spicevmc        --cdrom=tmp/CentOS-7-x86_64-Minimal-1611.iso 
+
+* change ip
+hostnamectl set-hostname v39
+sed -i s/IPADDR=.*/IPADDR=\"172.29.32.39\"/ /etc/sysconfig/network-scripts/ifcfg-eth0
+systemctl restart network
+
+* Nested virtualization in KVM
+Enabling nested virtualization in KVM
+Verify
+To verify if nested virtualization is enabled on your system can check /sys/module/kvm_intel/parameters/nested on Intal systems or /sys/module/kvm_amd/parameters/nested
+
+[staf@frija ~]$ cat /sys/module/kvm_intel/parameters/nested
+N
+[staf@frija ~]$
+Enable
+Shutdown all virtual machines
+Make sure that there no virtual machines running.
+
+[root@frija ~]# virsh
+Welcome to virsh, the virtualization interactive terminal.
+
+Type:  'help' for help with commands
+       'quit' to quit
+
+virsh # list
+ Id    Name                           State
+----------------------------------------------------
+
+virsh #
+Unload KVM
+Unload the KVM kernel module.
+
+[root@frija ~]# modprobe -r kvm_intel
+[root@frija ~]#
+Load KVM and activate nested
+Reload the KVM with the nested feature enabled.
+
+[root@frija ~]# modprobe kvm_intel nested=1
+[root@frija ~]#
+Verify
+
+[root@frija ~]# cat /sys/module/kvm_intel/parameters/nested
+Y
+[root@frija ~]#
+To enable the nested feature permanently create /etc/modprobe.d/kvm_intel.conf
+
+[root@frija ~]# vi /etc/modprobe.d/kvm_intel.conf
+and enable the nested option.
+
+options kvm_intel nested=1
+Enabling nested virtialization in the virtual machine
+When you logon to a virtual machine and verify the virtualization extensions on the cpu the flags aren’t available.
+
+[staf@centos7 ~]$ cat /proc/cpuinfo | grep  -i -E "vmx|svm"
+[staf@centos7 ~]$
+To enable nested virtualization in a vritual machine you can
+
+start virsh and and edit the the virtual machine and change the CPU line to <cpu mode='host-model' check='partial'/>
+Open virt-manager and select Copy host CPU configuration on the CPU configuration
+root@frija ~]# virsh
+Welcome to virsh, the virtualization interactive terminal.
+
+Type:  'help' for help with commands
+       'quit' to quit
+
+virsh # list
+ Id    Name                           State
+----------------------------------------------------
+ 1     centos7.0                      running
+
+virsh # edit centos7.0
+Change the cpu settings
+
+  <features>
+    <acpi/>
+    <apic/>
+    <vmport state='off'/>
+  </features>
+  <cpu mode='host-model' check='partial'>
+    <model fallback='allow'/>
+  </cpu>
+
+Shutdown the virtual machine
+
+virsh # reboot centos7.0
+Domain centos7.0 is being rebooted
+
+virsh #
+
+Start the virtual machine
+
+virsh # start centos7.0
+Domain centos7.0 started
+Verify that the feature policies on the cpu are updated.
+
+virsh # dumpxml centos7.0
+ <cpu mode='custom' match='exact' check='full'>
+    <model fallback='forbid'>Haswell-noTSX-IBRS</model>
+    <vendor>Intel</vendor>
+    <feature policy='require' name='vme'/>
+    <feature policy='require' name='ss'/>
+    <feature policy='require' name='f16c'/>
+    <feature policy='require' name='rdrand'/>
+    <feature policy='require' name='hypervisor'/>
+    <feature policy='require' name='arat'/>
+    <feature policy='require' name='tsc_adjust'/>
+    <feature policy='require' name='xsaveopt'/>
+    <feature policy='require' name='pdpe1gb'/>
+    <feature policy='require' name='abm'/>
+    <feature policy='require' name='ibpb'/>
+ </cpu>
+Logon to the virtual machine and verify the cpu flags;
+
+[staf@centos7 ~]$ cat /proc/cpuinfo | grep -i vmx
+flags           : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology eagerfpu pni pclmulqdq vmx ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid xsaveopt ibpb ibrs arat spec_ctrl
+flags           : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology eagerfpu pni pclmulqdq vmx ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid xsaveopt ibpb ibrs arat spec_ctrl
+[staf@centos7 ~]$ cat /proc/cpuinfo | grep  -i "vmx|svm"
+[staf@centos7 ~]$ cat /proc/cpuinfo | grep  -i -E "vmx|svm"
+flags           : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology eagerfpu pni pclmulqdq vmx ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid xsaveopt ibpb ibrs arat spec_ctrl
+flags           : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology eagerfpu pni pclmulqdq vmx ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm tpr_shadow vnmi flexpriority ept vpid fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid xsaveopt ibpb ibrs arat spec_ctrl
+Execute the virt-host-validate

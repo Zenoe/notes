@@ -1,0 +1,236 @@
+
+gradle compileJava
+gradle build
+
+[[jarlink][jar]]
+* 多个src
+src/main/java 为默认的源文件目录
+src/main/thrift 也希望成为gradle可识别的源文件目录
+src/main/thrift-java 也希望成为gradle可识别的源文件目录
+
+解决方案
+// # build.gradle #
+buildscript {
+    repositories {
+        maven {
+            url "http://repo.maven.apache.org/maven2/"
+        }
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath group: 'co.tomlee.gradle.plugins', name: 'gradle-thrift-plugin', version: '0.0.6'
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.1.10.RELEASE")
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'thrift'
+apply plugin: 'spring-boot'
+apply plugin: 'war'
+
+sourceCompatibility = 1.7
+
+version = '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'org.apache.thrift:libthrift:0.9.2'
+    compile 'org.springframework:spring-orm:4.1.4.RELEASE'
+    compile('org.springframework.boot:spring-boot-starter-web:1.2.1.RELEASE')
+    compile('org.springframework.boot:spring-boot-starter-data-jpa:1.2.2.RELEASE')
+    //compile('org.springframework.boot:spring-boot-starter-actuator:1.2.2.RELEASE')
+    compile('org.springframework:spring-jdbc:4.1.5.RELEASE')
+    //compile('com.h2database:h2:1.4.185')
+
+    // mysql
+    compile('mysql:mysql-connector-java:5.1.34')
+    // hibernate
+    compile('org.hibernate:hibernate-entitymanager:4.3.8.Final')
+
+    compile('org.projectreactor.spring:reactor-spring-context:1.1.3.RELEASE')
+    compile('org.springframework:spring-web:4.1.5.RELEASE')
+
+    compile('org.springframework.amqp:spring-rabbit:1.4.2.RELEASE')
+    compile('org.springframework.amqp:spring-amqp:1.4.2.RELEASE')
+    compile group: 'org.springframework.data', name: 'spring-data-mongodb', version: '1.6.1.RELEASE'
+
+    compile "org.springframework.data:spring-data-rest-webmvc:2.2.1.RELEASE"
+    compile("com.fasterxml.jackson.core:jackson-databind:2.5.0")
+    compile("com.fasterxml.jackson.core:jackson-annotations:2.5.0")
+    compile("com.fasterxml.jackson.core:jackson-core:2.5.0")
+    //compile group: 'org.hibernate', name: 'hibernate-core', version: '4.3.7.Final'
+
+    compile('org.springframework:spring-test:4.1.5.RELEASE')
+
+    testCompile group: 'junit', name: 'junit', version: '4.11'
+}
+
+
+generateThriftSource {
+    //
+    // The output directory (optional)
+    //
+    out file('src/main/thrift-java')
+
+    verbose false
+    debug false
+    strict true
+
+    //
+    // Modify the include path (optional)
+    //
+    // path file('vendor/thrift')
+
+    //
+    // Set the thrift executable (optional)
+    //
+    executable 'C:\\Program Files (x86)\\Java\\jdk1.7.0_40\\bin\\thrift.exe'
+
+    generators {
+        //
+        // --gen java:hashcode,beans
+        //
+        java {
+            //
+            // Options passed to the `java` generator
+            //
+            option 'hashcode'
+            option 'beans'
+        }
+
+    }
+}
+
+// here demonstrates how to add multiple srcDirs into project
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java', 'src/main/thrift-java']
+        }
+        resources {
+            srcDirs = ['src/main/resources']
+        }
+    }
+    test {
+        java {
+            srcDirs = ['src/test/java', 'src/test/thrift']
+        }
+        resources {
+            srcDirs = ['src/test/resources']
+        }
+    }
+}
+
+jar {
+    // set the main class entry for the executable jar
+    manifest {
+        attributes 'Main-Class': 'calculator.CalculatorClient',
+                'Implementation-Title': 'Gradle quickStart'
+    }
+
+    // this will add all the dependent jars into the generated-jar package
+    from {
+        configurations.compile.collect {
+            it.isDirectory() ? it : zipTree(it)
+        }
+    }
+}
+
+* Detected both log4j-over-slf4j.jar AND slf4j-log4j12.jar
+https://stackoverflow.com/questions/40033235/how-to-properly-configure-gradle-build-to-avoid-including-log4j-and-slf4j-from-t
+configurations.all {
+    exclude module: 'slf4j-log4j12'
+    exclude module: 'jms'
+}
+* jar section
+( Manifest of jar 与 gradle 无关 )
+
+JAR File Specification
+https://docs.oracle.com/javase/1.5.0/docs/guide/jar/jar.html
+
+https://stackoverflow.com/questions/33758244/add-classpath-in-manifest-file-of-jar-in-gradle-in-java-8
+
+It's all about the requirements. According to [[link][this]], in the manifest file:
+
+
+No line may be longer than 72 bytes (not characters), in its UTF8-encoded form. If a value would make the initial line longer than this, it should be continued on extra lines (each starting with a single SPACE).
+
+And Gradle inserts the new line separator after every 72 characters, since you have a single string as a collection classpath elements. But since:
+
+Class-Path :
+
+The value of this attribute specifies the relative URLs of the extensions or libraries that this application or extension needs. URLs are separated by one or more spaces.
+
+It's possible to make a quite a tricky solution, where you have to collect all the classpath's entries into a single variable and make the formatting of this variable so, that every element will be in a separate line with the length of 72 and every line strarts with single space. Just for example:
+
+int i = 0;
+String classpathVar = configurations.compile.collect { " libs/" + (i++==0?String.format("%0\$-50s", it.getName()):String.format("%0\$-62s", it.getName()))   }.join(" ");
+jar{
+    manifest {
+        attributes("Implementation-Title": "SIRIUS Workflow Executor",
+                "Implementation-Version": version,
+                "Class-Path": classpathVar )
+    }
+}
+Will give you such a manifest file conent, like:
+
+Class-Path:  libs/snmp4j-2.3.4.jar                                    
+ libs/jaxb                                                            
+ libs/datamodel.jar                                                   
+ libs/log4j-1.2.17.jar
+According to documentation it has to be valid.
+* jarlink
+* Gradle-Build: Cannot convert the provided notation to a File or URI
+https://reformatcode.com/code/java/gradle-build-cannot-convert-the-provided-notation-to-a-file-or-uri
+jar {
+  manifest {
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    attributes 'Main-Class': 'de.to.main.class.itv.Main'
+  }
+}
+--->
+You are first calling the manifest(Action<? super Manifest> configureAction) method in the jar task. Inside of that body, you are calling from(Object... mergePath) on the Manifest type.
+
+Specifies other manifests to be merged into this manifest.
+
+The method name from on Manifest shadows the various from methods that come from AbstractCopyTask (which Jar inherits from).
+
+What you should be doing if you want to configure the things bundle with the artifact is to call the from on the task type. Just move the from outside of that manifest and you should see a clearer message or things will work out.
+
+jar {
+  from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+  manifest {
+    attributes 'Main-Class': 'de.to.main.class.itv.Main'
+  }
+}
+* fatjar
+http://www.baeldung.com/gradle-fat-jar
+* gradlew
+Gradle wrapper needs to be built. Try running gradle wrapper --gradle-version 2.13 Remember to change 2.13 to your gradle version
+number. After running this command, you should see new scripts added
+to your project folder. You should be able to run the wrapper with
+./gradlew build to build your code. Please refer to this guid for more
+information https://spring.io/guides/gs/gradle/.
+
+* Could not find gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.17.2
+plugins {
+  id "com.palantir.docker" version "0.17.2"
+}
+Build script snippet for use in older Gradle versions or where dynamic configuration is required:
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    classpath "gradle.plugin.com.palantir.gradle.docker:gradle-docker:0.17.2"
+  }
+}
+
+apply plugin: "com.palantir.docker"

@@ -1,0 +1,163 @@
+when a function is created , a keyword "[[https://www.codementor.io/dariogarciamoya/understanding--this--in-javascript-du1084lyn?icn=post-8i1jca6jp&ici=post-du1084lyn][this]]" is created(behind the scenes),
+which links to the object in which the fucntion operates
+
+There are four main contexts in which the value of this can be implicitly inferred:
+
+the global context
+as a method within an object
+as a constructor on a function or class
+as a DOM event handler :  refer to event.currentTarget
+
+use call,apply or bind to explicitly determine what this should refer to
+
+* implicit binding
+The this keyword’s value has nothing to do with the function itself, how the function is called determines this's value
+* default "this" context
+var myMethod = function () {
+  console.log(this);
+};
+
+// call it
+myMethod(); // this === window
+
+* Object literals
+var myObject = {
+  myMethod: function () {
+    console.log(this);
+  }
+};
+
+myObject.myMethod(); // this === myObject
+everything depends on how we call the function.
+This is called implicit binding
+
+* explicit binding
+Explicit binding is when we explicitly bind a context to the function. This is
+done with call() or apply()
+var myMethod = function () {
+  console.log(this);
+};
+
+var myObject = {
+  myMethod: myMethod
+};
+
+myMethod() // this === window
+myMethod.call(myObject, args1, args2, ...) // this === myObject
+myMethod.apply(myObject, [array of args]) // this === myObject
+
+var myMethod = function () {
+  console.log(this.a);
+};
+
+var obj1 = {
+  a: 2,
+  myMethod: myMethod
+};
+
+var obj2 = {
+  a: 3,
+  myMethod: myMethod
+};
+
+obj1.myMethod(); // 2
+obj2.myMethod(); // 3
+//Explicit binding takes precedence over implicit binding
+//which means you should ask first if explicit binding applies before checking for implicit binding
+obj1.myMethod.call( obj2 ); // 3
+obj2.myMethod.call( obj1 ); // 2
+
+* Hard binding
+This is done with bind() (ES5). bind() returns a new function that is hard-coded to call the original function with the this context set as you specified.
+
+myMethod = myMethod.bind(myObject);
+
+myMethod(); // this === myObject
+
+Hard binding takes precedence over explicit binding.
+
+var myMethod = function () {
+  console.log(this.a);
+};
+
+var obj1 = {
+  a: 2
+};
+
+var obj2 = {
+  a: 3
+};
+
+myMethod = myMethod.bind(obj1); // 2
+myMethod.call( obj2 ); // 2
+
+* new binding
+function foo(a){
+this.a = a;
+}
+var bar = new foo( 2 );
+console.log( bar.a ); // 2
+So this when the function has been called with new refers to the new instance created.
+
+When a function is called with new, it does not care about implicit, explicit, or hard binding, it just creates the new context—which is the new instance.
+var value = 2;
+
+var foo = {
+    value: 1
+};
+
+function bar(name, age) {
+    this.habit = 'shopping';
+    console.log(this.value);
+    console.log(name);
+    console.log(age);
+}
+
+bar.prototype.friend = 'kevin';
+
+var bindFoo = bar.bind(foo, 'daisy');
+
+var obj = new bindFoo('18');
+// undefined
+// daisy
+// 18
+console.log(obj.habit);
+console.log(obj.friend);
+// shopping
+// kevin复制代码注意：尽管在全局和 foo 中都声明了 value 值，最后依然返回了 undefind，说明绑定的 this 失效了，如果大家了解 new 的模拟实现，就会知道这个时候的 this 已经指向了 obj。
+
+https://juejin.im/post/59093b1fa0bb9f006517b906
+
+* callback passed to API calls
+** Usually libraries offer another parameter, so then you can pass the scope you want to get back.
+myObject = {
+  myMethod: function () {
+    helperObject.doSomethingCool('superCool', this.onSomethingCoolDone, this);
+  },
+
+  onSomethingCoolDone: function () {
+    /// Now everybody know that "this" === myObject
+  }
+};
+** You can hard bind the method to the scope you want (ES5).
+myObject = {
+  myMethod: function () {
+    helperObject.doSomethingCool('superCool', this.onSomethingCoolDone.bind(this));
+  },
+
+  onSomethingCoolDone: function () {
+    /// Now everybody know that "this" === myObject
+  }
+};
+** You can create a closure and cache this into me. For example:
+// not recommended
+// it can cause memory leaks and it tends to make you forget about the real scope and rely on variables.
+myObject = {
+  myMethod: function () {
+    var me = this;
+
+    helperObject.doSomethingCool('superCool', function () {
+      /// Only god knows what is "this" here, but we have access to "me"
+    });
+  }
+};

@@ -1,0 +1,6 @@
+#+TITLE:
+* How to specify non-default shared-library path in GCC Linux? Getting “error while loading shared libraries” when running
+
+export LD_LIBRARY_PATH=/root/lzy/libevent/.libs/
+or:
+# gcc -o client client.c -levent -Wl,-rpath=/root/lzy/libevent/.libs/

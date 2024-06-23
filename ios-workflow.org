@@ -1,0 +1,17 @@
+
+* 申请 Apple 开发者账号
+https://developer.apple.com/
+* 申请ios证书
+https://developer.apple.com/account/resources/certificates/add
+* 下载证书到本地，导入到 Access Chain中
+https://developer.apple.com/account/resources/certificates/list
+
+* xcode --> Preferences --> Account
+增加开发者帐号到 xcode中
+
+* 签名
+在 xcode中选择工程的Target， 在Code signing identity中选择ios证书
+
+* 运行
+连接iPhone到mac PC, xcode 如果会自动识别到iPhone, 运行前选择 device为接入的iphone
+xcode 点击运行

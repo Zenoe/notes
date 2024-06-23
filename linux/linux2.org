@@ -1,0 +1,49 @@
+* How to forcibly close a socket in TIME_WAIT?
+- networking restart
+- Practically speaking, I would program it so it ignores TIME-WAIT state using SO_REUSEADDR option as WMR mentioned. What exactly does SO_REUSEADDR do?
+  This socket option tells the kernel that even if this port is busy (in the TIME_WAIT state), go ahead and reuse it anyway. If it is
+  busy, but with another state, you will still get an address already in use error. It is useful if your server has been shut down, and
+  then restarted right away while sockets are still active on its port. You should be aware that if any unexpected data comes in, it
+  may confuse your server, but while this is possible, it is not likely.
+* watch --interval=5 'netstat -tuna |grep "SYN_RECV"|wc -l'
+* lsof -n|awk '{print $2}'|sort|uniq -c|sort -nr|more
+131 24204　
+57 24231　......
+其中第一列是打开的句柄数，第二列是进程ID。可以根据ID号来查看进程名:
+
+# ps aef|grep 24204
+
+在侦测程序句柄泄露的应用中，我们主要用到 lsof 的如下使用方法：
+
+lsof – p PID
+该进程打开的所有句柄数量
+* sshpass -p 123qaz ssh  -o StrictHostKeyChecking=no root@172.31.138.101
+* Navigating to the earliest/latest command in history when you're in the middle of your history
+previous-history (C-p)
+    Fetch the previous command from the history list, moving back in the list.  
+next-history (C-n)
+    Fetch the next command from the history list, moving forward in the list.  
+beginning-of-history (M-<)
+    Move to the first line in the history.  
+end-of-history (M->)
+    Move to the end of the input history, i.e., the line currently being entered.
+
+* dmesg
+列出所有被检测到的硬件
+dmesg | grep sda
+
+实时监控dmesg日志输出
+在某些发行版中可以使用命令‘tail -f /var/log/dmesg’来实时监控dmesg的日志输出。
+watch "dmesg | tail -20"
+
+* How do I determine LVM mapping on a physical device?
+pvdisplay: shows you the physical device(s) corresponding to all your volume groups.
+* change hostname
+1. centos6.6 : modify file /etc/systemconfig/network
+2. centos7
+3. hostnamectl
+
+hostnamectl status
+
+4. Edit /etc/hostname
+This is the simple but requires a reboot of the server to take an effect.

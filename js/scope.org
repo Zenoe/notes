@@ -1,0 +1,140 @@
+#+TITLE:
+https://scotch.io/tutorials/understanding-scope-in-javascript
+* Local Scope
+Variables defined inside a function are in the local scope
+
+* Block Statements
+Block statements like if and switch conditions or for and while loops, unlike
+functions, don't create a new scope. Variables defined inside of a block
+statement will remain in the scope they were already in.
+
+* Scope vs Context
+Scope is what we discussed above and Context is used to refer to the value of
+this in some particular part of your code. Scope refers to the visibility of
+variables and context refers to the value of this in the same scope
+In the global scope context is always the Window object.
+
+If scope is in the method of an object, context will be the object the method is part of.
+
+class User {
+    logName() {
+        console.log(this);
+    }
+}
+
+(new User).logName(); // logs User {}
+
+One thing you'll notice is that the value of context behaves differently if you
+call your functions using the new keyword. The context will then be set to the
+instance of the called function. Consider one of the examples above with the
+function called with the new keyword.
+
+function logFunction() {
+    console.log(this);
+}
+
+new logFunction(); // logs logFunction {}
+
+When a function is called in Strict Mode, the context will default to undefined.
+
+
+* Execution Context (the word context in Execution Context refers to scope and not context)
+
+
+
+* ES arrow function and this
+ES5 function boject context
+#1
+var self = this;
+this.nums.forEach(functino(v){
+    if(v%5 === 0){
+      self.fives.push(v);
+    }
+});
+
+#2
+this.nums.forEach(functino(v){
+    if(v%5 === 0){
+      self.fives.push(v);
+    }
+},this);
+
+#3  sinec ES 5.1 only
+this.nums.forEach(functino(v){
+    if(v%5 === 0){
+      self.fives.push(v);
+    }
+}.bind(this));
+
+#4 ES6
+this.nums.forEach((v)=>{
+    if(v%5 === 0){
+      self.fives.push(v);
+    }
+})
+
+* arrow function this
+Arrow functions do not have this, arguments or other special names bound at al1
+when the object is being created the name this is found in the enclosing scope, not the person object. You can see this more clearly by moving the declaration
+var person = {
+  name: "Jason"
+};
+person.shout = () => console.log("Hi, my name is", this);  // window
+this points to the same scope as person is defined in, not the new scope that the function is attached to when it is added to the person object.
+
+const myObject = {
+  myMethod: () => {
+    console.log(this);
+  }
+};
+
+myObject.myMethod() // this === window or global object
+
+const myMethod = myObject.myMethod;
+myMethod() // this === window or global object
+arrow functions don't bind their own scope, but inherit it from the parent one, which in this case is window or the global object.
+** const myObject = {
+  myArrowFunction: null,
+  myMethod: function () {
+    this.myArrowFunction = () => { console.log(this) };
+  }
+};
+myObject.myMethod() // this === myObject
+
+myObject.myArrowFunction() // this === myObject
+
+const myArrowFunction = myObject.myArrowFunction;
+myArrowFunction() // this === myObject
+
+** [[https://www.codementor.io/dariogarciamoya/understanding-this-in-javascript-with-arrow-functions-gcpjwfyuc][Explicit, Hard and New binding]]
+What would happen when we try to bind a scope with any of these techniques?
+
+let's see...
+
+const myMethod = () => {
+  console.log(this);
+};
+
+const myObject = {};
+Explicity binding
+myMethod.call(myObject, args1, args2, ...) // this === window or global object
+myMethod.apply(myObject, [array of args]) // this === window or global object
+Hard binding
+const myMethodBound = myMethod.bind(myObject);
+
+myMethodBound(); // this === window or global object
+New binding
+new myMethod(); // Uncaught TypeError: myMethod is not a constructor
+As you see, it does not matter how we try to bind the scope, it will never work. Also, arrows functions are not constructors so you can not use new with them.
+
+API calls
+This part is interesting. Arrow functions are a good choice for API calls ( asynchronous code ), only if we use CLOSURES, let's look at this...
+
+myObject = {
+  myMethod: function () {
+    helperObject.doSomethingAsync('superCool', () => {
+      console.log(this); // this === myObject
+    });
+  },
+};
+This is the perfect example, we ask to do something async, we wait for the answer to do some actions and we don't have to worry about the scope we were working with.

@@ -1,0 +1,539 @@
+* xcode                                                            :shortcut:
+In the XCode 4 main editor, press Ctrl+6,t hen type something and you will see it. If you want to search files like that, Ctrl+5.
+* kextload requested architecture/executable not found :kext:32bit:
+On a recent Macbook Pro (i7, Macbook Pro 8.1) post Feb 2011 I did not have much love from a kernel driver. Oddly google was not that helpful.
+/var/log/system.log system log complained along the lines of:
+
+[0x0-0x30030].WebToGo.ePlus2_1[1106]:
+/System/Library/Extensions/HuaweiDataCardActivateDriver.kext failed to load -
+(libkern/kext) requested architecture/executable not found;
+check the system/kernel logs for errors or try kextutil(8).
+
+The fix was pretty simple: Just boot the machine into 32bit mode. Turns out the default boot mode is 64bit on later hardware. One
+way to find out which OS mode you run is to go to:
+
+About this Mac
+More Info ¡­
+click directly on the Software item on the left.
+
+You will see 64-bit Kernel and Extensions: ¡°Yes¡± in the second last line.
+
+If you hold the numbers 3 and 2 during boot then you will be in 32bit mode and get probably much more love from 32 bit extension. In my case it was an Aldi Surfstick S4012 based on a Huawei one that caused some grief in 64bit.
+
+Since not many 64 native machines are out there it explains why this topic is not easier to google right now.
+* iterm2
+copy paste with keyboard
+1. cmd f  : find text
+2. (shift) tab to select word (bacward)forward
+3. option enter: paste the word(s)
+
+   cmd ;  -->show word list
+Alternatively, the autocorrect feature reduces the need for copy-paste. Just
+type the start of some text that is either on the screen or you have copy-pasted
+recently and press cmd-;. A popup window appears and you can choose from there.
+Autocorrect works best for a single word, though.
+
+* cocoa
+** osx ÉÏµÄTextEditÇÃ²»³öÓ¢ÎÄ×´Ì¬ÏÂµÄdouble quote[Å­]
+** textfield enter action
+Execute an Action when the Enter-Key is pressed in a NSTextField?
+You can do this by setting the text field's action. In IB, wire the text field's selector to your controller or whatever object presents the IBAction you want to use.
+
+To set it in code, send the NSTextField a setTarget: message and a setAction: message. For example, if you're setting this on your controller object in code, and your textField outlet is called myTextField:
+
+- (void)someAction:(id)sender
+{
+  // do something interesting when the user hits <enter> in the text field
+}
+
+// ...
+
+[myTextField setTarget:self];
+[myTextField setAction:@selector(someAction:)];
+
+* SIP
+For anyone else having this problem you need to reboot your mac and press ⌘+R when booting up. Then go into Utilities > Terminal and type the following commands:
+csrutil disable
+reboot 
+
+Correct solution is to copy or install to /usr/local/bin not /usr/bin.This is due to System Integrity Protection (SIP). SIP makes /usr/bin read-only but leaves /usr/local as read-write.
+SIP should not be disabled as stated in the answer above because it adds another layer of protection against malware gaining root access. Here is a complete explanation of what SIP does and why it is useful.
+* brew cask install google-chrome
+Homebrew-Cask extends Homebrew and brings its elegance, simplicity, and speed to macOS applications and large binaries alike.
+
+It only takes 1 line in your shell to reach 3913 Casks maintained by 5265 contributors.
+
+Get Homebrew-Cask
+brew tap caskroom/cask
+* uninstall
+~/Library/VirtualBox
+
+~/Library/Preferences/org.VirtualBox.app.VirtualBox.plist
+
+~/Library/Saved Application State/org.VirtualBox.app.VirtualBox.SavedState
+
+~/Library/LaunchAgents/org.virtualbox.vboxwebsrv.plist
+
+~/Library/Saved Application State/org.VirtualBox.app.VirtualBox.SavedState
+
+
+* brew
+ For a software to be "keg-only" means it is installed in
+ /usr/local/Cellar but not linked into places like /usr/local/bin,
+ /usr/local/lib, etc. That means other software that depends on it has
+ to be compiled with specific instructions to use the files in
+ /usr/local/Cellar. That's done automatically by brew install when a
+ formula specifies keg-only dependencies.
+
+Formulas that specify keg-only dependencies make sure that the
+equivalent system libraries are not used. Your installation of vips is
+linked against a specific version of pixman in
+/usr/local/Cellar/pixman/version, so it isn't affected by the system
+version of pixman or any other Homebrew versions of pixman you might
+install.
+* objdump
+brew install binutils
+use gobjdump instead
+
+* static NSDictionary initialize failed 
+static NSDictionary* const letterValues = @{
+                                         @"A": @1,
+                                         @"B": @4,
+                                         @"C": @4,
+                                         // ...
+                                         @"X": @8,
+                                         @"Y": @3,
+                                         @"Z": @10,
+                                         };
+warning: Initializer element is not a compile-time constant
+
+ You can only set a static variable during initialization with a constant. @{} creates an object, thus not a constant.
+
+Do this instead:
+
+- (void)awakeFromNib
+{
+    [super awakeFromNib];
+
+    static NSDictionary* letterValues = nil;
+
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        letterValues = @{
+          @"A": @1,
+          @"B": @4,
+          @"C": @4,
+          // ...
+          @"X": @8,
+          @"Y": @3,
+          @"Z": @10,
+          };
+    });
+
+
+    ... } 
+
+Some other answers here suggest a check for nil instead of dispatch
+once, but that can cause issues when creating multiple tiles at the same time
+(via threads). dispatch_once implements the required locking.
+* time
+*** measure absolute time, use gettimeofday(). This gives you the date,e.g., "Thu Nov 22 07:48:52 UTC 2012".
+ This is not always suitable for measuring differences between events
+ because the time reported by gettimeofday()
+ can jump forwards or backwards if the user changes the clock.
+*** measure relative time, mach_absolute_time(). This lets you measure the
+difference between two events, e.g., "15.410 s".
+ This does not give absolute times, but is always monotonic.
+*** measure CPU time, use clock().
+ This is often but not always the way you measure the performance of a piece of code.
+ It doesn't count time spent on IO, or impact on system speed, so it should only be used 
+when you know you are measuring something CPU bound.
+
+I'm surprised that TickCount() wasn't deprecated earlier. It's really an OS 9 and earlier thing.
+I believe mach_absolute_time() will serve my purpose. Thanks a lot. ¨C  dDarkLORD Nov 22 '12 at 7:58
+@dDarkLORD gettimeofday() is more portable though. ¨C  trojanfoe Nov 22 '12 at 8:07
+@trojanfoe: No sense in using the portable function if it doesn't dowhat you want.
+ On Linux you'd use clock_gettime(),
+ on OS X you'd use mach_absolute_time(), neither of which is available on the other operating system. ¨C
+* cmd
+ÏµÍ³
+mac: ctl+shift + ÏÂ¼ýÍ·£º²é¿´µ±Ç°³ÌÐòËùÓÐ´°¿Ú½çÃæ  + ÉÏ¼ýÍ·ÏÔÊ¾µ±Ç°ËùÓÐ´ò¿ª³ÌÐò´°¿ÚºÍ¶ÔÓ¦Ð¡Í¼±ê
+ÖØÆô Mac OS X: shutdown - r now
+¹Ø±Õ Mac OS X: shutdown now
+
+»ñÈ¡µ±Ç°µçÔ´¹ÜÀíÉèÖÃµÄÐÅÏ¢pmset -g
+ÉèÖÃÏÔÊ¾Æ÷ÎÞ»î¶¯15·ÖÖÓºó¹Ø±Õsudo pmset displaysleep 15
+ÈÃ¼ÆËã»úÔÚÎÞ»î¶¯30·ÖÖÓºóÐÝÃßsudo pmset sleep 30
+
+OS X Íâ¹Û
+
+½ûÓÃÒÇ±íÅÌ£¨±ðÍüÁË½«ÒÇ±íÅÌ Dock Í¼±êÍÏ¶¯³öÀ´£©
+defaults write com.apple.dashboard mcx-disabled -boolean YES
+killall Dock
+ÆôÓÃÒÇ±íÅÌ1
+defaults write com.apple.dashboard mcx-disabled -boolean NO
+killall Dock
+Ç¿ÖÆ Finder ³ÌÐòÏÔÊ¾Òþ²ØÎÄ¼þ1
+defaults write com.apple.finder AppleShowAllFiles TRUE
+Ç¿ÖÆ Finder ³ÌÐò²»ÏÔÊ¾Òþ²ØÎÄ¼þ1
+defaults write com.apple.finder AppleShowAllFiles FALSE
+
+Ê¹ÓÃ traceroute Õï¶Ïµ½Ä³¸öÖ÷»úµÄÂ·ÓÉ½Úµã
+traceroute oschina.net
+¼ì²éÄ³¸öÖ÷»úÊÇ·ñÔËÐÐ HTTP ·þÎñ£¬»òÕß¼ì²éÄ³ÍøÕ¾ÊÇ·ñ¿ÉÓÃ1
+curl -I www.oschina.net | head -n 1
+¹ÜÀí Windows ÍøÂç£¨Ïàµ±ÓÚ Windows ÏÂµÄ NET ÃüÁî£©£¬¸ÃÃüÁîÓÐºÜ¶àÑ¡Ïî£¬ÔËÐÐÏÂÃæÃüÁîÀ´²é¿´ÕâÐ©Ñ¡Ïî
+man net
+Ê¹ÓÃ dig À´Õï¶ÏÓòÃûÐÅÏ¢1
+dig www.oschina.net A
+dig www.oschina.net MX
+²é¿´Ë­ÕýÔÚµÇÂ¼µ½ÄãµÄ Mac »úÆ÷1
+w
+
+ÏÔÊ¾»î¶¯ÍøÂçÁ¬½Ó
+netstat -an
+ÏÔÊ¾ÍøÂçÍ³¼Æ
+netstat -s
+
+¹ÊÕÏÕï¶Ï
+ÁÐ±íËùÓÐ´ò¿ªµÄÎÄ¼þ
+lsof
+ÖØÆô Bonjour ¨C µ±ÍøÂçÖÐÃ»ÓÐ Mac Ê±ºÜÓÐÓÃ
+sudo launchctl unload /System/Library/LaunchDaemons/com.apple.mDNSResponder.plist
+sudo launchctl load /System/Library/LaunchDaemons/com.apple.mDNSResponder.plist
+µ¯³ö CD £¨×¢Òâ²»Ò»¶¨ÊÇ disk1£©
+diskutil eject disk1
+
+ÎÄ±¾²Ù×÷ÃüÁî
+
+¾­³£ÄãÐèÒª´Ó¼ôÇÐ°å»òÕßÎÄ¼þÖÐ»ñÈ¡Ä³Ð©ÎÄ±¾£¬²¢¶ÔÕâÐ©ÎÄ±¾½øÐÐ×ª»»ºÍÊ¹ÓÃ£¬ÕâÀïÁÐ¾ÙµÄÃüÁî¶¼ÊÇ¸úÎÄ±¾´¦ÀíÏà¹ØµÄ
+
+Í³¼Æ¼ôÌù°åÖÐÎÄ±¾µÄÐÐÊý
+pbpaste | wc -l
+Í³¼Æ¼ôÌù°åÖÐÎÄ±¾µÄµ¥´ÊÊý
+pbpaste | wc -w
+¶Ô¼ôÌù°åÖÐµÄÎÄ±¾ÐÐ½øÐÐÅÅÐòºóÖØÐÂÐ´»Ø¼ôÌù°å
+pbpaste | sort | pbcopy
+¶Ô¼ôÌù°åÖÐµÄÎÄ±¾ÐÐ½øÐÐµ¹Ðòºó·Å»Ø¼ôÌù°å
+pbpaste | rev | pbcopy
+ÒÆ³ý¼ôÌù°åÖÐÖØ¸´µÄÎÄ±¾ÐÐ£¬È»ºóÐ´»Ø¼ôÌù°å
+pbpaste | sort | uniq | pbcopy
+ÕÒ³ö¼ôÌù°åÖÐÎÄ±¾ÖÐ´æÔÚµÄÖØ¸´ÐÐ£¬²¢¸´ÖÆºóÐ´»Ø¼ôÌù°å£¨°üº¬ÖØ¸´ÐÐµÄÒ»ÐÐ£©
+pbpaste | sort | uniq -d | pbcopy
+ÕÒ³ö¼ôÌù°åÖÐÎÄ±¾ÖÐ´æÔÚµÄÖØ¸´ÐÐ£¬²¢¸´ÖÆºóÐ´»Ø¼ôÌù°å£¨²»°üº¬ÖØ¸´ÐÐ£©
+pbpaste | sort | uniq -u | pbcopy
+¶Ô¼ôÌù°åÖÐµÄ HTML ÎÄ±¾½øÐÐÇåÀíºóÐ´»Ø¼ôÌù°å
+pbpaste | tidy | pbcopy
+ÏÔÊ¾¼ôÌù°åÖÐÎÄ±¾µÄÇ° 5 ÐÐ
+pbpaste | head -n 5
+ÏÔÊ¾¼ôÌù°åÖÐÎÄ±¾µÄ×îºó 5 ÐÐ
+pbpaste | tail -n 5
+½«¼ôÌù°åÖÐÎÄ±¾Àï´æÔÚµÄ Tab Ìø¸ñ·ûºÅ×ª³É¿Õ¸ñ
+pbpaste | expand | pbcopy
+
+ÆäËûÓÐÓÃµÄÃüÁî
+
+A:
+htpasswd -nb username password
+B:
+AuthType Basic
+AuthName "restricted area"
+AuthUserFile /path/to/your/site/.htpasswd
+require valid-user
+ÏÔÊ¾ÖÕ¶Ë´°¿ÚÖÐÖ®Ç°ÊäÈëµÄÃüÁî
+history
+½«ÎÄ¼þ×ª³É HTML£¬Ö§³Ö¸ñÊ½°üÀ¨ Text, .RTF, .DOC.
+textutil -convert html file.extension
+Nano ÊÇÒ»¸öºÜ¼òµ¥Ò×ÓÃµÄÎÄ±¾±à¼­Æ÷£¬¿ÉÓÃÓÚ¿ìËÙ¸ü¸ÄÎÄ±¾ÎÄ¼þ£¬±È vim ¹¦ÄÜÈõºÜ¶à£¬µ«ºÜ·½±ã
+nano [file_to_edit]
+ÔÚ nano ±à¼­Æ÷ÖÐ£¬¿ÉÊ¹ÓÃ ctrl+o À´±£³Ö£¬ctrl+x À´ÍË³ö¡£
+
+ÇåÀíÖÕ¶ËÏÔÊ¾µÄÄÚÈÝ
+clear
+
+iTunes Ïà¹Ø
+¸ü¸Ä iTunes Á´½ÓÐÐÎªÎª±¾»ú iTunes ¿â£¬¶ø²»ÊÇ iTunes Store
+
+defaults write com.apple.iTunes invertStoreLinks -bool YES
+¸ü¸Ä iTunes Á´½ÓÐÐÎªÎª iTunes Store£¬¶ø²»ÊÇ±¾»ú iTunes ¿â
+
+defaults write com.apple.iTunes invertStoreLinks -bool NO
+ÆäËû Mac OS X ÖÕ¶Ë×ÊÔ´
+
+Mac OS X Hacking Tools (old but detailed list for the obsessive only).
+
+Cameron Hayne¡¯s Bash Scripts
+
+Mac OS X Hints
+
+×¢Òâ: Ç°ÃæµÄºÜ¶àÀý×ÓÎÒÃÇÓÃÁË pbpaste À´´Ó¼ôÌù°åÖÐ»ñÈ¡Êý¾Ý£¬Ò²¿ÉÊ¹ÓÃ cat À´´ÓÎÄ¼þÖÐ»ñÈ¡Êý¾Ý
+cat [/path/to/filename]
+
+Òª½«½á¹û·Åµ½×ÀÃæµÄÒ»¸öÎÄ¼þ£¬¿É½« pbcopy Ìæ»»Îª£º
+> ~/Desktop/filename.txt
+* Speed Up Mission Control Animations
+http://osxdaily.com/2012/02/14/speed-up-misson-control-animations-mac-os-x/
+This will speed up Mission Control quite noticeably but still maintain a decent looking animation:
+
+defaults write com.apple.dock expose-animation-duration -float 0.15
+
+Now kill the Dock to restart Mission Control:
+
+killall Dock
+
+Do a three-fingered swipe up or down to see the difference in speed.
+
+Super Fast Mission Control Animations
+If you want extremely fast animations, this is your defaults write command:
+
+defaults write com.apple.dock expose-animation-duration -float 0.1
+
+Again, kill the Dock for changes to take effect:
+
+killall Dock
+
+As you may have guessed, you can adjust the animation speeds by changing the number after the -float flag, the larger the number the slower the animation, and the lower the number the faster the animation. The default setting is probably about 0.2 or 0.25, meaning anything larger than that starts to be slower than default. Whole numbers become increasingly slow, similar to holding down the shift key.
+
+Slowing Down Mission Control Animations
+This is marginally slower, but can quickly become a nuisance with usability:
+
+defaults write com.apple.dock expose-animation-duration -float 1
+
+Followed by:
+
+killall Dock
+
+Disable Mission Control Animations
+This removes all animations, making Mission Control just snap in and out:
+
+defaults write com.apple.dock expose-animation-duration -float 0
+
+Killing the Dock is required for the animations to disappear:
+
+killall Dock
+
+The effect of disabling the animation is quite jarring and unless you’re trying to preserve frame rate for some reason it’s not very pleasant.
+
+Return to Default Mission Control Animation Speeds
+Want Mission Control to be back to normal? Use the following defaults command to clear any customizations, returning to the default setting:
+
+defaults delete com.apple.dock expose-animation-duration; killall Dock
+* about sslvpn
+ÉèÖÃIPÓÐÁ½²½Öè£ºaÐéÄâÍø¿¨ÄÚ²¿ÉèÖÃ£¬b²Ù×÷ÏµÍ³APIÉèÖÃ
+a²»Éæ¼°rootÈ¨ÏÞ£¬bÉæ¼°rootÈ¨ÏÞ
+Ö»Òª°Ñb·Åµ½root deamonÖÐ¾ÍÐÐÁË¡£ÓÉÓÚÔ­ÏÈabÍ¬ÔÚÒ»¸öº¯ÊýFÄÚ£¬ÎÒ°ÑÕâ¸öº¯ÊýÕûÌåÅ²µ½deamonÖÐ£¬µ«ÊÇaÐèÒªºÍÄÚºËmach½Ó¿ÚÍ¨Ñ¶£¬deamonÖÐÐèÒª½¨Á¢ºÍiokitÁ¬½Ó£¬appÖÐÒ²ÐèÒª½¨Á¢ºÍiokitÁ¬½Ó£¨ÓÃÀ´·¢ËÍ½ÓÊÕÊý¾Ý£©¡£Á½¸öÁ¬½Ó²»Ò»Ñù£¬µ¼ÖÂ²»¿ÉÖªÎÊÌâ¡£ºóÀ´²Å·¢ÏÖ¿ÉÒÔº¯ÊýF°üº¬aºÍb¡£
+
+È»ºó£¬ÖØÐÂÔÚdeamon·À×ÅÔ­ÏÈÅ²µ½deamonÖÐµÄF£¬dFÐ´ÁËÒ»¸öº¯ÊýdF2£¬ËÀ»î²»ÐÐ£¨ÍøÂçÖÐ¶Ï£¬app ±¨ÎÄ»ØÈÆ£©·Ç³£±ÀÀ£¡£·´¸´±È½ÏdFºÍdF2£¬×îºó²Å·¢ÏÖ£¬Ô­À´ÊÇdF×îºó¶àÁËÒ»²½£ºconfigServiceOrder(last).
+ÆäÊµÎÊÌâºÜ´óµ«Ô­ÒòºÜÐ¡£¡
+
+ping 20.20.20.1 ping:sendto:host is down:Ô­ÒòÊÇÃ»ÓÐÄ¬ÈÏÂ·ÓÉ20.20.20.1
+
+You may be misinterpreting the value of the serial-number parameter. If I use ioreg -f -k serial-number, I get this:
+
+    |   "serial-number" = 
+    |     00000000: 55 51 32 00 00 00 00 00 00 00 00 00 00 XX XX XX XX UQ2..........XXXX
+    |     00000011: XX XX XX XX 55 51 32 00 00 00 00 00 00 00 00 00 00 XXXXUQ2..........
+    |     00000022: 00 00 00 00 00 00 00 00 00   
+
+
+Ã¿´ÎloadÒ»¸öplist,¶¼Ã»ÆÚ´ýÖ´ÐÐ½á¹û¡£ºóÀ´²Å´ÓConsoleÖÐµÄlog (All Messages)¿´µ½Job failed to exec(3) for weird reason:13. È»ºóÈ¥ËÑË÷£¬·¢ÏÖÊÇÒòÎªplistÒªÆô¶¯µÄ³ÌÐòÃ»ÓÐexecutableÈ¨ÏÞ¡£ÓÚÊÇchmod +x ÒªÆô¶¯µÄ³ÌÐò ok¡£
+###SSL_read(ssl*,void*,int) ssl*Ææ¹Ö¿ÕÖ¸Õë,sslÊÇÔÚÁíÍâÒ»¸öÏß³ÌfreeµôÁË.
+- (void) sendEvent:(NSEvent *)event {
+    if ([event type] == NSKeyDown) {
+        if (([event modifierFlags] & NSDeviceIndependentModifierFlagsMask) == NSCommandKeyMask) {
+            if ([[event charactersIgnoringModifiers] isEqualToString:@"x"]) {
+                if ([self sendAction:@selector(cut:) to:nil from:self])
+                    return;
+            }
+            else if ([[event charactersIgnoringModifiers] isEqualToString:@"c"]) {
+                if ([self sendAction:@selector(copy:) to:nil from:self])
+                    return;
+            }
+            else if ([[event charactersIgnoringModifiers] isEqualToString:@"v"]) {
+                if ([self sendAction:@selector(paste:) to:nil from:self])
+                    return;
+            }
+            else if ([[event charactersIgnoringModifiers] isEqualToString:@"z"]) {
+                if ([self sendAction:@selector(undo:) to:nil from:self])
+                    return;
+            }
+            else if ([[event charactersIgnoringModifiers] isEqualToString:@"a"]) {
+                if ([self sendAction:@selector(selectAll:) to:nil from:self])
+                    return;
+            }
+        }
+        else if (([event modifierFlags] & NSDeviceIndependentModifierFlagsMask) == (NSCommandKeyMask | NSShiftKeyMask)) {
+            if ([[event charactersIgnoringModifiers] isEqualToString:@"Z"]) {
+                if ([self sendAction:@selector(redo:) to:nil from:self])
+                    return;
+            }
+        }
+    }
+    [super sendEvent:event];
+}
+** They can be found in more than one place:
+~/Library/Preferences/com.example.myapp.plist
+~/Library/SyncedPreferences/com.example.myapp.plist
+and if sandboxed
+
+~/Library/Containers/com.example.myapp/Data/Library/Preferences/com.example.myapp.plist
+~/Library/Containers/com.example.myapp/Data/Library/SyncedPreferences/com.example.
+
+#define IPTUN_ACL_RULES_MAX         16
+#define IPTUN_RESOURCE_MAX          128
+
+Òì³£ÍË³ö£¬É¾³ýÍøÂç·þÎñ
+
+2.3.5.2. ·¢ËÍ±£»îping°ü£¨ping_send_timer£©
+
+2.3.5.3. ½ÓÊÕ±£»îping°ü£¨keep_alive_timer£©
+
+2.3.5.4. ÉèÖÃÂ·ÓÉ£¨rt_set_timer£©
+
+2.3.5.5. Â·ÓÉÉèÖÃ³¬Ê±´¦Àí£¨rt_set_expire_timer£©
+
+2.3.5.6. SSLÎÕÊÖ³¬Ê±¶¨Ê±Æ÷£¨ssl_handshake_timer£©
+
+Ã¿¸öÎåÔª×é¶¼»á¶ÔÓ¦Ò»¸ö¹þÏ£½Úµã£¬Èç¹û³¤Ê±¼ä²»½øÐÐ½ÚµãÊÍ·Å»áÔì³ÉÄÚ´æÕ¼ÓÃÌ«¶à£¬ËùÒÔ½«Ò»Ð©³¤Ê±¼äÃ»½øÐÐÇëÇóµÄÎåÔª×é¹þÏ£½ÚµãÉ¾³ý¡£ÀÏ»¯Ê±¼ä¾ÍÊÇÕâ¸öÉ¾³ýÊ±¼äµã
+
+ACL ÓÐÁ½ÖÖ·½Ê½£º ¸ù¾ÝÄ¿µÄIP ¶Ë¿Ú Ð­Òé ½øÐÐACL¹æÔòÊý×éÅÐ¶Ï¡£ ¶ÔÓÚÄ³¸öÇëÇóµÄµÚÒ»¸ö±¨ÎÄ¶¼ÊÇÏÈ½øÐÐÊý×éÅÐ¶ÏµÃµ½¹ýÂË½á¹ûµÄ
+µÃµ½½á¹ûºó ´´½¨Ò»¸ö¹þÏ£½Úµã²åÈë¹þÏ£±í£¬°ÑACL½á¹û±£´æµ½¹þÏ£½áµã£¬¶ÔÓÚµÚ¶þ¸ö±¨ÎÄ¿ªÊ¼¾Í¿ÉÒÔÖ±½Ó²é¹þÏ£±í½øÐÐ¹ýÂËÁË£¬ÕâÑùÐ§ÂÊ»á¸ßÒ»µã
+
+* restore a minimised application window
+Command + Tab until you get the app's icon.
+Before releasing Command, press and hold ⌥ (option).
+
+
+Cmd + tab to the application icon (Continue to hold Cmd)
+While holding Cmd, push the ↑ (or ↓) arrow key on the keyboard. This will bring up a list of all the application's windows (You can release key command key once the window list view comes up if you like)
+Push the down arrow key (↓) to select the minimized windows.
+Keyboard" preferences have a "Mission Control" keyboard shortcut for this
+
+* Mac系统终端 -bash: warning: setlocale: LC_CTYPE: cannot change locale (UTF-8): No such file or directory
+一、使用OS X的Terminal.app
+如果你使用的是OS X上得Terminal.app的话，那么：
+
+1.打开Terminal.app。
+
+2.将鼠标移动到屏幕左上角，苹果Logo旁边，依次点击
+
+Terminal > Preferences
+
+在”General”选项卡下，找到第一项：”On startup, open:”，从下拉框中选择一个样式，假如选定的是Basic。
+3.切换到”Profiles”选项卡，从左侧列表中选择刚刚选中的样式，在右侧选择”Advanced”标签，取消倒数第二栏的”set locale environment variables on startup”勾选状态(即不勾选这个选项)。然后退出，关闭并退出Terminal.app，重新打开Terminal.app就可以了。
+
+二、修改客户端的SSH配置文件
+1.打开客户端SSH配置文件：
+
+(Linux系统) sudo vi /etc/ssh/ssh_config
+或(OS X) sudo vi /etc/ssh/ssh_config
+
+2.找到这一行，并在这一行前用”#”号注释它。
+#SendEnv LANG LC_*
+
+* ssh-copy-id
+brew install ssh-copy-id
+copy public key onto the file ~/.ssh/authorized_keys of the target server
+
+* networksetup
+networksetup -listallnetworkservices
+Ethernet
+Wi-Fi
+networksetup -setdnsservers Wi-Fi 8.8.8.8
+networksetup -getdnsservers Wi-Fi
+
+sudo ipconfig set en1 DHCP
+ipconfig getifaddr en1
+sudo ipconfig set en1 INFORM 192.168.0.150
+sudo ifconfig en1 down ; sudo ifconfig en1 up
+
+* Google Chrome (Mac) set keyboard focus from address bar back to page
+https://superuser.com/questions/324266/google-chrome-mac-set-keyboard-focus-from-address-bar-back-to-page/324267#324267
+
+This has annoyed me very much too. Using tab is not always desirable,
+for example when you're reading a large document. Tab could move away
+from where you were reading to the first link on the page.
+
+I have found a work-around for the missing hotkey inspired by some of
+the answers from here: In Mac Chrome, how can I return focus from the
+address bar to the page?
+
+"Ctrl-F (search)
+Any single character -- might as well search for an "f" on the page since your finger is already there
+Esc to cancel the search"
+
+Typing "javascript:" (without quotes) and then enter will move focus
+back to the page. OK, so that's one solution. That's however not very
+nice as you would have to do a lot of typing. Now what you can do is
+add a new search engine with a short keyword, like "u", and set the
+search string to be "javascript:". Then you can type in "u" and then
+enter to move focus back to the page without jumping around.
+
+* dostounix with one command
+perl -pi -e 's/\r\n|\n|\r/\r\n/g' file-to-convert  # Convert to DOS
+perl -pi -e 's/\r\n|\n|\r/\n/g'   file-to-convert  # Convert to UNIX
+
+* .bash_profile is executed for login shells, while .bashrc is executed for interactive non-login shells.
+When you login (type username and password) via console, either sitting at the machine, or remotely via ssh: .bash_profile is executed to configure your shell before the initial command prompt.
+But, if you’ve already logged into your machine and open a new terminal window (xterm) then .bashrc is executed before the window command prompt. .bashrc is also run when you start a new bash instance by typing /bin/bash in a terminal.
+
+On OS X, Terminal by default runs a login shell every time, so this is a little different to most other systems, but you can configure that in the preferences.
+
+For macOS, the code to put into .bash_profile to consolidate everything into .bashrc is the following:
+
+if [ -f ~/.bashrc ]; then
+    source ~/.bashrc
+fi
+This is more specific for Mac terminal user.
+
+* iTerm2->Preferences->Profiles->Color选择Color Presets->import到下载好的主题目录下schemes目录下选择你要的主题导入，导入之后别忘记设置成你要的主题
+颜色包 http://iterm2colorschemes.com/
+
+* screen shot
+defaults write com.apple.screencapture location ~/Desktop/pics
+killall SystemUIServer
+* How to assign Static IP via Terminal in Mountain Lion OSX
+First get a list of your network services:
+
+networksetup -listallnetworkservices  
+
+Then use the desired service name in the following command:
+
+networksetup -setmanual SERVICE IP SUBNET ROUTER  
+
+For example, by default the Wi-Fi connection will be called "Wi-Fi," so you can use the following to set it to a classic private IP address:
+
+networksetup -setmanual Wi-Fi 192.168.1.2 255.255.255.0 192.168.1.1  
+
+To set it back to DHCP, use the following command:
+
+networksetup -setdhcp SERVICE  
+
+To keep DHCP services but only use a manually designated IP address, then use the following command:
+
+networksetup -setmanualwithdhcprouter SERVICE IP
+* netstat -ap tcp | grep -i "listen"
+
+Achive Internet connections (including servers)
+Proto Recv-Q Send-Q  Local Address          Foreign Address        (state)   
+tcp4       0      0  localhost.25035        *.*                    LISTEN
+sudo lsof -PiTCP -sTCP:LISTEN
+
+PRODUCT KEY:   NTFS-FREE-CS-665258888
+SERIAL NUMBER: 1175E-20D8F-AB3FE-43444
+* add user/group
+dscl . -create /Users/luser
+dscl . -create /Users/luser UserShell /bin/bash
+dscl . -create /Users/luser RealName "Lucius Q. User"
+dscl . -create /Users/luser UniqueID "1010"
+dscl . -create /Users/luser PrimaryGroupID 80
+dscl . -create /Users/luser NFSHomeDirectory /Users/luser
+
+sudo dscl . -list /groups GroupMembership 
+添加 user 到 group
+
+$ sudo dscl . -append /Groups/groupname GroupMembership username
+从 group 中删除 user
+
+$ sudo dscl . -delete /Groups/groupname GroupMembership username
+

@@ -1,0 +1,231 @@
+* install error
+dpkg: error processing archive /var/cache/apt/archives/mongodb-org-server_7.0.11_amd64.deb (--unpack):
+trying to overwrite '/usr/bin/mongod', which is also in package mongodb-server-core 1:3.6.9+really3.6.8+90~g8e540c0b6d-0ubuntu5.3
+
+It seems that the conflict persists even after attempting to remove the conflicting package. In this case, you may need to force the installation of the mongodb-org-server package to overwrite the conflicting file. Here's how you can do that:
+
+Force installation:
+Use the dpkg command with the --force-overwrite option to force the installation of the mongodb-org-server package and overwrite the conflicting file.
+
+sudo dpkg -i --force-overwrite /var/cache/apt/archives/mongodb-org-server_7.0.11_amd64.deb
+* auth in shell
+use admin
+db.auth('root','123456')
+
+* 7.0
+** 启动：
+systemctl start mongod
+** bind ip
+modify /etc/mongod.conf
+change to 0.0.0.0 or the ip of the mongodb host server
+不能设置为非本地IP
+** set auth
+create user after starting db:
+enter mongo shell
+use admin
+db.createUser(
+{
+user: "root",
+pwd: "123456",
+roles: [ { role: "userAdminAnyDatabase", db: "admin" } ]
+}
+)
+
+enable authentication:
+modify /etc/mongod.conf
+security:
+  authorization: enabled
+
+
+systemctl restart mongod
+** start failed
+chown -R mongodb:mongodb /var/log/mongodb/ /var/lib/mongodb
+
+** create business user
+db.createUser({
+    user: "ruijie",
+    pwd: "ruijie",
+    roles: [
+        { role: "readWrite", db: "rnms" }
+    ]
+})
+
+db.getUsers()
+
+** grant more roles(rights) to a user
+use admin
+db.grantRolesToUser(
+"ruijie",
+[
+{ role: "readWrite", db: "rnms52backup" }
+]
+)
+MongoServerError[Unauthorized]: Command grantRolesToUser requires authentication
+admin> db.auth("root", "123456")
+admin> db.grantRolesToUser( "ruijie", [ { role: "readWrite", db: "rnms52backup" }] )
+
+* fail to start
+msg":"Error during global initialization
+>> chmod 777 -R /var/log/mongodb/
+* start
+sudo mkdir -p /var/lib/mongo
+sudo mkdir -p /var/log/mongodb
+sudo chown `whoami` /var/lib/mongo
+sudo chown `whoami` /var/log/mongodb
+接下来启动 Mongodb 服务：
+systemctl stop mongodb.service
+mongod --bind_ip_all --dbpath /var/lib/mongo --logpath /var/log/mongodb/mongod.log --fork
+
+* stop
+mongod --bind_ip_all --dbpath /var/lib/mongo --logpath /var/log/mongodb/mongod.log --shutdown
+或者：
+> use admin
+> db.shutdownServer()
+* command createIndexes requires authentication
+1. MongoStore.create in express session, mongoUrl needs to be config with usr/pass and authSource
+mongoUrl: `mongodb://${mongodbUser}:${mongodbPass}@${process.env.MONGODBURL}/db?authSource=admin`
+2. usr/pass need to be created to have rw privillege on the target db
+* enum type
+var userSchema = new mongoose.Schema({
+  // ...
+  , role: { type: String, enum: ['admin', 'guest'] }
+}
+
+var user = new User({
+ // ...
+ , role: 'admin'
+});
+
+* set auth
+create user after starting db:
+enter mongo shell
+use admin
+db.createUser(
+  {
+    user: "root",
+    pwd: "123456",
+    roles: [ { role: "userAdminAnyDatabase", db: "admin" } ]
+  }
+)
+
+If you have already created the admin user, you can change the role like this:
+use admin;
+db.grantRolesToUser('admin', [{ role: 'root', db: 'admin' }])
+
+db.createUser(
+  {
+    user: "myUserAdmin",
+    pwd: "abc123",
+    roles: [ { role: "userAdminAnyDatabase", db: "admin" },
+             { role: "dbAdminAnyDatabase", db: "admin" },
+             { role: "readWriteAnyDatabase", db: "admin" } ]
+  }
+)
+
+update permission
+db.grantRolesToUser(
+   "myUserAdmin",
+   [ { role: "userAdminAnyDatabase", db: "admin" },
+     { role: "dbAdminAnyDatabase", db: "admin" },
+     { role: "readWriteAnyDatabase", db: "admin" } ]
+)
+mongo --port 27017 -u "root" -p "123456"  --authenticationDatabase "admin"
+mongo mongodb://localhost:27017 -u "root" -p "123456"  --authenticationDatabase "admin"
+** change pass
+db.changeUserPassword("admin", "admin"
+* with auth
+By default mongodb has no enabled access control, so there is no default user or password.
+
+To enable access control, use either the command line option --auth or security.authorization configuration file setting.
+
+You can use the following procedure or refer to Enabling Auth in the MongoDB docs.
+
+Start MongoDB without access control.
+
+ mongod --port 27017 --dbpath /data/db1
+Connect to the instance.
+
+ mongosh --port 27017
+Create the user administrator.
+
+ use admin
+ db.createUser(
+   {
+     user: "myUserAdmin",
+     pwd: passwordPrompt(), // or cleartext password
+     roles: [
+       { role: "userAdminAnyDatabase", db: "admin" },
+       { role: "readWriteAnyDatabase", db: "admin" }
+     ]
+   }
+ )
+Re-start the MongoDB instance with access control.
+
+ mongod --auth --port 27017 --dbpath /data/db1
+Authenticate as the user administrator.
+
+ mongosh --port 27017 --authenticationDatabase "admin"\
+     -u "myUserAdmin" -p
+
+***If user is created with role userAdminAnyDatabase, then will be impossible to create any database. Therefore roles section should be: roles: [ { role: "root", db: "admin" } ]
+
+* [[https://www.mongodb.com/docs/manual/indexes/][index]]
+# compound index
+db.rfcs.createIndex({"rfcId": 1, "section": 1}, {unique: true})
+db.rfcs.getIndexes()
+
+rfc.dropIndex({"rfcId":1})
+
+* schemeless :show columns:
+MongoDB is schemaless and does not have tables. In MongoDB, each collection can have different types of items. You could store two very different items in the same collection:
+
+db.test.insert( { "SomeString" : "How much wood would the woodchop chop ..." } );
+db.test.insert( { "Amount": 2040.20, "Due": new ISODate("2012-11-10"), "UserId" : new ObjectId("...")} );
+usually the objects are somehow related or have a common base type, but it's not required.
+
+You can, however, take a look at invidual records using
+
+db.collectionName.findOne()
+or
+
+db.collectionName.find().pretty()
+However, there's no guarantee from MongoDB that any two records look alike or have the same fields: there's no schema.
+
+* qurey
+** select specific field from result
+const rfcContent = await Rfc.find({}).select({ rfcId })
+
+** exculud field from result
+const rfcContent = await Rfc.find({ rfcId }, { _id: 0, createAt: 0})
+
+It does not allow the mixing of inclusions and exclusion when returning a result
+// error
+const rfcContent = await Rfc.find({ rfcId }, { rfcId: 1, _id: 0, createAt: 0})
+
+* delete
+> rfc.deleteOne({rfcId:3630})
+{ "acknowledged" : true, "deletedCount" : 0 }
+no success because type unmatched
+> rfc.deleteOne({rfcId:"3630"})
+{ "acknowledged" : true, "deletedCount" : 1 }
+
+* update column
+rfcs.updateMany({}, { $rename: { "enContent":"cnContent"} })
+
+* remove column
+rfc.updateMany({}, {$unset: {translationText: ""}}, {multi:true})
+rfc.updateMany({}, {$unset: {spec: ""}}, {multi:true})
+
+* rename column
+db.your_collection.updateMany({}, { $rename: { 'oldField': 'newField' } })
+
+* add column: removed, default as true
+To add a new boolean column named removed with a default value of true to an existing MongoDB collection
+db.getCollection("featurelv1").updateMany({}, { $set: { removed: false } })
+
+* update
+update if exists otherwise create one
+tran.findOneAndUpdate({rfcId:"1", sectionName: "1", contentId: "1" },{$set: {rfcId:"1", sectionName: "1", contentId: "2", finishTrans:true}}, {upsert:true})
+
+* find
+db.collection.find({ field: { $ne: value } });

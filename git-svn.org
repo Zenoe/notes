@@ -1,0 +1,431 @@
+Command	New Files	Modified Files	Deleted Files	Description
+git add -A	✔️	✔️	✔️	Stage all (new, modified, deleted) files
+git add .	✔️	✔️	✔️	Stage all (new, modified, deleted) files in current folder
+git add -u	❌	✔️	✔️	Stage modified and deleted files only
+git add --ignore-removal .	✔️	✔️	❌	Stage new and modified files only
+
+* origin/main  remote repository/default branch name
+eg: git fetch origin main or git pull origin main
+* git line ending :carriage:return:
+Make 'git diff' ignore ^M
+GitHub suggests that you should make sure to only use \n as a newline character in git-handled repos. There's an option to auto-convert:
+git config --global core.autocrlf true
+* git patch
+If you haven't yet commited the changes, then:
+
+git diff > mypatch.patch
+But sometimes it happens that part of the stuff you're doing are new files that are untracked and won't be in your git diff output. So, one way to do a patch is to stage everything for a new commit (git add each file, or just git add .) but don't do the commit, and then:
+
+git diff --cached > mypatch.patch
+Add the 'binary' option if you want to add binary files to the patch (e.g. mp3 files):
+
+git diff --cached --binary > mypatch.patch
+You can later apply the patch:
+
+git apply mypatch.patch
+* git checkout -b BRANCH_NAME creates a new branch and checks out the new branch while git branch BRANCH_NAME creates a new branch but leaves you on the same branch.
+
+In other words git checkout -b BRANCH_NAME does the following for you.
+
+git branch BRANCH_NAME    # create a new branch
+git switch BRANCH_NAME    # then switch to the new branch
+* [[https://stackoverflow.com/questions/68775869/support-for-password-authentication-was-removed-please-use-a-personal-access-to][Support for password authentication was removed. Please use a personal access token instead]]
+From 2021-08-13, GitHub is no longer accepting account passwords when authenticating Git operations. You need to add a PAT (Personal Access Token) instead, and you can follow the below method to add a PAT on your system.
+
+[[https://stackoverflow.com/questions/68775869/message-support-for-password-authentication-was-removed-please-use-a-personal][Create Personal Access Token on GitHub]]
+From your GitHub account, go to Settings → Developer Settings → Personal Access Token → Generate New Token (Give your password) → Fillup the form → click Generate token → Copy the generated Token, it will be something like ghp_sFhFsSHhTzMDreGRLjmks4Tzuzgthdvfsrta
+
+* github push
+You can't push to git://github.com/user/repo.git   Use     https://github.com/user/repo.git
+that is URL like git://github.com/user/repo.git is read-only, SSH URL like git@github.com:user/repo.git and HTTPS URL like https://github.com/user/repo.git are writeable.
+https://docs.github.com/en/get-started/using-git/pushing-commits-to-a-remote-repository#what-can-i-push-to
+
+git remote add origin https://github.com/Zenoe/zenoe1
+git push origin master==>error: not supported
+
+git remote -v
+
+git remote remove origin
+
+git remote add origin git@github.com:zenoe/zenoe1.git
+
+git config --global http.proxy http://proxyuser:proxypwd@proxy.server.com:8080
+
+git config --global --unset http.proxy
+git config --global --get http.proxy
+
+git config --global https.proxy ''
+git config --global http.proxy ''
+
+git config --global https.proxy http://10.110.198.52:20171
+git config --global http.proxy http://10.110.198.52:20171
+
+windows git bash
+export http_proxy=http://10.110.198.52:20171
+export https_proxy=http://10.110.198.52:20171
+
+
+export http_proxy=
+export https_proxy=
+
+set http_proxy=10.110.198.50:7890
+set https_proxy=10.110.198.50:7890
+git push origin master
+
+
+windows:
+netsh winhttp show proxy
+netsh winhttp set proxy "10.110.198.52:20171"
+set HTTP_PROXY=http://10.110.198.52:20171
+set HTTPS_PROXY=http://10.110.198.52:20171
+* git push Invalid username or password
+fatal: Authentication failed for 'https://github.com/Zenoe/js-toolbox/'
+solution:
+git remote set-url origin git@github.com:zenoe/js-toolbox.git
+
+* git show
+git show shows the changes made in the most recent commit. It is equivalent to git show HEAD.
+
+git show HEAD~1 takes you back one commit.
+* git checkout previous
+git checkout HEAD^ foo
+* git restore all
+git reset --hard
+git clean -f -d
+git checkout HEAD
+* delete untracked files
+git clean -d -x -f
+This removes untracked files, including directories (-d) and files ignored by git (-x).
+
+Also, replace the -f argument with -n to perform a dry-run or -i for interactive mode and it will tell you what will be removed.
+* github ssh key
+ssh-keygen -t rsa
+cat ~/.ssh/id_rsa.pub  --> profile settings -> SSH Keys
+
+* git commit untracked files
+git add .
+git commit -am 'message'
+* * git info
+If you want only the remote URL, or referential integrity has been broken:
+
+git config --get remote.origin.url
+If you require full output or referential integrity is intact:
+
+git remote show origin
+* revert commit
+To restore everything back to the way it was prior to the last commit, we need to reset to the commit before HEAD:
+git reset --soft HEAD^     # use --soft if you want to keep your changes
+git reset --hard HEAD^     # use --hard if you don't care about keeping the changes you made
+
+git reflog
+git reset --hard 5a7404742c85
+git reset --soft 5a7404742c85
+* git pull: There is no tracking information for the current branch
+You could specify what branch you want to pull:
+
+git pull origin master
+Or you could set it up so that your local master branch tracks github master branch as an upstream:
+
+git branch --set-upstream-to=origin/master master
+git pull
+This branch tracking is set up for you automatically when you clone a repository (for the default branch only), but if you add a remote to an existing repository you have to set up the tracking yourself. Thankfully, the advice given by git makes that pretty easy to remember how to do.
+
+--set-upstream is deprecated in git 1.9.x, apparently. Going forward you'd want to use something like git branch -u origin/master, assuming you've checked out master already. If not, git branch -u origin/master master will wor
+* git diff
+git diff HEAD:tools/mserver/mserver5.c HEAD^^:tools/mserver/mserver5.c
+git diff hash1 hash2 filename
+git diff HEAD~2 HEAD -- main.c
+NOTICE: that path separator must be '/' but not '\'
+git diff hash~ hash
+
+To create a patch with both modified & new files (staged) you can run:
+git diff HEAD > file_name.patch
+* git remote -v show url
+* only commit some hunks(add only a specific part to the staging area.)
+git add -p file
+* Is there a way to skip password typing when using https:// on GitHub?
+Since Git 1.7.9 (released in late January 2012), there is a neat mechanism in Git to avoid having to type your password all the time for HTTP / HTTPS, called credential helpers. (Thanks to dazonic for pointing out this new feature in the comments below.)
+
+With Git 1.7.9 or later, you can just use one of the following credential helpers:
+
+git config --global credential.helper cache
+... which tells Git to keep your password cached in memory for (by default) 15 minutes. You can set a longer timeout with:
+
+git config --global credential.helper "cache --timeout=3600"
+
+With any Git version (well, since version 0.99)
+
+** An alternative approach is to put your username and password in your ~/.netrc file, although, as with keeping the password in the remote URL, this means that your password will be stored on the disk in plain text and is thus less secure and not recommended. However, if you want to take this approach, add the following line to your ~/.netrc:
+
+machine <hostname> login <username> password <password>
+... replacing <hostname> with the server's hostname, and <username> and <password> with your username and password. Also remember to set restrictive file system permissions on that file:
+
+chmod 600 ~/.netrc
+Note that on Windows, this file should be called _netrc, and you may need to define the %HOME% environment variable - for more details see:
+
+You can also have Git store your credentials permanently using the following:
+
+** git config credential.helper store
+Note: While this is convenient, Git will store your credentials in clear text in a local file (.git-credentials) under your project directory (see below for the "home" directory). If you don't like this, delete this file and switch to using the cache option.
+
+If you want Git to resume to asking you for credentials every time it needs to connect to the remote repository, you can run this command:
+
+git config --unset credential.helper
+To store the passwords in .git-credentials in your %HOME% directory as opposed to the project directory: use the --global flag
+
+git config --global credential.helper store
+* delete all commit history in github
+Deleting the .git folder may cause problems in your git repository. If you want to delete all your commit history but keep the code in its current state, it is very safe to do it as in the following:
+
+git checkout --orphan latest_branch
+Add all the files
+
+git add -A
+Commit the changes
+
+git commit -am "commit message"
+Delete the branch
+
+git branch -D master
+Rename the current branch to master
+
+git branch -m master
+Finally, force update your repository
+
+git push -f origin master
+Hope this helps. PS: this will not keep your old commit history around :)
+forget all about the option settings in ~/.subversion/ foloders
+rm ~/.subversion/ && svn update
+enter username and password
+
+Somewhat surprisingly, looking at the configs in .subversion, none of the settings are uncommented; they're all set to the defaults
+* git log
+git log --pretty=format:'%C(yellow)%h %Cred%ad %Cblue%an%Cgreen%d %Creset%s' --date=short
+
+git log --pretty=format:"%h%x09%an%x09%ad%x09%s"
+
+To shorten the date (not showing the time) use --date=short
+
+In case you were curious what the different options were:
+%h = abbreviated commit hash
+%x09 = tab (character for code 9)
+%an = author name
+%ad = author date (format respects --date= option)
+%s = subject
+
+git log --author=Smith
+git log --author="\(Adam\)\|\(Jon\)"
+
+* cannot run gpg: No such file or directory
+What is the output of the command below. I suspect you have commit.gpgsign=true
+
+git config --global --list | grep commit
+You can disable it with
+
+git config --global --add commit.gpgsign false
+or by removing the line manually from ~/.gitconfig.
+
+* error: gpg failed to sign the data
+disable automatic gpg signing ->
+git config --global --get commit.gpgsign
+
+* svn revert to old version
+svn update -r 135
+
+* svn revert skipped files
+svn st
+A       .
+!M      ic-rabbit@2x.png
+!M      ic-snail@2x.png
+
+svn revert ic_star@2x.png
+Skipped 'ic_star'
+
+svn revert ./ --depth infinity
+Reverted '.'
+Reverted 'ic-rabbit@2x.png'
+Reverted 'ic-snail@2x.png'
+
+* git push can push all branches or a single one dependent on this configuration:
+
+Push all branches
+
+git config --global push.default matching
+It will push all the branches to the remote branch and would merge them. If you don't want to push all branches, you can push the current branch only.
+
+Push only the current branch
+
+git config --global push.default simple
+So, it's better, in my opinion, to use this option and push your code branch by branch. It's better to push branches manually and individually.
+
+* [[https://stackoverflow.com/questions/6565357/git-push-requires-username-and-password][Git push requires username and password]]
+A common cause is cloning using the default (HTTPS) instead of SSH. You can
+correct this by going to your repository, clicking "Clone or download", then
+clicking the "Use SSH" button above the URL field and updating the URL of your
+origin remote like this:
+
+copy ~/.ssh/id_rsa.pub to serve as the pub key for github account
+git remote set-url origin git@github.com:username/repo.git
+
+* vc-push through M-X ==> [[https://stackoverflow.com/questions/22147574/fatal-could-not-read-username-for-https-github-com-no-such-file-or-directo][fatal: could not read Username for 'https://github.com': No such file or directory]]
+git remote add origin https://{username}:{password}@github.com/{username}/project.git
+
+instead of deleting and re-adding origin you also can just change the URL using git remote set-url origin https://{username}:{password}@github.com/...
+solution works but it stores the user's github account password and let it be read by just typing git remote -v
+or git remote show origin
+
+If you want only the remote URL, or if your are not connected to a network that can reach the remote repo:
+git config --get remote.origin.url
+
+* install latest git
+yum install http://opensource.wandisco.com/centos/7/git/x86_64/wandisco-git-release-7-2.noarch.rpm
+yum install git -y
+* svn commit all except one
+1.
+svn diff file4 > tmp.patch
+svn revert file4
+svn ci -m "Commit 1"
+svn patch tmp.patch
+
+2.
+svn ci -m "Commit 1" `svn st | awk '{print $NF}' | grep -v file4`
+
+3.
+svn changelist my-list -R .
+svn changelist --remove file4
+svn ci -m "Commit 1" --changelist my-list
+svn ci -m "Commit 2" file4
+
+remove changelist:
+svn changelist --remove --recursive .
+
+* install svn server
+** Step 1 – Install Apache
+First of all, you need to install the Apache webserver to access the svn server using HTTP URLs. Skip this step if you already have Apache web server on your system.
+
+sudo apt-get update
+sudo apt-get install apache2
+** Step 2 – Install SVN Server
+Use the following command to install subversion packages and their dependencies. Also, install svn module for Apache libapache2-mod-svn packages on your system.
+
+sudo apt install subversion libapache2-mod-svn libapache2-svn libsvn-dev
+sudo apt install subversion libapache2-mod-svn libsvn-dev
+After installation, enable required Apache modules and restart Apache service.
+
+sudo a2enmod dav dav_svn
+sudo service apache2 restart
+** Step 3 – Create First SVN Repository
+Use the following commands to create your first svn repository with name myrepo. Also, set the required permissions on newly created directories.
+
+sudo mkdir -p /var/lib/svn/
+
+sudo mkdir -p /var/lib/svn/nmts
+sudo svnadmin create /var/lib/svn/nmts
+sudo chown -R www-data:www-data /var/lib/svn/nmts
+sudo chmod -R 775 /var/lib/svn/nmts
+
+如果后面再新建的子目录，要再执行一遍 chown, 不然会无法写入
+** Step 4 – Create Users
+Now create first svn user in /etc/apache2/dav_svn.passwd file. These users will use for authentication of svn repositories for checkout, commit processes.
+
+sudo touch /etc/apache2/dav_svn.passwd
+sudo htpasswd -m /etc/apache2/dav_svn.passwd admin
+pass:   sdnsvn
+
+create additional users
+sudo htpasswd -m /etc/apache2/dav_svn.passwd lzy
+pass: lzy0
+
+
+** Step 5 – Configure Apache with Subversion
+
+sudo vi /etc/apache2/mods-enabled/dav_svn.conf
+<Location /svn>
+
+   DAV svn
+   SVNParentPath /var/lib/svn
+
+   AuthType Basic
+   AuthName "Subversion Repository"
+   AuthUserFile /etc/apache2/dav_svn.passwd
+   Require valid-user
+
+</Location>
+
+
+change default ports in /etc/apache2/ports.conf
+
+Save the file and restart the Apache service to apply the new configuration.
+
+sudo service apache2 restart
+** Step 6 – Access Repository in Browser
+Use HTTP URLs to access your repository in the browser. It will prompt for authentication. Use login credentials created in Step 5. Change example.com with your system hostname, domain name or IP address.
+
+ http://example.com/svn/myrepo/
+
+** To configure Apache2 with `mod_authz_svn` for Subversion (SVN) repositories,
+you typically need to make changes to your Apache configuration file. Below is a basic example of how you can set up authentication and authorization for SVN using `mod_authz_svn`:
+
+1. **Enable necessary Apache modules**:
+   Ensure that the required Apache modules are enabled:
+   ```bash
+   sudo a2enmod dav_svn
+   sudo a2enmod authz_svn
+   ```
+
+2. **Create a Subversion repository**:
+   Create a Subversion repository where you will store your code:
+   ```bash
+   sudo svnadmin create /path/to/your/repository
+   ```
+
+3. **Configure Apache virtual host**:
+   Edit your Apache configuration file (e.g., `/etc/apache2/sites-available/your-site.conf`) and add the following configuration:
+
+   ```apache
+   <Location /svn>
+       DAV svn
+       SVNPath /path/to/your/repository
+
+       AuthType Basic
+       AuthName "Subversion Repository"
+       AuthUserFile /etc/apache2/dav_svn.passwd
+       Require valid-user
+
+       AuthzSVNAccessFile /etc/apache2/dav_svn.authz
+   </Location>
+   ```
+
+4. **Create an Apache password file**:
+   Create a password file for Apache authentication:
+   ```bash
+   sudo htpasswd -c /etc/apache2/dav_svn.passwd username
+   ```
+
+5. **Create an authorization file**:
+   Create an authorization file to control access to the repository:
+   ```bash
+   sudo touch /etc/apache2/dav_svn.authz
+   ```
+
+   Populate the `dav_svn.authz` file with the appropriate access control rules. For example:
+   ```
+   [repository:/]
+   username = rw
+   ```
+
+6. **Restart Apache**:
+   After making these changes, restart Apache to apply the configuration:
+   ```bash
+   sudo systemctl restart apache2
+   ```
+
+   我们还可以通过规则的继承, 显式地阻止用户的权限, 方法是把用户名 设置成空:
+
+[calc:/branches/calc/bug-142]
+harry = rw
+sally = r
+
+[calc:/branches/calc/bug-142/secret]
+harry =
+在这个例子里, Harry 对整个 bug-142 目录具有 读写权限, 但却无法访问其中的子目录 secret.

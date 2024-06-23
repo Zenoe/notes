@@ -1,0 +1,36 @@
+* orgin
+When you clone a repository, Git automatically adds a shortcut called origin that points back to the “parent” repository, under the assumption that you'll want to interact with it further on down the road.
+* Push new commits to central repository
+git push origin master
+This command will push the new committed changes to the central repository.
+
+* Managing conflicts
+If a developer’s local commits diverge from the central repository, Git will
+refuse to push their changes because this would overwrite official commits.
+
+** rebase
+Before the developer can publish their feature, they need to fetch the updated
+central commits and rebase their changes on top of them. This is like saying, “I
+want to add my changes to what everyone else has already done.”
+
+git pull --rebase origin master
+The --rebase option tells Git to move all of Mary’s commits to the tip of the
+master branch after synchronising it with the changes from the central
+repository
+
+The pull would still work if you forgot this option, but you would wind up with
+a superfluous “merge commit” every time someone needed to synchronize with the
+central repository. For this workflow, it’s always better to rebase instead of
+generating a merge commit.
+
+after resolving conflicts and
+git add <some-file>
+git rebase --continue
+
+If you get to this point and realize and you have no idea what’s going on, don’t panic. Just execute the following command and you’ll be right back to where you started:
+
+git rebase --abort
+
+If local changes directly conflict with upstream commits, Git will pause the
+rebasing process and give you a chance to manually resolve the conflicts
+

@@ -1,0 +1,62 @@
+* keys pattern
+* get value
+TYPE xxx: get the type of xxx
+String: get xxx
+List: If the type is list, use list commands such as LRANGE to view elements:
+redis-cli LRANGE xxx 0 -1
+Set: If the type is set, use set commands like SMEMBERS to list all members:
+redis-cli SMEMBERS xxx
+Hash: If the type is hash, use hash commands such as HGETALL to retrieve all fields and values:
+redis-cli HGETALL xxx
+Sorted Set (Zset): If the type is zset, use sorted set commands like ZRANGE:
+redis-cli ZRANGE xxx 0 -1 WITHSCORES
+
+Retrieve Values of Multiple Keys
+MGET key1 key2 key3
+
+* clear value
+del key
+* connect
+redis-cli -h <hostname> -p <port> -a <password>
+
+* redis data safe
+Here are a few strategies to deal with crash
+
+1. **Redis Persistence**: Redis offers two types of persistence - RDB (snapshotting) and AOF (append-only file). RDB periodically saves a snapshot of your data at specified intervals. AOF logs every write operation received by the server, which can then be replayed when the server restarts. AOF is more durable and can be configured to fsync every change, but it's usually slower. You can use one or both of these features depending on your needs.
+
+2. **Use a Redis Cluster**: A Redis Cluster provides a way to run a Redis installation where data is automatically sharded across multiple Redis nodes. This provides high availability and data redundancy. If one node fails, the data is still available on other nodes.
+
+3. **Regular Backups**: Regularly backup your Redis data. This can be done manually using the `SAVE` or `BGSAVE` commands, or automatically by configuring the `save` option in the Redis configuration file.
+
+4. **Graceful Error Handling**: In your application, implement error handling to deal with potential Redis failures. This could include retrying operations, falling back to a backup database, or returning an error message to the user.
+
+5. **Monitoring**: Monitor your Redis instances and your application to detect issues early. This can help you identify and fix problems before they cause a crash.
+
+Remember, the best strategy depends on your specific use case, the nature of your data, and your tolerance for data loss.
+
+# redis can do
+Redis is a highly versatile in-memory data structure store, often used as a database, cache, and message broker. It supports various data structures such as strings, hashes, lists, sets, sorted sets with range queries, bitmaps, hyperloglogs, and geospatial indexes with radius queries. Redis is widely appreciated for its speed and simplicity, making it a popular choice for a range of scenarios in backend development. Here are some common use cases:
+
+1. **Caching**: One of the most common uses of Redis is to cache data. This can significantly reduce the number of times an application needs to query a database by storing frequently accessed data in fast-access memory. This is particularly useful for improving the performance of web applications, where reducing the response time can enhance user experience.
+
+2. **Session Management**: In web applications, Redis is often used for session management. User session information is stored in Redis to enable fast access and updates. This is particularly useful in distributed systems where session consistency across different servers is crucial.
+
+3. **Queueing Systems**: Redis is used to manage queues for background jobs or task scheduling. This helps in handling asynchronous tasks outside of the user request. Redis lists, sorted sets, and simple delay queues are often used for this purpose.
+
+4. **Real-time Analytics**: Redis can perform atomic operations on its data types, making it a good option for real-time analytics applications. You can use Redis to count page views, track unique visitors, calculate aggregates, and more, all in real time.
+
+5. **Pub/Sub Messaging Systems**: Redis supports Publish/Subscribe messaging paradigms. This allows building of real-time messaging apps like chat applications or real-time broadcasts of messages to multiple subscribers.
+
+6. **Leaderboards/Counting**: Games and applications that require real-time leaderboards use Redis because of its ability to handle high-score tables online through its sorted sets.
+
+7. **Rate Limiting**: Redis is effective for managing rate limiting, which is crucial for limiting the number of requests a user can make to a particular service within a certain period. This is particularly useful for APIs to prevent abuse.
+
+8. **Feature Flags**: Redis can be used to manage feature toggles dynamically, allowing features to be turned on and off in real-time without deploying new code.
+
+9. **Geospatial Data**: Redis offers geospatial data handling through its geospatial indexes and commands, which can be used for location-based services such as finding nearby users or places.
+
+10. **Machine Learning Model Serving**: RedisAI is an extension for Redis that enables serving of machine learning models directly from within Redis, facilitating low-latency predictions.
+
+11. **Distributed Locks and Synchronization**: Redis can be used to synchronize distributed systems or to create locks that ensure that no two operations occur at the same time.
+
+These scenarios highlight Redis's flexibility and performance, making it a powerful tool in the arsenal of backend developers across various types of applications and industries.

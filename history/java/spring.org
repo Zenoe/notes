@@ -1,0 +1,56 @@
+#+TITLE:
+* spring
+由框架来帮你管理这些对象，包括它的创建，销毁等，比如基于Spring的项目里经常能看到的Bean，它代表的就是由Spring管辖的对象。
+Spring IOC
+Spring AOP
+Spring JDBC
+Spring MVC
+Spring ORM
+Spring JMS
+Spring Test
+* tomcat is containers of web server and servlets
+
+a servlet implements
+接收请求
+处理请求
+响应请求
+
+接收请求和响应请求是共性功能,抽取成Web服务器
+处理请求的逻辑是不同的,抽取出来做成Servlet，交给程序员
+Dao<--->Service<--->Servlet ==== tomcat
+随着后期互联网发展，出现了三层架构，所以一些逻辑就从Servlet抽取出来，分担到Service和Dao。
+Servlet并不擅长往浏览器输出HTML页面，所以出现了JSP
+Spring家族出现后，Servlet开始退居幕后，取而代之的是方便的SpringMVC
+SpringMVC的核心组件DispatcherServlet其实本质就是一个Servlet, 在原来HttpServlet的基础上，又封装了一条逻辑
+* test application Unable to find @SpringBootConfiguration exception
+I do have a @SpringBootApplication class, why the test class can not see it?
+
+Because the @SpringBootTest class has a specific mechanism of finding the @SpringBootApplication
+
+@SpringBootTest class would find the @SpringBootApplication from its package
+com.example2 to com and to /, if still not found, it would throw the Unable to
+find @SpringBootConfiguration exception.
+* LoggerFactory is not a Logback LoggerContext but Logback is on the classpath
+1. Edit application configuration, not to use idea's jre. replace it with your
+   own java1.8 jre.
+
+2. exclude the specific package in mvn/gradle config file
+   <dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-thymeleaf</artifactId>
+    <version>1.5.1.RELEASE</version>
+    <exclusions>
+        <exclusion>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+        </exclusion>
+    </exclusions>
+</dependency>
+
+compile("org.springframework.boot:spring-boot-starter-security"){
+    exclude module: "spring-boot-starter-logging"
+    exclude module: "logback-classic"
+}
+compile("org.springframework.boot:spring-boot-starter-thymeleaf"){
+    exclude module: "logback-classic"
+}

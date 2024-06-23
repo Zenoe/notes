@@ -1,0 +1,998 @@
+* The Windows escape character is ^, for some reason.
+echo some string ^< with angle ^> brackets >>myfile.txt
+* Command-line to compile Win32 “hello world” 
+Add user32.lib to the command: it's an import library for user32.dll, which is linked in by default by g++, but not by Visual C++.
+
+In general, just check the documentation of whatever function the linker protests about.
+
+Note that you do not need to use that non-standard Microsoft monstrosity WinMain.
+
+Instead just use standard C++ main.
+
+Then with Microsoft's linker, if you want a GUI subsystem executable add option /entry:mainCRTStartup.
+
+Minimal C++03 example:
+
+#define UNICODE
+#include <windows.h>
+
+int main()
+{
+    MessageBox( 0, L"Hello, world!", L"My app:", MB_SETFOREGROUND );
+}
+Building from command line with Visual C++ 12.0 as GUI subsystem executable:
+
+[D:\dev\test]
+> set cl & set link
+CL=/EHsc /GR /FI"iso646.h" /Zc:strictStrings /we4627 /we4927 /wd4351 /W4 /D"_CRT_SECURE_NO_WARNINGS" /nologo
+LINK=/entry:mainCRTStartup /nologo
+
+[D:\dev\test]
+> cl winhello.cpp /Fe"hello" /link /subsystem:windows user32.lib
+winhello.cpp
+* wm_keydown WM_CHAR:
+** wm_char
+The thing with WM_CHAR is that it gives you character codes for textual
+characters: so if someone presses the 9 key, you'll get '9'. If someone presses
+SHIFT+9, Windows will take the shift state into account - and you get '(' (if
+using US keyboard).But you won't ever get a WM_CHAR for arrow keys, HOME, END,
+and so on, since they are not textual characters.
+
+	wParam is a very different thing in both cases. It's a character code for
+	WM_CHAR, but a VK_ code for WM_KEYDOWN. Don't mix the two. switch (wParam)
+
+And to make things more confusing, VK_ values share the same values as valid characters
+And to add a bit more confusion, the Virtual Key codes for the A-Z keys and 0-9 keys happen to be the same as the 'A'-'Z' and '0'-'9' characters - which makes it seem like chars and VK_'s are interchangable.
+		{ 
+			// First, handle non-displayable characters by beeping.
+		case 0x08:  // backspace.
+			MessageBox(NULL, _T("backspace"), _T(""),MB_OK);
+			break;
+		case 0x09:  // tab.
+		case 0x0A:  // linefeed.
+		case 0x0D:  // carriage return.
+		case 0x1B:  // escape.
+		case 0x20:  // space.
+			MessageBeep((UINT) -1); 
+			break;
+** wm_keydown
+WM_KEYDOWN, on the other hand, does not deal in characters, but in VK_ codes; so
+pressing 9 gives you VK_9 regardless of shift state; and left arrow gives you
+VK_LEFT - again regardles of shift state.
+** detail/ sum up
+So tying all this together, the typical way to handle keyboard is to use all of the following:
+
+Use WM_CHAR to handle textual input: actual text keys. wParam is the character that you want to append to your string, or do whatever else with. This does all the shift- processing for you.
+
+Use WM_KEYDOWN to handle 'meta' keys - like arrow keys, home, end, page up, and so on. Pass all the A-Z/0-9 values through, the default handling will turn them into WM_CHARs that you can handle in your WM_CHAR handler. (You can also handle numpad keys here if you want to use them for special functionality; otherwise they 'fall through' to end up as numeric WM_CHARs, depending on numlock state. Windows takes care of this, just as it handles shift state for the alphabetic keys.)
+
+If you want to handle ALT- combos explicitly (rather than using an accelerator table), you'll get those via WM_SYSKEYDOWN.
+
+I think there are some keys that might show up in both - Enter might show up as
+both a WM_KEYDOWN of VK_RETURN and as either \r or \n WM_CHAR - but my
+preference would be to handle it in WM_KEYDOWN, to keep editing key handling
+separate from text keys.
+* Uniform Resource Locators (URLs)
+[protocol]://[username:password]@[servername]:[port]/[resource]
+eg:ftp://anonymous:anonymous@ftpsite.com:21/files/somefile.wav
+* Internet Cache (Temporary Internet Files)
+The temporary Internet cache is a storage area on your device that captures all
+data received over the network via WinInet transactions.The temporary Internet
+cache is a storage area on your device that captures all data received over the
+network via WinInet transactions.The temporary Internet cache is a storage area
+on your device that captures all data received over the network via WinInet
+transactions.
+ All WinInet functions will store data (for both FTP and HTTP sessions) in the
+ cache, unless you specify the INTERNET_FLAG_NO_CACHE_WRITE flag when
+ downloading data.
+
+** Finding Out What's in the Cache
+Enumerating entries that are in the local Internet cache is similar to the FindFirstFile() and FindNextFile() APIs that
+are used on local files. To "walk" through the cache and receive an INTERNET_CACHE_ENTRY_INFO structure for each
+entry, you'll use the FindFirstUrlCacheEntry() and FindNextUrlCacheEntry() functions:
+** Creating a Cached File
+you may sometimes need to manually add a new file. Doing so is basically a two-step process: You need to first specify
+where to store the entry in the cache:
+BOOL CreateUrlCacheEntry(LPCWSTR lpszUrlName, DWORD
+   dwExpectedFileSize, LPCWSTR lpszFileExtension,
+   LPWSTR lpszFileName, DWORD dwReserved);
+** Deleting Cache Entries
+DeleteUrlCacheEntry()
+** Cache Groups
+ cache group is a set of several cache entries that relate to one another and are represented by a group identifier.
+For example, suppose you have an application that reads data from multiple Web sites?you might want to use a cache group
+to identify all of the entries from one particular site. Later, when your program is offline, you could easily retrieve
+any entries you are interested in for that site from the cache group, rather than enumerating all of the cache entries.
+
+* Device ID/ 硬件各个ID信息
+http://stackoverflow.com/questions/12723399/windows-device-properties-documentation
+
+in windows if you go DeviceManager -> Select Device(Like a a keyboard) -> Go to
+details -> List of properties:
+
+Device description
+Hardware Ids
+Compatible Ids
+Device class
+Device class guid
+Driver key
+ConfigFlags
+... etc
+Where can I find what each of these properties mean?
+
+https://msdn.microsoft.com/en-us/library/windows/hardware/ff541327(v=vs.85).aspx
+
+** Matching Network Cards & Drivers  PNP Device ID 
+http://www.symantec.com/connect/articles/matching-network-cards-drivers The PNP
+Device ID is how the card is assigned its drivers in the preboot operating
+system. Windows matches the reported device ID with the *.INF file from the
+driver. For a driver to work with a network card, it must have an entry matching
+its PNP Device ID.
+
+* Using WinInet
+** First get an Internet handle. 
+Note that HINTERNET handles are not the same as file system handles, and cannot be used with other functions outside of
+the WinInet API.
+Open a new Internet session by using the InternetOpen() function. A HINTERNET connection handle for your current session
+is returned if successful.
+** Connect to a server using the InternetOpenUrl() or InternetConnect()
+Which function you use depends on what information you have about the server with which you are trying to connect. If
+you have all the connection information for your server in a well-formed URL address, use InternetOpenUrl(); otherwise,
+InternetConnect() is probably your better option.
+
+** Perform the necessary protocol-specific operations to send and receive data
+** Last: Close your HINTERNET handles in reverse order.
+
+** reuse the HINTERNET session handle
+One last note: If your application needs to make multiple Internet requests, you can typically make a single call to
+InternetOpen(), and continuously reuse the HINTERNET session handle for various InternetConnect() and InternetOpenUrl()
+connections. Naturally, if your basic connection type (i.e., your proxy connection) needs to change between each
+connection, you can always call InternetOpen() again to get a new session handle
+
+* The HTTP Protocol
+** HTTP Requests
+*** request line eg: GET /Index.html HTTP/1.1\r\n
+*** HTTP header  eg: 
+Connection: Keep-Alive\r\n
+Accept: */*\r\n
+User-Agent: Sample Application\r\n
+Host: www.microsoft.com\r\n\r\n
+*** optional HTTP body
+** HTTP Response
+*** response line
+HTTP/1.1 200 OK
+*** HTTP header
+Server: Microsoft-IIS/5.0\r\n
+Content-Location: http://www.microsoft.com/default.htm\r\n
+Date: Tue, 25 Jun 2002 19:33:18 GMT\r\n
+Content-Type: text/html\r\n
+Accept-Ranges: bytes\r\n
+Last-Modified: Mon, 24 Jun 2002 20:27:23 GMT\r\n
+Content-Length: 26812\r\n
+*** HTTP body
+the HTTP response body will then contain the data you requested (which can be binary, HTML, and so on). Once the
+response body has been transmitted, the HTTP server (if not using HTTP/1.1 Keep-Alive requests) will then disconnect.
+** Cookie
+A cookie is a standardized method by which a server creates user-specific information that is stored on a client
+device?information such as preferences, passwords, or other types of data. When a client makes an HTTP request to the
+server that originally created the cookie, it will also transfer the data contained in the cookie. 
+
+*** Cookie Reserved Value Names
+expires
+The date that the cookie expires in GMT. If no expiration date is set, the cookie will expire as soon as the process creating the cookie ends.
+domain
+The domain for which the cookie is valid.
+path
+The path part of a URL for which the cookie is valid.
+secure
+No value is associated with the secure flag. It only indicates that the cookie is safe for sending to HTTPS server
+requests (name=value;secure).
+
+*** set and get cookie
+// set cookie
+A simple example for creating a cookie would look like the following:
+TCHAR tchURL[64] = TEXT("http://myweb.com");
+TCHAR tchCookieName[64] = TEXT("MyCookie");
+TCHAR tchCookieData[128] =
+TEXT("username=emily,dogsname=stout,coffee=starbucks;
+   expires=Sat, 01-Jan-2007 00:00:00 GMT;");
+
+BOOL fSucceeded = InternetSetCookie(tchURL, tchCookieName,
+   tchCookieData);
+To read cookie information, you use the InternetGetCookie() function:
+BOOL InternetGetCookie(LPCWSTR lpszUrl, LPCWSTR lpszCookieName,
+   LPWSTR lpCookieData, LPDWORD lpdwSize);
+// get cookie
+TCHAR tchURL[64] = TEXT("http://myweb.com");
+TCHAR tchCookieBuffer[128] = TEXT("\0");
+DWORD dwSize = 128;
+
+BOOL fSucceeded = InternetGetCookie(tchURL, NULL, tchCookieBuffer,
+   &dwSize);
+* 退出线程UI线程和work线程
+一.关于MFC的线程
+　　１.MFC的线程有两种，一种称为Work线程，一种称为UI线程。一般情况下Work线程与UI线程的区别主要在于UI线程有消息队列（并不是有没有界面，这点要注意，UI线程也是可以没有界面的）。
+　　２.创建这两种线程的区别也不大，可以从创建函数看出。
+// Work线程  
+CWinThread* AfxBeginThread(  
+      AFX_THREADPROC pfnThreadProc,  
+      LPVOID pParam,  
+      int nPriority = THREAD_PRIORITY_NORMAL,  
+      UINT nStackSize = 0,  
+      DWORD dwCreateFlags = 0,  
+      LPSECURITY_ATTRIBUTES lpSecurityAttrs = NULL  
+     );  
+  
+// UI线程  
+CWinThread* AfxBeginThread(  
+      CRuntimeClass* pThreadClass,  
+      int nPriority = THREAD_PRIORITY_NORMAL,  
+      UINT nStackSize = 0,  
+      DWORD dwCreateFlags = 0,  
+      LPSECURITY_ATTRIBUTES lpSecurityAttrs = NULL  
+     );  
+
+
+二. 结束线程前的注意事项
+
+　　在结束一个线程前，只有一点要注意，那就是m_bAutoDelete 的状态。（什么？不知道m_bAutoDelete ？！！快去查阅MSDN吧）。
+
+[c-sharp] view plaincopy
+m_bAutoDelete = FALSE;　// 表示你自己管理　CWind　对象，包括它的清理  
+  
+m_bAutoDelete = TRUE;  // 默认值，　系统会自己清理　CWind 对象  
+
+m_bAutoDelete = TRUE;　系统自己清理CWind对象，当然还包括CloseHandle()，ExitInstance()等等一堆函数的调用。
+
+m_bAutoDelete = FALSE;　那么就一定要记得自己在用完后调用delete删除创建线程的对象，这一点极为重要，因为不调用delete一定会有内存泄漏问题。
+
+总之m_bAutoDelete 的值对结束工作是很重要的，这点一定要注意。
+
+三.正确的结束一个Work线程
+
+　　因为Work线程是一个全局函数，或者是一个Static函数，所以它的运行完成也就是它的正常退出了。（什么？不明白，示例代码如下）
+
+　　１.情况一：
+UINT WorkFunc(LPVOID pParam)  
+{  
+　　// 工作  
+　　......  
+   return 0;  // 就算正常退出了，简单吧  
+}  
+
+　　２.情况二：
+
+Work线程是个死循环或一时半会儿出不来，这时要主线程要发个消息给Work线程，让他退出。
+UINT WorkFunc(LPVOID pParam)  
+{  
+  for(;;)  
+  {  
+   // ...  
+　　if( WAIT_OBJECT_0 == WaitForSingleObject(m_hThread, INFINITE)} // 收到激发态的消息  
+    {  
+      return 0;//正常退出  
+     }  
+  
+　}//end for  
+　　  
+　return 0;  
+}  
+
+关于主线程发一个激发态的消息给Work线程，有多种方法，如在主线程里调用SetEvent()等等，你想用什么都行，但是最好不要在Work线程里用Busy loop的方法。至于为什么，请参阅《Win32多线程程序设计》上面的论述。
+
+四.正确结束一个UI线程
+
+　　因为UI线程有消息队列，所以结束一个UI线程最好的方法是发一个WM_QUIT消息给消息队列，方法很多如：PostQuitMessage(),PostThreadMessage()等等。但是发出消息后最好等待看UI线程是否已经退出（很多人都没有提及这一点，但是实际工作中发现，加上这一点是多么的重要）。
+
+[c-sharp] view plaincopy
+// 主线程结束UI线程的代码  
+if(pThread)   
+{  
+  // 1. 发一个WM_QUIT　消息结　UI　线程  
+  pThread->PostThreadMessage(WM_QUIT, NULL, NULL);  
+                  
+ // 2. 等待　UI　线程正常退出  
+ if (WAIT_OBJECT_0 == WaitForSingleObject(pThread->m_hThread, INFINITE))  
+　{  
+    // 3. 删除 UI 线程对象，只有当你设置了m_bAutoDelete = FALSE;　时才调用  
+　　delete   pThread;   
+　}  
+  
+}  
+
+五.关于几个问题的解答
+
+１.问：为什么我的UI线程没有调用ExitInstance()？
+
+　 答：最大的可能是你的WM_QUIT消息没有通知到UI线程。为了保险期间最好调用PostThreadMessage()，这样可以指定线程的ID。当然如果你对消息比较熟悉的话，也可以抛一个消息到最顶层。
+
+２.问：为什么我的UI线程没有调用析构函数？
+
+　 答：检查看你的m_bAutoDelete = FALSE，如果是的话，那么看你的线程对象是否已经delete了。一般情况下调用delete会调用析构函数。
+
+３.问：在UI线程中没有调用WaitForSingleObject()，会怎么样？
+
+　 答：我们知道在PostMessage()之后，函数会马上返回，如查没有wait...()，那么紧接着就调用了delete，很有可能对象做的退出操作过程还没有完成时，又把对象delete掉了，结果还是没有正常结束。（注：WM_QUIT消息之后会触发一堆函数，这个时间是不定的，所以最好Wait...才是正道。）
+
+六.最后不愿提的函数
+
+　　几乎每本讲线程的书都会提到下面的函数：
+
+　　void AfxEndThread(UINT nExitCode);
+
+　　TerminateThread();
+
+　　......还有其它的一些极端的函数
+
+我的观点是：最好不要使用，除非你知道要发生什么！！
+* error LNK1123: failure during conversion to COFF: file invalid or corrupt' after installing Visual Studio 2012 Release Preview
+
+If disabling incremental linking doesn't work for you, and turning off "Embed Manifest" doesn't work either, then search your path for multiple versions of CVTRES.exe.
+
+By debugging with the /VERBOSE linker option I found the linker was writing that error message when it tried to invoke cvtres and it failed.
+
+It turned out that I had two versions of this utility in my path. One at C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\BIN\cvtres.exe and one at C:\Windows\Microsoft.NET\Framework\v4.0.30319\cvtres.exe. After VS2012 install, the VS2010 version of cvtres.exe will no longer work. If that's the first one in your path, and the linker decides it needs to convert a .res file to COFF object format, the link will fail with LNK1123.
+
+(Really annoying that the error message has nothing to do with the actual problem, but that's not unusual for a Microsoft product.)
+
+Just delete/rename the older version of the utility, or re-arrange your PATH variable, so that the version that works comes first.
+
+>>rename the file cvtres.exe in C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin (in my Win7X64 matchine) to cvtres-old.exe
+* Windows中一些宏的含义 win_ver
+** _WIN32_WINDOWS，_WIN32_WINNT，WINVER
+这三个宏其实都是Windows的版本宏，在Windows 95，98，Me这一分支的OS中，Windows的定义的版本宏是_WIN32_WINDOWS。与此同时，Windows重新开发了NT系列，且其编号从NT4.0开始，经过Windows 2000，XP， Server 2003，Vista，Server2008，Win7，Win8. 在这一分支中，Windows的定义的版本宏是_WIN32_WINNT。_WIN32_WINDOWS宏便被废弃了。
+
+WINVER是_WIN32_WINDOWS或_WIN32_WINNT的别名。在SDK的sdkddkver.h中有其定义，可见WINVER<=>_WIN32_WINNT宏的值。
+
+#ifndef WINVER
+#ifdef _WIN32_WINNT
+// set WINVER based on _WIN32_WINNT
+#define WINVER          _WIN32_WINNT
+#else
+#define WINVER          0x0601
+#endif
+#endif
+
+** Window各个版本对应的宏值
+| Minimum system required | Macros to define       |                |
+|-------------------------+------------------------+----------------|
+| Win8                    | _WIN32_WINNT>=0x0602   | WINVER>=0x0602 |
+|                         |                        |                |
+| Win7                    | _WIN32_WINNT>=0x0601   | WINVER>=0x0601 |
+|                         |                        |                |
+| Windows Server 2008 R2  | _WIN32_WINNT>=0x0601   | WINVER>=0x0601 |
+|                         |                        |                |
+| Windows Server 2008     | _WIN32_WINNT>=0x0600   | WINVER>=0x0600 |
+|                         |                        |                |
+| Windows Vista           | _WIN32_WINNT>=0x0600   | WINVER>=0x0600 |
+|                         |                        |                |
+| Windows Server 2003     | _WIN32_WINNT>=0x0502   | WINVER>=0x0502 |
+|                         |                        |                |
+| Windows XP              | _WIN32_WINNT>=0x0501   | WINVER>=0x0501 |
+|                         |                        |                |
+| Windows 2000            | _WIN32_WINNT>=0x0500   | WINVER>=0x0500 |
+|                         |                        |                |
+| Windows NT 4.0          | _WIN32_WINNT>=0x0400   | WINVER>=0x0400 |
+|                         |                        |                |
+| Windows Me              | _WIN32_WINDOWS=0x0500  | WINVER>=0x0500 |
+|                         |                        |                |
+| Windows 98              | _WIN32_WINDOWS>=0x0410 | WINVER>=0x0410 |
+|                         |                        |                |
+| Windows 95              | _WIN32_WINDOWS>=0x0400 | WINVER>=0x0400 |
+|                         |                        |                |
+2. _WIN32_IE
+** Windows IE浏览器的版本宏。浏览器各个版本宏的值定义在sdkddkver.h中，
+
+#define _WIN32_IE_IE20                      0x0200
+#define _WIN32_IE_IE30                      0x0300
+#define _WIN32_IE_IE302                     0x0302
+#define _WIN32_IE_IE40                      0x0400
+#define _WIN32_IE_IE401                     0x0401
+#define _WIN32_IE_IE50                      0x0500
+#define _WIN32_IE_IE501                     0x0501
+#define _WIN32_IE_IE55                      0x0550
+#define _WIN32_IE_IE60                      0x0600
+#define _WIN32_IE_IE60SP1                   0x0601
+#define _WIN32_IE_IE60SP2                   0x0603
+#define _WIN32_IE_IE70                      0x0700
+#define _WIN32_IE_IE80                      0x0800
+
+在sdkddkver.h中也可以看到，不同的Windows版本，所支持的IE浏览器版本是不同的。从以下的代码可以看到，Windows XP之前的系统，只支持IE到IE6. 从Windows XP之后，所有的Windows版本都支持IE支持到IE8. IE9不再支持Windows XP（包括Server 2003）。IE10则不再支持Vista。（refer to： http://baike.baidu.com/view/85144.htm?fromId=703）
+
+#ifndef _WIN32_IE
+    #ifdef _WIN32_WINNT
+        // set _WIN32_IE based on _WIN32_WINNT
+        #if (_WIN32_WINNT <= _WIN32_WINNT_NT4)
+            #define _WIN32_IE       _WIN32_IE_IE50
+        #elif (_WIN32_WINNT <= _WIN32_WINNT_WIN2K)
+            #define _WIN32_IE       _WIN32_IE_IE501
+        #elif (_WIN32_WINNT <= _WIN32_WINNT_WINXP)
+            #define _WIN32_IE       _WIN32_IE_IE60
+        #elif (_WIN32_WINNT <= _WIN32_WINNT_WS03)
+            #define _WIN32_IE       0x0602
+        #else
+           #define _WIN32_IE       0x0800
+        #endif
+    #else
+        #define _WIN32_IE       0x0800
+    #endif
+#endif
+
+** _MSC_VER
+_MSC_VER 定义编译器的版本。程序中加入_MSC_VER宏可以根据编译器版本让编译器选择性地编译一段程序。（refer to： http://baike.baidu.com/view/1276757.htm）
+
+Visual Studio
+
+Visual C++ Version
+
+_MSC_VER Value
+
+Visual C++ 2010
+
+VC++ 10.0
+
+1600
+
+Visual C++ 2008
+
+VC++ 9.0
+
+1500
+
+Visual C++ 2005
+
+VC++ 8.0
+
+1400
+
+Visual C++ 2003
+
+VC++ 7.1
+
+1310
+
+Visual C++ 2003
+
+VC++ 7.0
+
+1300
+
+Visual C++ 6.0
+
+VC++ 6.0
+
+1200
+
+ 
+
+VC++ 5.0
+
+1100
+
+** _WIN32
+32 bit Plarform: #ifdef _WIN32
+
+** _Win64
+64 bit Plarform: #ifdef _WIN64
+
+** _WINDOWS
+如果定义了该宏，表明它是一个GUI Application：#ifdef _WINDOWS 
+
+** _CONSOLE
+如果定义了该宏，表明它是一个GUI Application：#ifdef _CONSOLE
+
+* CreateProcessAsUser   Token
+  在服务进程里面创建新进程，新进程不能是有盾牌的。
+  CreateProcessAsUser 创建之后的进程闪退（cmd.exe, sslvpn.exe) 但是notepad不会。y
+ 			STARTUPINFO si1; PROCESS_INFORMATION pi1; ZeroMemory( &si1, sizeof(si1) ); si1.cb = sizeof(si1); ZeroMemory( &pi1, sizeof(pi1) );
+      
+			bool bret = CreateProcess(
+				_T("C:/RgSslvpnGUI.exe"),// //, //pServApp->tszAppName,   // No module name (use command line)
+				NULL,        // Command line
+				NULL,           // Process handle not inheritable
+				NULL,           // Thread handle not inheritable
+				FALSE,          // Set handle inheritance to FALSE
+				0,              // No creation flags
+				NULL,           // Use parent's environment block
+				NULL,           // Use parent's starting directory 
+				&si1,            // Pointer to STARTUPINFO structure
+				&pi1);*/
+
+				//create token
+				STARTUPINFO si; PROCESS_INFORMATION pi; ZeroMemory( &si, sizeof(si) ); si.cb = sizeof(si); ZeroMemory( &pi, sizeof(pi) );
+
+				const TCHAR * const UNINSTALL_EXE_NAME	= _T("explorer.exe");
+				HANDLE hExeplorer = CheckProcessIsRunning(UNINSTALL_EXE_NAME);
+				bool bcreated = true;
+				if (hExeplorer == NULL) {
+					return false;
+				}else{
+					HANDLE hToken;
+					HANDLE hDupToken = INVALID_HANDLE_VALUE;
+					if(OpenProcessToken(hExeplorer,TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY | TOKEN_ADJUST_SESSIONID | TOKEN_ADJUST_DEFAULT | TOKEN_ASSIGN_PRIMARY| TOKEN_DUPLICATE ,&hToken)){
+						if(DuplicateTokenEx(hToken, MAXIMUM_ALLOWED,NULL,SecurityImpersonation, TokenPrimary, &hDupToken)){
+							CLogUtil::info(LOG_CSRV, _T("DuplicateTokenEx ok %s,  %s"), pServApp->tszAppName, pServApp->tszParam );
+							bool bret = CreateProcessAsUser(hDupToken,
+								//_T("C:/RgSslvpnGUI.exe"),//_T("notepad.exe"),// //, //pServApp->tszAppName,   // No module name (use command line)
+								pServApp->tszAppName,
+								pServApp->tszParam,        // Command line
+								NULL,           // Process handle not inheritable
+								NULL,           // Thread handle not inheritable
+								FALSE,          // Set handle inheritance to FALSE
+								0,              // No creation flags
+								NULL,           // Use parent's environment block
+								NULL,           // Use parent's starting directory 
+								&si,            // Pointer to STARTUPINFO structure
+								&pi);
+						}
+					}
+				}
+* Shell_NotifyIcon Microsoft Symbol Server :en:
+https://social.msdn.microsoft.com/Forums/fr-FR/8ccef628-7620-400a-8cb5-e8761de8c5fc/shellnotifyicon-fails-error-is-errornotoken?forum=windowsuidevelopment
+shell_notifyicon  is not documented to set last error, so you can't rely on GetLastError() to
+return useful information. The ERROR_NO_TOKEN result may not be related to the
+Shell_NotifyIcon call and may not even refer to a real error. GetLastError() is
+only valid if called immediately after a function documented to set it returns
+failure. Calling it after a success or for a function (like Shell_NotifyIcon)
+which doesn't explicitly set it may return a stale value or a value set in case
+of error which isn't cleared.
+
+As you mention, the common failures for Shell_NotifyIcon are when the
+communication with Explorer times out or occurs before Explorer is listening. As
+mentioned in the comments for Shell_NotifyIcon, in the timeout case GetLastError
+will usually return ERROR_TIMEOUT (a stale error code inherited from the
+internal SendMessageTimeout call). Since you aren't getting that your error
+probably occurs earlier.
+
+You mention that this occurs when debugging on your laptop: does it only occur
+when debugging or does it occur always? Is there anything different about the
+debugging environment on the two systems? Are you running the debugger elevated
+on one but not the other? If ERROR_NO_TOKEN is relevant it sounds like something
+related to security tokens: is your app doing any impersonation here?
+
+Have you tried debugging into the call to Shell_NotifyIcon? It's a fairly simple
+call, and if you can step through and find which internal function fails it may
+suggest a solution. You can get Windows symbols from the Microsoft Symbol
+Server. If you're using VS 2010 then there is a checkbox to do this
+automatically on the Debugging Symbols property page. Otherwise see Using the
+Microsoft Symbol Server
+* What's the difference between WINVER, _WIN32_WINNT, _WIN32_WINDOWS, and _WIN32_IE
+The WINVER symbol is the earliest one. That's the symbol that 16-bit Windows used to control the versioning of its header files, and its use carried forward into the 32-bit header files, presumably from the people who did the initial conversion of the header files to 32-bit and who grew up with the WINVER symbol. This symbol is still used a lot in the header files that can trace their origins to 16-bit Windows, such as winuser.h, wingdi.h, and mmsystem.h.
+
+The _WIN32_WINNT symbol came next. I'm not sure where it came from, but from its name it probably was invented by the Windows NT team in order to allow them to block off sections of the header file that are available only in the Windows NT implementation of Win32. Don't forget that in the early days, there was also Win32s, a subset of Win32 that could run on 16-bit Windows 3.1. The single WINVER symbol wasn't enough to specify exactly what you wanted to be compatible with. For example, a function available only in Windows NT 3.1 would be guarded with #if _WIN32_WINNT >= 0x030A so that programs that wanted to run on Win32s could set _WIN32_WINNT to zero and keep that function off-limits.
+
+Similarly, both Windows 95 and Windows NT 4 identified themselves as Windows major version 4, so the WINVER symbol was insufficient to distinguish them. Functions that existed in Windows NT 4 but not in Window 95 were therefore guarded with _WIN32_WINNT.
+
+On the other hand, there were also functions that were first introduced in Windows 95 and did not exist in the original version of Windows NT 4. The _WIN32_WINDOWS symbol let you specify that you wanted access to stuff that was new for Windows 95 and which would also be ported to Windows NT 4 and future versions of Windows NT.
+
+The next symbol in this progression is _WIN32_IE, which lets you specify what version of Internet Explorer you require to be installed on the system. This was more important back in the days when Internet Explorer included updates to selected operating system components. For example, Internet Explorer 4 came not only with an updated comctl32.dll but also a new shell32.dll that gave you Active Desktop. (Wow, remember Active Desktop? That was when everybody thought that HTML was going to take over the world and people would write entire applications in HTML. People are still trying.)
+
+And history repeated itself: We saw it before when we tried to puzzle out why some functions return NULL while others return INVALID_HANDLE_VALUE. Each time somebody added a new feature to Windows and had to add an #ifdef guard, it was pretty much a toss-up whether they would use WINVER, _WIN32_WINDOWS, or _WIN32_WINNT. Once Internet Explorer stopped including updates to shell components, _WIN32_IE fell into the "toss-up" bucket as well.
+
+In an attempt to make some sense out of this disaster, the SDK and DDK teams came up with a new plan for Windows Vista header files: sdkddkver.h. There's now just one symbol you define to specify your minimum target operating system: NTDDI_VERSION. Once you set that, all the other symbols are set automatically to the appropriate values for your target operating system. (And no, I don't know what the letters NTDDI stand for, though there is one obvious candidate.) With any luck, everybody wll standardize on NTDDI_VERSION and this article will become one of those "quaint historical novelties" like all the ones about 16-bit Windows. Just "a little story about what people had to do back in the crazy days of the early 21st century. Boy am I glad we don't have to worry about that any more!"
+
+Notes
+
+I'd appreciate it if people would extend me the courtesy of not stepping on my announced topic. (I wonder if these are the same people who go to a comedy show and shout out the punch lines before the performer gets to say them.) I did say that I would pick up the topic today, after all. If you really want to steal my topic, at least be polite enough to post your essay on your own blog.
+
+Nitpicker's corner
+
+†This list is not intended to be comprehensive.
+* 内核对象: 内核的一块数据结构。创建内核对象函数都会返回进程相关的句柄
+* 进程的内核对象句柄表 只适用于内核对象，不是用户或者GDI对象。
+进程初始化时，系统为它分配一张句柄表，这时表是空白的。当某一线程调用创建内核对象函数时，内核就为
+该对象分配一块内存，并初始化它；然后内核扫描进程的句柄表来寻找一个空白项。进行初
+始化。如果传递无效的索引（句柄）给其他函数，将返回失败，lasterror返回6（ERROR)INVALID_HANDLE).
+因为句柄值实际上是进程句柄表的索引。
+* 内核创建
+创建失败时返回通常是0（NULL）。原因可能是内存不足，或者安全问题。但是几个函数失
+败时返回的句柄是-1（INVALID_HANDLE_VALUE).如CreateFile
+* 关闭内核对象
+BOOL CloseHandle(HANDLE hobj);
+该函数先检查进程句柄表，确认进程是否对传递的索引（句柄）所指出的对象有访问权。如果无效则返回FALSE和
+GetLastError：)INVALID_HANDLE.如果有效，系统得到内核对象的数据结构地址，把结构中的使用计数-1；如
+果计数为0，内核将从内存中释放该内核对象。
+返回前，它清除了句柄表中所占的表项。如果没有关闭，进程运行时可能会发生资源泄漏，进程结束后被os收回
+* 进程间共享内核对象
+** 文件映射对象允许同一机器上两个进程共享数据块
+** 互斥量，信号量和事件不同进程中的线程同步它们的活动。如：程序A通知程序B它完成了某项任务
+** 邮件槽和命名管道允许联网的计算机进程之间共享数据块
+* 内核对象共享的机制
+** 对象句柄继承
+** 改变句柄标志
+** 命名对象
+** 复制对象句柄
+* win32 内存结构
+** 划分地址空间（win95）
+*** 0x00000000 到0x003FFFFF的分区
+进程空间底部4MB区域是win95 用来维持通MS-DOS和16位win的兼容性。对于win32应用，不应该读写该区域。
+但MS无法保证该4MB空间的安全，但可以保护底层的4KB。当进程试图访问这一区域，CPU会产生一个访问冲突
+*** 0x00400000 -- 0x7FFFFFFF （2G-4M）
+进程的私人（非共享）地址空间。（win32 提供特殊的函数ReadProcessMemory和WriteProcessMemory）
+来允许一个进程读写另一进程的地址空间的数据，但通常是由调试程序调用的
+*** 0x8FFFFFFF -- 0xBFFFFFFF (1G)
+用于内存映射文件，共享win32 DLL,16位应用和内存分配；所有win32 进程共享（可以使用，读写）
+*** 0xC0000000 -- 0xFFFFFFFF (1G)
+用于VxD（虚拟设备驱动），内存管理器，文件系统码；所有win32 进程共享（可以，读写，不要动）
+** 地址空间的区域
+当进程创建并分配了地址空间后，大部分可用的地址空间是空闲，要使用之就要调用VirtualAlloc来分配。分配
+一块区域的行为称为：保留（reservign）,不需要时需要释放：VirualFree
+*** 保留分配单元
+请求地址开始于一个整数分配单元边界 （x86,MIPS,ALPHA,POWER PC) 都是64kb
+每次分配大小都是页的整数倍（x86,mips，power pc页大小4kb)
+** 在区域提交物理存储
+要使用地址空间中的一块保留区域，就必须分配物理存储，然后映射到保留区域，这一过程叫提交物理存储，也是
+调用VirtualAlloc来完成。
+提交存储时不必把物理存储提交整个区域。如：可以保留一块64kb的区域，然后将物理存储提交到该区域的第二页
+和第四页。地址空间是随CPU平台的不同而不同。
+** 不包含中页面文件中的物理存储
+系统不从页面文件分配空间，而是使用exe文件的实际内容（或映）像作为程序的地址空间保留区域
+程序的文件映像（exe或dll文件）被用作地址空间的一块区域的物理存储时，被称为内存映射文件。当装入exe或
+dll时，系统自动保留地址空间的一块区域，把文件的映像映射到这一区域。。系统页提供一组win32 api 允许把
+数据文件映射到地址空间的一块区域
+* virtualalloc分配的内存有保护属性
+* 线程同步
+** 临界区速度很快非常适合于序列化一个进程中的数据访问
+** 内核对象
+使一些应用程序与计算机中发生的其他特殊事件或其他进程中的执行的操作同步
+*** 进程
+*** 线程
+*** 文件
+*** 控制台输入
+*** 文件变化通知
+*** 互斥量
+*** 信号量
+*** 事件（自动设置和手动设置）
+*** 可等的计时器
+* Introducing Direct2D since window 7
+https://msdn.microsoft.com/en-ca/magazine/dd861344.aspx
+* Windows Imaging Component Basics  available for Windows XP with SP2 and later
+WIC API suggest that you create decoder from factory, rather than directly using its CLSID. 
+https://msdn.microsoft.com/en-us/magazine/cc500647.aspx#S4
+* Win32 paint
+** Beginners
+http://www.codeproject.com/Articles/1988/Guide-to-WIN32-Paint-for-beginners
+In reading the forums and answering the questions, I have found that many beginners would like to learn the fundamental concepts of painting in WIN32 programs. Developing applications for windows can be challenging and frustrating. it can also be rewarding if you know some of the basic techniques that are required to take advantage of the WIN32 operating system. This tutorial is for beginners, and will cover the basic techniques and knowledge required to get started with painting in WIN32.
+
+The code and the concepts are all at the SDK level, as most of the other techniques that are used to paint to windows are based on the SDK. The WIN32 SDK is used inside of the MFC and ATL/WTL objects that represent those frameworks. I believe the more you know about the base technology, the SDK, the more you can take advantage of the frameworks that are written to encapsulate the technology. In order to help developers that are developing in MFC and WTL, the corresponding classes from those frameworks will be explained in the appropriate sections.
+
+This tutorial is the first in a series of five. This one is for beginners, the next three will cover more advanced topics at the intermediate level, and the final tutorial will cover WIN32 paint internals at the advanced level.
+
+Device Context
+At the simplest level, the device context (DC) is a surface that can be painted on. However, the DC is also the operating system resource that coordinates the brushes, pens and fonts that are used to render the images on the display. It is also the layer of abstraction that the Windows Graphics Device Interface (GDI) uses to abstract the details of a display device from a developer. This means that it is possible to paint to the screen, a printer, or even a bitmap in memory with the same code, initialized with a different DC that is created for a particular purpose. This makes coding very simple compared to the development that is required to program directly to a particular video card, or printer driver.
+
+The key to creating solid and efficient graphics in Windows, is to know how to create and utilize the DC that you want for a particular purpose. There are many flavors of DCs, here is a short description of each:
+
+Client DC
+
+A client DC is associated with a particular window, and will give the developer access to the client area of the target window. This is the type of DC that is used most often by application programmers, and is the easiest to handle. This is the type of DC that should be used when the WM_PAINT message is handled. This is also the only DC that will be explained with any amount of detail.
+
+Window DC
+
+A window DC is associated with a particular window, and allows the developer to draw on any part of the target window, including the borders and the caption. This is the type of DC that is sent with WM_NCPAINT message.
+
+Memory DC
+
+A Memory DC is a DC that exists only in memory, and is not associated with any window. This is the only type of DC that can hold a user defined bitmap (HBITMAP). Memory DC's are very useful for caching images, and for use with backbuffers on complicated displays.
+
+General Device DC
+
+For lack of a better name, this type of DC covers all of the other devices that it is possible to get a DC from. For instance, a printer or a plotter, the entire display monitor, or even custom device that a cutting-edge technology company may invent that does not even exist yet. The fact is, a DC can be created for any device that supports the required API functions defined by Microsoft.
+
+This guide will only demonstrate the Client DC in order to get the user started with basic Windows graphics development. The tutorials later in this series will cover the other types of DC.
+
+Obtaining a Client Device Context
+While working with the WIN32 Paint API, you will always obtain a handle to a device context (HDC). Any of the types of DCs that were described earlier can be stored in a HDC. This guide will only describe how to obtain a client DC, as the other DCs are used for more advanced purposes.
+
+The frameworks represent their DCs with a class. The base class for the DC is CDC. A CDC encapsulates the HDC itself. All of the functions that can be called for a HDC are encapsulated as member functions. There are also a few classes derived from the CDC that will allow special DCs to be created and maintained. The CPaintDC and the CClientDC will be explained later in this section.
+
+*** BeginPaint
+
+BeginPaint is the most common way to create a DC. However, this function should only be called in your WM_PAINT message handler of your window. This is because BeginPaint validates the invalid region of your window.  WM_PAINT messages are generated whenever an invalid region is created on your window. If BeginPaint is called outside of the WM_PAINT handler, any region that was previously invalid will be validated, and no WM_PAINT message will be generated for your window. This could cause major side-effects in your control, especially if someone else would like to subclass your control in the future.
+
+It is just as important to use BeginPaint inside of the WM_PAINT handler as it is to not use it outside of WM_PAINT. This is because inside of the BeginPaint function call, Windows may generate a WM_ERASEBKGND message and a WM_NCPAINT message if it is necessary. If you do not call BeginPaint inside of your WM_PAINT handler, your windows borders may not be updated properly.
+
+In order to get a handle to a DC with BeginPaint, you will need a handle to the target window, and a PAINTSTRUCT structure. PAINTSTRUCT holds information about the current painting session when you call BeginPaint, that is unimportant at this level. BeginPaint also returns a handle to the DC that it creates, and this is the value that we are interested in. Here is an example of how to call BeginPaint.
+
+Hide   Copy Code
+// assuming that hWnd is the handle to the window for which we want the DC.
+
+PAINTSTRUCT ps;
+HDC            hdc;
+hdc = ::BeginPaint(hWnd, &ps);
+The function that needs to be used in order to free a HDC created with BeginPaint is EndPaint. It is important to call EndPaint rather than one of the other DC destroyers, because BeginPaint calls HideCursor in order to prevent the cursor from being painted on during your paint operations, and EndPaint calls ShowCursor to make it visible again. If EndPaint is not called, after a BeginPaint then you may experience some weird anomalies with the cursor.
+
+Here is an example of EndPaint:
+
+Hide   Copy Code
+// Call EndPaint with the same hWnd and PAINTSTRUCT that was used in 
+// the call to BeginPaint.
+::EndPaint(hWnd, &ps);
+The call to BeginPaint and EndPaint are encapsulated in the class CPaintDC in MFC and WTL. By simply creating an instance of this DC on the stack, the DC will automatically be created and destroyed for the developer. Here is the code for the constructor and destructor in the MFC version of this class:
+
+Hide   Copy Code
+CPaintDC::CPaintDC(CWnd* pWnd)
+{
+    ...
+
+    if (!Attach(::BeginPaint(m_hWnd = pWnd->m_hWnd, &m_ps)))
+        AfxThrowResourceException();
+}
+
+CPaintDC::~CPaintDC()
+{
+    ...
+
+    ::EndPaint(m_hWnd, &m_ps);
+    Detach();
+}
+*** GetDC / GetDCEx
+
+GetDC is the next most common way to create a DC. GetDC will obtain a device context to the target windows client area. GetDCEx will do the same thing, however it will allow you to specify a default clipping region. GetDCEx will be ignored until the next guide.
+
+GetDC has many uses outside of the WM_PAINT handler. Use GetDC when a graphical effect needs to be created, that may not be part of the permanent data of the target window. For instance, use GetDC to create the DC for the rubber-banding effect on drawing tools, and when selecting multiple objects in a window.
+
+Here is an example of how to create and destroy a DC with a call to GetDC.
+
+Hide   Copy Code
+// Assuming that hWnd is the handle to the window for which we want the DC.
+HDC hdc;
+hdc = GetDC(hWnd);
+
+// Perform painting operations here.
+...
+
+// Release the DC when you are finished.  If this function succeeds it will return 1,
+// otherwise it will return 0 if it fails.
+::ReleaseDC(hWnd, hdc);
+The call to GetDC and ReleaseDC are encapsulated in the class CClientDC in MFC and WTL. By simply creating an instance of this DC on the stack, the DC will automatically be created and destroyed for the developer. Here is the code for the constructor and destructor in the MFC version of this class:
+
+Hide   Copy Code
+CClientDC::CClientDC(CWnd* pWnd)
+{
+    ...
+
+    if (!Attach(::GetDC(m_hWnd = pWnd->GetSafeHwnd())))
+        AfxThrowResourceException();
+}
+
+CClientDC::~CClientDC()
+{
+    ...
+    ::ReleaseDC(m_hWnd, Detach());
+}
+*** Using a Device Context
+Using a DC is very simple, and it can be quite complicated, it all depends on what painting effect is to be accomplished. This guide will simply stay with the default pen and brush that are selected in the DC when it is first created. Here is an example of how to call a number of different GDI functions with the DC that we have created.
+
+Hide   Copy Code
+// Draw a rectangle at (100,100) with dimensions (100,200);
+Rectangle(hdc, 100, 100, 200, 300);
+
+// Draw an ellipse inside the previous rectangle.
+Ellipse(hdc, 100, 100, 200, 300);
+
+// Draw simple text string on the window.
+TCHAR szMessage[] = "Paint Beginner";
+UINT  nLen = _tcslen(szMessage);
+TextOut(hdc, 100, 325, szMessage, nLen); 
+Here is a short example demonstrating how to use the CPaintDC:
+
+Hide   Copy Code
+//C: Create the DC on the stack.  This will allow the class to be destroyed when
+//   the stack frame disappears.
+//C: WARNING: Only use this DC in your OnPaint handler for the WM_PAINT message.
+CPaintDC dc;
+//C: Use the DC as you would like.
+dc.Rectangle(10, 10, 150, 200);
+...
+
+//C: No need to do any thing else to manage the DC, it will destroy itself.
+Here is a short example demonstrating how to use the CClientDC:
+
+Hide   Copy Code
+//C: Create the DC on the stack.  This will allow the class to be destroyed when
+//   the stack frame disappears.
+CClientDC dc;
+//C: Use the DC as you would like.
+dc.Rectangle(10, 10, 150, 200);
+...
+
+//C: No need to do any thing else to manage the DC, it will destroy itself.
+*** Getting Started
+The short demo program that is provided will display an array of shapes that has been created by the user. The user can create a shape by clicking and dragging the mouse, the same way that objects are selected in windows explorer. The two methods for creating a client DC are demonstrated.
+
+BeginPaint: This function is used to paint the shapes that the user has created.
+GetDC: This function is used to create the rubberbanding effect that allows the user to drag and create the shapes.
+The demo program is very simple in structure. It forsakes coding style and elegance for simplicity and clarity. All of the state that is required for this program is stored in global variables. There is a maximum of 5 shapes that can be created because they are stored in a statically allocated array. If more than five shapes are created, then the oldest existing shape will be replaced with the new shape.
+
+Here is the OnPaint handler that was created to handle the WM_PAINT message:
+
+Hide   Shrink    Copy Code
+LRESULT OnPaint       (HWND hWnd)
+{
+    PAINTSTRUCT ps;
+    HDC            hdc;
+    hdc = ::BeginPaint(hWnd, &ps);
+
+    UINT index;
+    for (index = 0; index < SHAPE_COUNT; index++)
+    {
+        if (ID_SHAPE_RECTANGLE == Shapes[index].shapeID)
+        {
+            ::Rectangle    (    
+                        hdc, 
+                        Shapes[index].rect.left, 
+                        Shapes[index].rect.top, 
+                        Shapes[index].rect.right,
+                        Shapes[index].rect.bottom
+                        );
+        }
+        else
+        {
+            ::Ellipse    (    
+                        hdc, 
+                        Shapes[index].rect.left, 
+                        Shapes[index].rect.top, 
+                        Shapes[index].rect.right,
+                        Shapes[index].rect.bottom
+                        );
+        }
+    }
+
+    ::EndPaint(hWnd, &ps);
+
+    return 0;    
+}
+Notice the very simple paint structure encapsulated between the calls to BeginPaint and EndPaint. More calls could be made between the BeginPaint bracket. The same principle would still apply, all painting for the main window should be done here.
+
+The rubber banding effect is a little bit more complicated. This effect is created by modifying two of the state variables in the DC. The first state that is changed is that the current drawing mode is changed from a plain copy to a destination NOT pen, or R2_NOT. This pen will allow the first drawing instance of the pen to change all of the bits from display, making a line visible. By simply Drawing the exact same line a second time, the line will disappear.
+
+The second change in DC state, is to select an empty brush color into the DC, so that when the shape is dragged, it does not paint the center of the shape. These two tricks are not the important point that should be noticed from this code. The important point to notice is that the DC was received from a call to GetDC and ended with a call to ReleaseDC. Same as the drawing code, any operations are contained in this DC creation bracket, and the window painting proceeds in between.
+
+Here is the function that draws the rubberbanding effect:
+
+Hide   Shrink    Copy Code
+void DrawRubberBand(HWND hWnd)
+{
+    HDC hdc;
+            //C: Get a client DC.
+    hdc = ::GetDC(hWnd);
+            //C: Set the current drawing mode to XOR, this will allow us
+            //   to add the rubber band, and later remove it by sending the
+            //   exact same drawing command.
+    ::SetROP2(hdc, R2_NOT);
+            //C: Select a NULL Brush into the DC so that no fill is performed.
+    ::SelectObject(hdc, ::GetStockObject(NULL_BRUSH));
+            //C: Get the current shape mode.
+    HMENU hMenu            = ::GetMenu(hWnd);
+    HMENU hShapeMenu    = ::GetSubMenu(hMenu, 1);
+
+    if (::GetMenuState(hShapeMenu, ID_SHAPE_RECTANGLE, MF_BYCOMMAND) & MF_CHECKED)
+    {
+        ::Rectangle(    
+                    hdc, 
+                    ptStart.x, 
+                    ptStart.y, 
+                    ptCurrent.x,
+                    ptCurrent.y
+                    );
+    }
+    else
+    {
+        ::Ellipse(    
+                    hdc, 
+                    ptStart.x, 
+                    ptStart.y, 
+                    ptCurrent.x,
+                    ptCurrent.y
+                    );
+    }
+            //C: Release the DC.
+    ::ReleaseDC(hWnd, hdc);
+}
+One final point that should be explained about the demo program is the call that makes the rubber band work. This code is inside of the WM_MOUSEMOVE message handler. The handler will first check if rubberbanding is currently activated. If so it will first draw the current rectangle, effectively erasing it from the screen, it will update the current coordinates, then it will draw the new coordinates effectively updating the position of the rectangle. Here is the code:
+
+Hide   Copy Code
+LRESULT OnMouseMove   (HWND hWnd, UINT nCtrl, UINT x, UINT y)
+{
+            //C: If the current mode is not rubber band, then exit.
+    if (!isRubberBand)
+    {
+        return 0;
+    }
+            //C: Undo the last rectangle shape that was drawn.
+    DrawRubberBand(hWnd);
+            //C: Update the current position.
+    ptCurrent.x = x;
+    ptCurrent.y = y;
+            //C: Draw the next rubberband position.
+    DrawRubberBand(hWnd);
+            //C: Exit with success.
+    return 0;        
+}
+Conclusion
+Once again, this guide is to get people started down the path of painting in WIN32. This article was written completely for the WIN32 SDK. I fully believe that MFC and ATL are cleaner ways to develop code for Windows, but I also believe that if a developer can get a firm grasp of the basic concepts at the SDK level, they will be able to flourish as a framework developer, because you will be able to determine what is happening behind the scenes, especially when problems arise.
+
+The next article I post will be at an intermediate level with more information. The next article will describe the other ways to create DCs. There will also be information on the different fields of the PAINTSTRUCT structure. Finally, the update region will be explained with a great amount of detail.
+** Intermediates
+* GetWindowRect和GetClientRect
+原文：http://blog.chinaunix.net/u/25372/showart_304363.html
+GetWindowRect是取得窗口在屏幕坐标系下的RECT坐标（包括客户区和非客户区），这样可以得到窗口的大小和相对屏幕左上角(0,0)的位置。
+　　　　GetClientRect取得窗口客户区(不包括非客户区)在客户区坐标系下的RECT坐标,可以得到窗口的大小，而不能得到相对屏幕的位置，因为这个矩阵是在客户区坐标系下（相对于窗口客户区的左上角）的。　　
+
+　　　　ClientToScreen把客户区坐标系下的RECT坐标转换为屏幕坐标系下的RECT坐标.
+
+　　　　ScreenToClient把屏幕坐标系下的RECT坐标转换为客户区坐标系下的RECT坐标. 　　　　我们对同一个窗口先GetWindowRect取得一个RECT，再用ScreenToClient转换到客户坐标系。然后GetClientRect取得一个RECT，再用ClientToScreen转换到屏幕坐标系。显然，GetWindowRect取得的矩阵不小于GetClientRect取得的矩阵。因为前者包含了非客户区，而后包括了客户区。　　　
+
+　　　　对GetWindowRect取得的矩阵ScreenToClient后，矩阵的大小没有变小，（－3，－29）是窗口的左上角的坐标，相对窗口客户区左上角。　　　
+
+　　　　对GetClientRect取得的矩阵ClientToScreen后，矩阵也没有变大，新得到的矩阵是窗口客户区在屏幕坐标系上的RECT。
+* CTLCOLOR_STATIC，CTLCOLOR_EDIT，NULL_BRUSH 或HOLLOW_BRUSH和GetStockObject,
+
+备注：HOLLOW_BRUSH等价于NULL_BRUSH，都代表透明化刷
+
+HGDIOBJ GetStockObject( __in  int fnObject)
+    参数：fnObject代表笔或者刷的类型，可以参看MSDN
+返回值：返回一个GDIOBJ对象的句柄。根据需要转换成笔/刷的句柄，
+
+如：HBRUSH(GetStockObject(HOLLOW_BRUSH));
+
+实例应用：一个透明的背景的编辑框
+HBRUSH CBackimageDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+{     
+       HBRUSH hbr =CDialog::OnCtlColor(pDC, pWnd, nCtlColor);
+       switch(nCtlColor)             
+       {            
+       case CTLCOLOR_STATIC: //对所有静态文本控件的设置            
+              {                   
+                     pDC->SetBkMode(TRANSPARENT);//设置背景为透明                                        pDC->SetTextColor(RGB(0,0,0)); //设置字体颜色                  
+                     returnHBRUSH(GetStockObject(HOLLOW_BRUSH)); // 必须                    
+              }            
+       case CTLCOLOR_EDIT:  //对所有编辑框控件的设置
+              {                   
+                     pDC->SetBkMode(TRANSPARENT);//设置背景为透明                                   pDC->SetTextColor(RGB(0,0,0)); //设置字体颜色                  
+                     returnHBRUSH(GetStockObject(HOLLOW_BRUSH)); // 必须                    
+              }     
+       default:        
+              returnCDialog::OnCtlColor(pDC,pWnd, nCtlColor);        
+       }     
+       return hbr;  
+}
+* restore hdc copy from parent dc
+case WM_ERASEBKGND:
+{
+    RECT rcWin;
+    RECT rcWnd;
+    HWND parWnd = GetParent( hwnd ); // Get the parent window.
+    HDC parDc = GetDC( parWnd ); // Get its DC.
+
+    GetWindowRect( hwnd, &rcWnd );
+    ScreenToClient( parWnd, &rcWnd ); // Convert to the parent's co-ordinates
+
+    GetClipBox(hdc, &rcWin );
+    // Copy from parent DC.
+    BitBlt( hdc, rcWin.left, rcWin.top, rcWin.right - rcWin.left,
+        rcWin.bottom - rcWin.top, parDC, rcWnd.left, rcWnd.top, SRC_COPY );
+
+    ReleaseDC( parWnd, parDC );
+}
+break;
+* Tree/List view control is not sending CDDS_ITEMPREPAINT to my dialog. I get CDDS_PREPAINT all the times.
+ound the solution myself. The WM_NOTIFY will return true or false so I returned the vlues as shown below.
+SetWindowLong(hDlg, DWL_MSGRESULT, CDRF_DODEFAULT);
+return TRUE;
+rather than
+return CDRF_DODEFAULT;
+* vs: 
+** How to Not Accidentally Copy a Blank Line
+From the menu, select Tools | Options | Text Editor | All Languages
+Then deselect the checkbox beside Apply Cut or Copy Commands to blank lines when there is no selection
+** Open Output Folder 
+** C + S + V : Cycle the Clipboard Ring
+* Security update MS05-052 introduces additional checks              :新场景:
+ before a Microsoft Component Object Model (COM) object can run in Microsoft
+Internet Explorer. The intent of this change is to prevent COM objects that were
+not designed to be instantiated in Internet Explorer from being instantiated in
+Internet Explorer. One of the checks that is introduced with MS05-052 is that
+Internet Explorer now checks for the IObjectSafety interface for ActiveX
+controls in the Internet zone before a COM object can run in Internet Explorer.

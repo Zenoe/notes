@@ -1,0 +1,78 @@
+* Use thunk actions to ensure actions occur in sequence
+To ensure that `action2` happens after `action1` in a React application using Redux, you can utilize middleware like `redux-thunk` to dispatch `action2` after `action1` has been completed. Here's a general approach to achieve this:
+
+1. **Create Thunk Actions**: Thunk actions are functions that can dispatch multiple actions sequentially. You can create a thunk action that dispatches `action1` first and then `action2`.
+
+2. **Dispatch Thunk Action**: Dispatch the thunk action from your component. When the thunk action is dispatched, it will internally dispatch `action1` first and then `action2`.
+
+Here's an example to illustrate this process:
+
+```javascript
+// actions.js
+const action1 = () => {
+  return { type: 'ACTION_1' };
+};
+
+const action2 = () => {
+  return { type: 'ACTION_2' };
+};
+
+const sequentialAction = () => {
+  return (dispatch) => {
+    dispatch(action1());
+    dispatch(action2());
+  };
+};
+
+export { action1, action2, sequentialAction };
+```
+
+```javascript
+// reducer.js
+const initialState = {
+  // initial state
+};
+
+const reducer = (state = initialState, action) => {
+  switch (action.type) {
+    case 'ACTION_1':
+      // Handle action1
+      return state;
+    case 'ACTION_2':
+      // Handle action2
+      return state;
+    default:
+      return state;
+  }
+};
+
+export default reducer;
+```
+
+```javascript
+// component.js
+import React from 'react';
+import { useDispatch } from 'react-redux';
+import { sequentialAction } from './actions';
+
+const MyComponent = () => {
+  const dispatch = useDispatch();
+
+  const handleSequentialActions = () => {
+    dispatch(sequentialAction());
+  };
+
+  return (
+    <button onClick={handleSequentialActions}>Dispatch Sequential Actions</button>
+  );
+};
+
+export default MyComponent;
+```
+
+In this example:
+- `action1` and `action2` are simple action creators that return action objects.
+- `sequentialAction` is a thunk action creator that dispatches `action1` and `action2` sequentially.
+- In your component, you can call `dispatch(sequentialAction())` to trigger both actions in sequence when a certain event occurs, such as a button click.
+
+By using thunk actions in Redux, you can control the sequence of actions and ensure that `action2` happens after `action1` has been completed.

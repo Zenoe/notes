@@ -1,0 +1,185 @@
+﻿* 组播： 01:00:5E
+* SSL VPN 握手失败
+ https://172.18.31.140:1443
+tcp 连接ok udp无法连接（dtls握手失败）
+ 大网---路由器---sw-----
+                 |
+               EG2000D（桥模式）
+
+1.UDP的443 端口没映射出去到1443，TCP映射出去了。
+2.客户端使用了443端口进行握手(udp),导致隧道无法连接
+
+* sock return 0
+  A socket with value 0 is fine, it means stdin was closed which will
+  make fd 0 available for reuse - such as by a
+  socket.
+  chances are one of the filedescriptors you close in the forkExec()
+  child path(XMLSocket/ServerFd) etc.) was fd 0 . 
+  That'll start the child with fd 0 closed, which won't happen when you
+  run the app from a command line, as fd 0 
+  will be already open as the stdin of the shell.
+  If you want your socket to not be 0,1 or 2 (stdin/out/err) call the
+  following in your forkExec()
+  function after all the close() calls
+
+* icmpv6
+   ICMPv6和IVMPv4的校验和的计算方法是不一样的，v6校验范围更广，包含了伪首部，先解释下什么是伪首部。
+    伪首部并非TCP&UDP数据报中实际的有效成分。伪首部是一个虚拟的数据结构，其中的信息是从数据报所在IP分组头的分组头中提取的，既不向下传送也不向上递交，而仅仅是为计算校验和。这样的校验和，既校验了TCP&UDP用户数据的源端口号和目的端口号以及TCP&UDP用户数据报的数据部分，又检验了IP数据报的源IP地址和目的地址。伪报头保证TCP&UDP数据单元到达正确的目的地址。因此，伪报头中包含IP地址并且作为计算校验和需要考虑的一部分。最终目的端根据伪报头和数据单元计算校验和以验证通信数据在传输过程中没有改变而且到达了正确的目的地址。伪首部更确切的说是校验和包含的—个96位的伪首标，是个理论上的值，只是理论上它位于TCP&UDP首标的前面。这个伪首标包含了源地址、目的地址、协议和TCP&UDP长度等字段，这使得TCP&UDP能够防止出现路由选择错误的数据段。这些信息由网际协议(IP)承载，通过TCP&UDP网络接口，在IP上运行的TCP&UDP调用参数或者结果中传递。
+    上面是copy的百度百科，回到我们的ICMPv6报文来，简单说来，我们的伪首部包含4个部分：sourse address， destination addrss， payload length， next header。大小为16 + 16 + 2 + 1字节。要计算校验和，还需要的信息是ICMPv6首部的内容，其中checksum值在计算之前需要先置为0，为什么就不用解释里吧，呵呵，咱就是算这东西的呀。
+    在TCP、UDP和ICMPv6中，in6_chsum()函数提供校验和计算方法，而in6_cksum()函数假定分组是以mbuf结构进行传递的，不适合我们自己做包调试。这里给出我采用的一种方法，参考了http://hi.baidu.com/fleago/blog/item/846e86864489743dc75cc3f4.html，感谢fleago同学。
+    我们以如下方法构造一个报文，并给出计算函数：
+unsigned char packet_buffer[] = {
+   //icmp header 完整的ICMPv6首部，长度不一定是这么长
+   0x87, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x75, 0xc5, 0xf1, 0x20, 0x80, 0x97, 0x0e, 0x39,
+
+   // pseudo header
+   // source addr
+   0x20, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+   // dest addr
+   0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+   0x00, 0x00, 0x00, 0x01, 0xff, 0x97, 0x0e, 0x39,
+   // payload len
+   0x00, 0x00, 0x00, 0x18,
+   // next header
+   0x00, 0x00, 0x00, 0x3a
+};
+unsigned short checksum(int len, unsigned char *buffer)
+{
+	unsigned long cksum = 0;
+        unsigned short *p = (unsigned short*)buffer;
+        int size = (len >> 1) + (len & 0x1);  // 以两个字节为运算单位，					      // len除以2四舍五入
+        while (size > 0) {
+		cksum += *p;
+		printf("%4x, %8x\n", *p, cksum);
+                p ++;
+                size --;
+        }
+        cksum = (cksum >> 16) + (cksum & 0xffff);
+        cksum += (cksum >> 16);
+        printf("before ~cksum: %8x\n", cksum);
+       printf("checksum is (hex, in packet byte seq): %02x, %02x\n", 	      ~cksum & 0xff, ~cksum >> 8);
+        return (unsigned short) (~cksum);      // 取补码，和v4不同
+} 
+* arp
+在实现TCP%2FIP协议的网络环境下，一个ip包走到哪里，要怎么走是靠路由表定义，但是，当ip包到达该网络后，哪台机器响应这个ip包却是靠该ip包中所包含的硬件mac地址来识别。也就是说，只有机器的硬件mac地址和该ip包中的硬件mac地址相同的机器才会应答这个ip包，因为在网络中，每一台主机都会有发送ip包的时候，所以，在每台主机的内存中，都有一个+arp-->+硬件mac+的转换表。通常是动态的转换表（该arp表可以手工添加静态条目）。也就是说，该对应表会被主机在一定的时间间隔后刷新。这个时间间隔就是ARP高速缓存的超时时间。+通常主机在发送一个ip包之前，它要到该转换表中寻找和ip包对应的硬件mac地址，如果没有找到，该主机就发送一个ARP广播包，于是，主机刷新自己的ARP缓存。然后发出该ip包。+了解这些常识后，现在就可以谈在以太网络中如何实现ARP欺骗了，可以看看这样一个例子。&oq=我们先复习一下上面所讲的ARP协议的原理。在实现TCP%2FIP协议的网络环境下，一个ip包走到哪里，要怎么走是靠路由表定义，但是，当ip包到达该网络后，哪台机器响应这个ip包却是靠该ip包中所包含的硬件mac地址来识别。也就是说，只有机器的硬件mac地址和该ip包中的硬件mac地址相同的机器才会应答这个ip包，因为在网络中，每一台主机都会有发送ip包的时候，所以，在每台主机的内存中，都有一个+arp-->+硬件mac+的转换表。通常是动态的转换表（该arp表可以手工添加静态条目）。也就是说，该对应表会被主机在一定的时间间隔后刷新。这个时间间隔就是ARP高速缓存的超时时间。+通常主机在发送一个ip包之前，它要到该转换表中寻找和ip包对应的硬件mac地址，如果没有找到，该主机就发送一个ARP广播包，于是，主机刷新自己的ARP缓存。然后发出该ip包。
+* MSG_PEEK
+Peeks at an incoming message. The data is treated as unread and the next recv() or similar function shall still return this data.
+http://pubs.opengroup.org/onlinepubs/009695399/functions/recv.html
+
+to receive bytes from socket
+n = recv(sock, &c, 1, MSG_PEEK);
+to get the number of bytes available in the socket without creating 'buffer' 
+ioctl(fd,FIONREAD,&bytes_available) , and under windows ioctlsocket(socket,FIONREAD,&bytes_available).
+Be warned though, the OS doesn't necessarily guarantee how much data it will buffer for you, so if you are waiting for very much data you are going to be better off reading in data as it comes in and storing it in your own buffer until you have everything you need to process something.
+
+To do this, what is normally done is you simply read chunks at a time, such as
+
+char buf[4096];
+ssize_t bytes_read;
+do {
+     bytes_read = recv(socket, buf, sizeof(buf), 0);
+     if (bytes_read > 0) {
+         /* do something with buf, such as append it to a larger buffer or
+          * process it */
+     }
+} while (bytes_read > 0);
+
+And if you don't want to sit there waiting for data, you should look into select
+or epoll to determine when data is ready to be read or not, and the O_NONBLOCK
+flag for sockets is very handy if you want to ensure you never block on a recv.
+* sockaddr
+"struct sockaddr" is a generic definition. It's used by any socket function that requires an address.
+
+there are possible multiple protocol which all implement the getsockname. And each have themself underling address data structure, 
+IPv4 --> sockaddr_in 
+IPV6 --> sockaddr_in6
+sockaddr_un --> AF_UNIX socket.
+sockaddr are used as the common data strut in the signature of those APIs.
+
+A struct sockaddr should generally only be used as the base type for a pointer. It is a structure intended to cover the common initial sequence of the members in the address family specific socket address types (struct sockaddr_un, struct sockaddr_in, struct sockaddr_in6 etc.)
+The only member that you can rely on struct sockaddr having is a single sa_family_t, indicating the socket address family. 
+The idea is that to obtain a sort of polymorphism - you can have a function that can operate on several different socket address types:
+
+void foo(struct sockaddr *sa)
+{
+    switch(sa->sin_family)
+    {
+    case AF_INET: {
+        struct sockaddr_in *sa_in = (struct sockaddr_in *)sa;
+
+        /* AF_INET processing */
+    }
+
+    case AF_UNIX: {
+        struct sockaddr_un *sa_un = (struct sockaddr_un *)sa;
+
+        /* AF_UNIX processing */
+    }
+
+/* ... */
+* pipe
+http://pubs.opengroup.org/onlinepubs/009695399/functions/pipe.html
+The pipe() function shall create a pipe and place two file descriptors, one each into the arguments fildes[0] and fildes[1], that refer to the open file descriptions for the read and write ends of the pipe. Their integer values shall be the two lowest available at the time of the pipe() call. The O_NONBLOCK and FD_CLOEXEC flags shall be clear on both file descriptors. (The fcntl() function can be used to set both these flags.)
+Using a Pipe to Pass Data Between a Parent Process and a Child Process
+The following example demonstrates the use of a pipe to transfer data between a parent process and a child process. Error handling is excluded, but otherwise this code demonstrates good practice when using pipes: after the fork() the two processes close the unused ends of the pipe before they commence transferring data.
+
+#include <stdlib.h>
+#include <unistd.h>
+...
+
+
+int fildes[2];
+const int BSIZE = 100;
+char buf[BSIZE];
+ssize_t nbytes;
+int status;
+
+
+status = pipe(fildes);
+if (status == -1 ) {
+    /* an error occurred */
+    ...
+}
+
+
+switch (fork()) {
+case -1: /* Handle error */
+    break;
+
+
+case 0:  /* Child - reads from pipe */
+    close(fildes[1]);                       /* Write end is unused */
+    nbytes = read(fildes[0], buf, BSIZE);   /* Get data from pipe */
+    /* At this point, a further read would see end of file ... */
+    close(fildes[0]);                       /* Finished with pipe */
+    exit(EXIT_SUCCESS);
+
+
+default:  /* Parent - writes to pipe */
+    close(fildes[0]);                       /* Read end is unused */
+    write(fildes[1], "Hello world\n", 12);  /* Write data on pipe */
+    close(fildes[1]);                       /* Child will see EOF */
+    exit(EXIT_SUCCESS);
+}
+* select
+The select() function allows you to implement an event driven design pattern, when you have to deal with multiple event sources.
+
+Let's say you want to write a program that responds to events coming from several event sources e.g. network (via sockets), user input (via stdin), other programs (via pipes), or any other event source that can be represented by an fd. You could start separate threads to handle each event source, but you would have to manage the threads and deal with concurrency issues. The other option would be to use a mechanism where you can aggregate all the fd into a single entity fdset, and then just call a function to wait on the fdset. This function would return whenever an event occurs on any of the fd. You could check which fd the event occurred on, read that fd, process the event, and respond to it. After you have done that, you would go back and sit in that wait function - till another event on some fd arrives.
+
+select facility is such a mechanism, and the select() function is the wait function. You can find the details on how to use it in any number of books and online resources.
+
+Every socket (really, every file descriptor that can be select()ed on) has a list of waiters that are currently waiting for activity on that socket (struct wait_queue_head_t in Linux terminology). Whenever something interesting happens on that socket (new data is available, buffer space is free for writing, or some kind of error), that socket will walk its list and notify everyone waiting on it.
+
+[[quora][https://www.quora.com/Network-Programming-How-is-select-implemented]]
+select() works by looping over the list of file descriptors that the user passed in. For every file descriptor, it calls that fd's poll() method, which will add the caller to that fd's wait queue, and return which events (readable, writeable, exception) currently apply to that fd.
+
+If any file descriptor matches the condition that the user was looking for, select() will simply return immediately, after updating the appropriate fd_sets that the user passed.
+
+If not, however, select() will go to sleep, for up to the maximum timeout the user specified.
+
+If, during that interval, an interesting event happens to any file descriptor that select() is waiting on, that fd will notify its wait queue. That will cause the thread sleeping inside select() to wake up, at which point it will repeat the above loop and see which of the fd's are now ready to be returned to the user.
+
+select() also keeps track of all of the wait queues it has been added to, and before returning (successfully or otherwise), must go through and ensure it's been removed from all of them.

@@ -1,0 +1,528 @@
+* ss -l -p -n | grep "pid=1234"
+find what port a process is using by pid
+* utf8 -> ansi
+iconv -l 查看本机支持的字符集
+convert utf8 to gbk, so the file can be normally opened in MS-excel on windows
+iconv -c rfc2205.csv -t gbk > rfc2205_gbk.csv
+
+-f, --from-code=NAME encoding of original text
+-t, --to-code=NAME encoding for output
+-o, --output=FILE output file
+* /var/log/messages：记录Linux内核消息及各种应用程序的公共日志信息，包括启动、IO错误、网络错误、程序故障等。对于未使用独立日志文件的应用程序或服务，一般都可以从该文件获得相关的事件记录信息。
+/var/log/cron：记录crond计划任务产生的事件消息。
+/varlog/dmesg：记录Linux系统在引导过程中的各种事件信息。
+/var/log/maillog：记录进入或发出系统的电子邮件活动。
+/var/log/lastlog：最近几次成功登录事件和最后一次不成功登录事件。
+/var/log/rpmpkgs：记录系统中安装各rpm包列表信息。
+/var/log/secure：记录用户登录认证过程中的事件信息。
+/var/log/wtmp：记录每个用户登录、注销及系统启动和停机事件。
+/var/log/utmp：记录当前登录的每个用户的详细信息
+* 打开windows过来的txt文件乱码 :iconv -c -f GB2312 -t UTF-8 [你要看的文件] >> [新文件的名称]
+* wget with authorization
+wget http://www.example.com --user=joe --password=schmoe
+
+You can also add the --auth-no-challenge parameter in case of additional problems:
+wget http://www.example.com --user=joe --password=schmoe --auth-no-challenge
+
+* ssh -o StrictHostKeyChecking
+* make uninstall
+make clean removes any intermediate or output files from your source / build
+tree. However, it only affects the source / build tree; it does not touch the
+rest of the filesystem and so will not remove previously installed software. If
+you're lucky, running make uninstall will work. It's up to the library's authors
+to provide that, however; some authors provide an uninstall target, others
+don't.
+If you're not lucky, you'll have to manually uninstall it. Running make -n
+install can be helpful, since it will show the steps that the software would
+take to install itself but won't actually do anything. You can then manually
+reverse those
+* match lines in two files
+awk 'FNR==NR{a[$1];next}($1 in a){print}' file2 file1
+* dostounix
+sed 's/^M$//'     # DOS to Unix
+sed 's/$/^M/'     # Unix to DOS
+where the '^M' is the control-M character. You can also use the bash ANSI-C Quoting mechanism to specify the carriage return:
+
+sed 's/\r$//'     # DOS to Unix
+sed 's/$/\r/'     # Unix to DOS
+* export PATH=$PATH:/path/to/dir
+The easiest way is to add this line to your user's ~/.bashrc file:
+export PATH=$PATH:/usr/local/sbin
+
+Bear in mind that /sbin/, /usr/sbin and /usr/local/sbin are not in normal user's $PATHs by default because these directories tend to
+contain "dangerous" executables. Things like fdisk or deluser that need administrative privileges and can harm your computer. They should
+be in root's path by default and you need to be root to run them anyway, so it migh be a good idea not to add them to a normal user's $PATH.
+* tar
+tar --exclude='./folder' --exclude='./upload/folder2' -zcvf /backup/filename.tgz .
+
+Modern tar recognizes the format by itself! One command works with any supported compression method.
+tar xf archive.tar.xz
+tar xf archive.tar.gz
+tar xf archive.tar
+tar -xJf file.pkg.tar.xz: The -J is the flag that specifically deals with .xz files.
+
+tar –xvf file.tar
+tar -xzvf file.tar.gz
+tar -xjvf file.tar.bz2
+tar –xZvf file.tar.Z
+unrar e file.rar
+unzip file.zip -d des_folder    // des_folder will be created if not exist
+
+compress:
+tar -xJf file.pkg.tar.xz
+tar -cvf log.tar log2012.log
+tar -zcvf log.tar.gz log2012.log
+tar -jcvf log.tar.bz2 log2012.log
+
+list files in tar: tar -ztvf log.tar.gz
+
+将 /tar 内的 部分文件解压出来: tar -zxvf /opt/soft/test/log30.tar.gz log2013.log
+
+保存其权限 (-p) tar -zcvpf log31.tar.gz log2014.log log2015.log log2016.log 
+** 实例6：在 文件夹当中，比某个日期新的文件才备份
+tar -N "2012/11/13" -zcvf log17.tar.gz test
+[root@localhost soft]# tar -N "2012/11/13" -zcvf log17.tar.gz test
+tar: Treating date `2012/11/13' as 2012-11-13 00:00:00 + 0 nanoseconds
+* find
+exclude
+find -type f -name "Makefile" -not -path './SAI/*'
+
+exclude Use the prune switch, for example if you want to exclude the misc directory just add a -path ./misc -prune -o to your find command:
+
+find . -path ./misc -prune -o -name '*.txt' -print
+Here is an example with multiple directories:
+
+find . -type d \( -path dir1 -o -path dir2 -o -path dir3 \) -prune -o -print
+Here we exclude dir1, dir2 and dir3, since in find expressions it is an action, that acts on the criteria -path dir1 -o -path dir2 -o -path dir3 (if dir1 or dir2 or dir3), ANDed with type -d. Further action is -o print, just print.
+
+touch -t `date +%m%d0000` /tmp/$$
+find . -newer /tmp/tmp.txt
+
+Find files modified in the last 24 hours
+find / -mtime -1 -print
+
+
+find  [curdir(default)]  [搜索条件]  [操作] 
+
+** 例子
+$ find  .  -name  '*.txt'   -print 
+
+再如从根目录查找类型为符号连接的文件，并将其删除
+$ find  /  -type  l  -exec  rm { } \; 
+
+从当前目录查找用户tom的所有文件并在屏幕上显示
+$ find  .  -user  'tom'   -print 
+
+显示当前目录中大于20字节的.c文件名
+$ find  . -name  "*.c"  -size  +20c  -print 
+
+显示当前目录中恰好10天前访问过的文件名，命令行为：
+
+$ find  .  -atime  10  -print 
+显示当前目录中不到10天前访问过的文件名，命令行为：
+
+$ find  .  -atime  -10  -print 
+查找/home目录下权限为640的文件或目录，命令行为：
+
+#find  /home  -perm 640 
+搜索根目录下大于100KB的文件，并显示，命令行为：
+
+#find  /  -size  +100K  -print 
+搜索根目录下小于500KB的文件，命令行为：
+
+#find  /  -size  -500K  -print 
+在当前目录中查找所有文件名以.doc结尾，且更改时间在5天以上的文件，找到后进行删除，且删除前给出提示，命令行
+为：
+
+#find  .  -name  '*.doc'  -mtime +5  -ok  rm { } \; 
+在当前目录下查找所有链接文件，并以长格式显示文件的基本信息，命令行为：
+
+# find  .  -type l  -exec  ls  -l {} \;  
+lrw-rw-r-- 1 root root 36 07-27 14:34 ./example2  
+lrw-rw-r-- 1 root root 72 07-27 14:36 ./example3  
+lrw-rw-r-- 1 root root 36 07-27 14:36 ./example1 
+在当前目录中查找文件名由一个小写字母、一个大写字母和两个数字组成，且扩展名为.doc的文件，并显示，命令行为：
+
+#find  .  -name  ' [a-z][A-Z][0-9][0-9].doc'  -print 
+** 搜索条件
+| -name '字符串'      | 查找文件名中包含所给字符串的所有文件 |
+|---------------------+--------------------------------------|
+| -user ‘用户名’ | 查找属于指定用户的文件    |
+|---------------------+--------------------------------------|
+| -group ‘用户组名’ | 查找属于指定用户组的文件             |
+|---------------------+--------------------------------------|
+| -type x             | 查找类型为x的文件                    |
+|---------------------+--------------------------------------|
+
+搜索条件
+说    明
+-atime n
+查找n天以前被访问过的文件
+-size n
+指定文件大小为n
+-perm
+查找符合指定权限值的文件或目录
+-mount
+要查找文件时不跨越文件系统mount点
+-follow
+如果find命令遇到符号链接文件，
+就跟踪到链接所指向的文件
+-cpio
+对匹配的文件使用cpio命令，将文
+件备份到磁带设备中
+-newer file1 ! file2
+查找更改时间比文件file1晚但比
+文件file2早的文件
+-prume
+不在指定的目录中查找，如果同时
+指定-depth选项，那么-prune将被
+find命令忽略
+-ok
+和exec作用相同，但在执行每一个
+命令之前，都会给出提示，由用户
+来确定是否执行
+-depth
+在查找文件时，首先查找当前目录，
+然后再在其他子目录中查找
+** 可执行的操作
+-exec 命令名 {} \；
+不需确认执行命令。注意: “{}”代 表找到的文件名，“}”与“\”之间有空格
+-print 送往标准输出
+* 先用“useradd -d 目录名 用户名”建立一个到FTP目录的用户帐号
+安全的ftp建立账户方式
+useradd username -s /bin/false   禁止用户ssh登陆
+ useradd -s /bin/false -d /www/www.a.com/www  username  指定目录
+
+useradd -d /var/www/html lzy
+passwd lzy
+
+* Exit Status
+0	All invocations of the Command parameter returned exit status 0.
+1-125	A command line meeting the specified requirements could not be assembled, one or more of the invocations of the Command parameter returned a non-zero exit status, or some other error occurred.
+126	Command was found but could not be invoked.
+127	Command could not be found.
+
+* xargs
+if resuls from find contains spaces, '-print0' is required by find and -0 is required by xargs
+
+find /tmp/ -ctime -1 -name "x*" | xargs -I '{}' mv '{}' ~/play/
+find . -name static | xargs -I '{}' find {} -name "*.html"
+
+Arguments in the standard input must be separated by unquoted blank characters, or unescaped blank characters or newline characters.
+Characters can be quoted by enclosing them in "double-quotes" (non-double-quote and non-newline chars only).
+Characters can be quoted by enclosing them in 'apostrophes' (non-apostrophe and non-newline chars only).
+
+e.g. file1 file2 "file three" 'file four' file\ five
+
+{} (introduced by -I) is the default argument list marker. You need to use {} this with various command which take more than two arguments at a time.
+
+$ find . -name "*.sh" -print0 | xargs -0 -I {} mv {} ~/back.scripts
+
+You can rename {} to something else
+$ find . -name "*.sh" -print0 | xargs -0 -I file mv file ~/back.scripts
+
+    -0 If there are blank spaces or characters (including newlines) many commands will not work. This option take cares of file names with blank space.
+    -I Replace occurrences of replace-str in the initial-arguments with names read from standard input. Also, unquoted blanks do not terminate input items; instead the separator is the newline character.
+
+
+1) Covert muti line output into single line
+find . -name "*sh*"
+./.bash_history
+./.bash_profile
+./.cshrc
+./.sh_history
+./.ssh
+
+find . -name "*bash*" | xargs
+./.bash_history ./.bash_profile ./.bash_profile.cf-before-edit ./.cshrc ./.cshrc.cf-before-edit ./.sh_history ./.ssh ./.ssh2 ./scripts/aix_sysinfo.ksh ./scripts/chperm_messages.sh ./scripts/linux_sysinfo.ksh ./scripts/solaris_sysinfo_v1.1.ksh ./testlocked.ksh
+
+2) Xargs with grep:
+When you use "xargs" in conjusction with find and grep , the grep will look for the specifig word in  each file in the from the stanadard input.
+find . -name "*.sh" | xargs grep "ksh"
+
+In the above exanmple first find all .sh  files from current directory or below and than on each .sh file look for word "ksh".
+
+4) To Delete temporary files using xargs & find:
+find /tmp -name "*.tmp" | xargs rm
+
+1) xargs -0 to handle space in file name
+
+if any of file name contains space or new line on it. we use find -print0 to produce null separated file name and xargs-0 to handle null separated items.
+find /tmp -name "*.tmp" -print0 | xargs -0 rm
+
+6) Counting number of lines/words/characters in each file using xargs & find:
+ls -1 *.sh | xargs wc -l
+112 linux_sysinfo.sh
+85  aix_sysinfo.sh
+35  audit_script.sh
+18  chperm_messages.sh
+250 total
+
+1) xargs and cut command in Unix:
+
+ Though most of xargs examples in unix will be along with find and grep command but xargs is not just limited to this two it can also be used with any command which generated long list of input for example we can use xargs with cut command in unix. In below example of unix xargs we will xargs example with cut command. for using cut command let's first create a .csv file with some data e.g.
+
+um@server# cat fruits.txt
+Orange,Greenorange
+Mango,Redmango
+Banana,Pinkbanana
+
+Now we will display name of actual fruit from first column using xargs command in one line:
+
+um@server:/etc cut -d, -f1 smartphones.csv | sort | xargs
+Orange Mango Banana
+8)To insert file names into the middle of command lines, type:
+
+# ls | xargs  -t  -I  {} mv {} {}.old
+
+This command sequence renames all files in the current directory by adding .old to the end of each name. The -I flag tells the xargs
+command to insert each line of the ls directory listing where {} (braces) appear. If the current directory contains the files chap1,
+chap2, and chap3, this constructs the following commands:
+
+#mv chap1 chap1.old
+#mv chap2 chap2.old
+#mv chap3 chap3.old
+
+9) To run a command on files that you select individually, type:
+ls | xargs  -p  -n  1 ar r lib.a
+
+This command sequence allows you to select files to add to the lib.a library. The -p flag tells the xargs command to display each ar command it constructs and to ask if you want to run it. Type y to run the command. Press the any other key if you do not want to run the command.
+
+Something similar to the following displays:
+
+ar r lib.a chap1 ?...
+ar r lib.a chap2 ?...
+ar r lib.a chap3 ?...
+10) To construct a command that contains a specific number of arguments and to insert those arguments into the middle of a command line, type:
+
+um@server# ls | xargs -n6 | xargs -I{} echo {} - some files in the directory
+
+If the current directory contains files chap1 through chap10, the output constructed will be the following:
+chap1 chap2 chap3 chap4 chap5 chap6 - some files in the directory
+chap7 chap8 chap9 chap10 - some file in the directory
+* Linux sysinfo
+** 系统
+uname -a               # 查看内核/操作系统/CPU信息
+cat /etc/centos-release
+cat /etc/redhat-release
+cat /etc/*-release
+cat /etc/issue   
+cat /proc/version
+
+head -n 1 /etc/issue   # 查看操作系统版本
+cat /proc/cpuinfo      # 查看CPU信息
+hostname               # 查看计算机名
+lspci -tv              # 列出所有PCI设备
+lsusb -tv              # 列出所有USB设备
+lsmod                  # 列出加载的内核模块
+env                    # 查看环境变量
+** 资源
+free -m                # 查看内存使用量和交换区使用量
+df -h                  # 查看各分区使用情况
+du -sh <目录名>        # 查看指定目录的大小
+grep MemTotal /proc/meminfo   # 查看内存总量
+grep MemFree /proc/meminfo    # 查看空闲内存量
+uptime                 # 查看系统运行时间、用户数、负载
+cat /proc/loadavg      # 查看系统负载
+** 磁盘和分区
+mount | column -t      # 查看挂接的分区状态
+fdisk -l               # 查看所有分区
+swapon -s              # 查看所有交换分区
+hdparm -i /dev/hda     # 查看磁盘参数(仅适用于IDE设备)
+dmesg | grep IDE       # 查看启动时IDE设备检测状况
+** 网络
+ifconfig eth0 100.2.1.132 netmask 255.255.255.0
+route add default gw 172.18.33.1
+iptables -L            # 查看防火墙设置
+route -n               # 查看路由表
+netstat -lntp          # 查看所有监听端口
+netstat -antp          # 查看所有已经建立的连接
+netstat -tunalp | grep LISTEN
+netstat -s             # 查看网络统计信息
+** 用户
+w                      # 查看活动用户
+id <用户名>            # 查看指定用户信息
+last                   # 查看用户登录日志
+cut -d: -f1 /etc/passwd   # 查看系统所有用户
+cut -d: -f1 /etc/group    # 查看系统所有组
+* autostart bash script
+cd /etc/rc.d/init.d
+chkconfig --add StartTomcat.sh
+chkconfig StartTomcat.sh on
+
+* iptable
+关闭/打开端口号:iptables -A INPUT/OUTPUT -p tcp --drop 端口号 -j DROP/ACCEPT
+
+* Online resize LVM partitions – shrink home / extend root
+By default, most Linux Installers create separate /home partition, occupying most of the drive space.
+When server is used mostly for system services, you may transfer free space from /home partition to /root.
+
+Before adjustment we have 98% filled root partition and 141GB free space on /home, which we would like to use:
+
+[root@oracle ~]# df -h
+Filesystem            Size  Used Avail Use% Mounted on
+/dev/mapper/vg_oracle-lv_root
+                       50G   1G   50G  98% /
+tmpfs                 630M     0  630M   0% /dev/shm
+/dev/cciss/c0d0p1     477M  106M  346M  24% /boot
+/dev/mapper/vg_oracle-lv_home
+                      149G   60M  141G   1% /home
+1. First step is to unmount /home partition
+
+umount /home
+System may refuse to unmount /home if you have users logged on to the box or services running from /home. After logging off / stopping services command should succeed.
+
+2. Shrink old /home partition to 20GB, (system will force you to check filesystem for errors by running e2fsck)
+
+e2fsck -f /dev/mapper/vg_oracle-lv_home
+resize2fs /dev/mapper/vg_oracle-lv_home 20G
+3. Reduce the LVM to 20G
+
+lvreduce -L 20G /dev/mapper/vg_oracle-lv_home
+4. Extend /root LVM to new size, utilizing 100% of free space on disk
+
+lvextend -l +100%FREE /dev/mapper/vg_oracle-lv_root
+5. Grow /root (ext3/4) partition to new LVM size
+
+resize2fs /dev/mapper/vg_oracle-lv_root
+6. Mount /home
+
+mount /home
+Result
+
+[root@oracle ~]# df -h
+Filesystem            Size  Used Avail Use% Mounted on
+/dev/mapper/vg_oracle-lv_root
+                      178G   50G  128G  28% /
+tmpfs                 630M     0  630M   0% /dev/shm
+/dev/cciss/c0d0p1     477M  106M  346M  24% /boot
+/dev/mapper/vg_oracle-lv_home
+                       20G   45M   19G   1% /home
+
+After these simple steps we have 72% of free disk space of root partition.
+
+TL;DR
+
+Resizing /home partition (/dev/mapper/vg_oracle-lv_home) to 20GB and transfering remaining space to /root (/dev/mapper/vg_oracle-lv_root):
+
+umount /home
+e2fsck -f /dev/mapper/vg_oracle-lv_home
+resize2fs /dev/mapper/vg_oracle-lv_home 20G
+lvreduce -L 20G /dev/mapper/vg_oracle-lv_home
+lvextend -l +100%FREE /dev/mapper/vg_oracle-lv_root
+resize2fs /dev/mapper/vg_oracle-lv_root
+mount /home
+* tar time stamp in the future问题
+在A机器上用tar压缩的文件，在B机器上进行解包的时候，如果两个机器的时间不一致，如B机器的时间落后A机器的时间，这时
+就会出现time stamp in the future的问题
+
+（1）一是检查B机器的时间，如果确有问题请修改B机器的时间（sudo date -s "YYYY-MM-DD HH:MM:SS"）
+
+（2）二是使用tar命令的-m参数，（-m, --touch, --modification-time【don't extract file modified time】）
+
+大致意思就是suppress时间戳检查，而是使用新的系统时间进行解包，解包后的文件时间戳将是新的系统时间而不是原文件的时间戳了。
+
+* format date
+You may simply use %3N to truncate the nanoseconds to the 3 most significant digits:
+
+$(date -d "1 days ago" +"%Y-%m-%d")
+
+date -d "-2day" +%Y%m%d
+
+$ date +"%Y-%m-%d %H:%M:%S,%3N"
+2014-01-08 16:00:12,746
+or
+$ date +"%F %T,%3N"
+2014-01-08 16:00:12,746
+testet with »GNU bash, Version 4.2.25(1)-release (i686-pc-linux-gnu)«
+
+But be aware, that %N may not implemented depending on your target system or bash version. Tested on an embedded system »GNU bash, version 4.2.37(2)-release (arm-buildroot-linux-gnueabi)« there was no %N:
+
+date +"%F %T,%N"
+2014-01-08 16:44:47,%N
+
+%s是获取当前时间距离1970-01-01 00:00:00 UTC的时间差。date的其它很多格 式控制都是控制当前时间的输出格式而已，比如只输出时分秒，只输出年月日等
+等，其中%N也是这一类，%N输出的是当前时间的纳秒部分，由于date并没有毫秒 等级别的输出，所以在秒以下的内容都属于纳秒部分。所以从这个角度说，date 是可以很精确的，可以达到纳秒级别。
+date +%s 1516247792
+
+#date +%s.%N  
+1337435374.969263560
+
+date -d "2 minutes ago" +"%Y-%m-%d %H:%M:%S"
+
+date -d today +"%Y%m%d-%H%M%S"
+* curl
+curl -T RG-iData_1.10_build20180531.tar.gz ftp://192.168.5.210:/RG-iData/ --user hm:hm
+curl -X POST -F 'file=@log_rg_eg_url_audit-1516257858.tmp.tar.gz' http://211.64.112.35:8089/upload/hdfs
+* cp
+If you are wanting to copy hidden files and folders in Linux using the cp command, the first thing people will think of is cp -r .*
+/media/backup_drive/max/hidden_config_files/ but this will actually match ./ and ../ as well, which will copy all files in the current
+working directory, and also copy all the files from the parent directory. So to copy only hidden files in Linux, you would want to
+run cp -r .[a-z,A-Z,0-9]* /media/backup_drive/max/hidden_config_files/ this way it will only match files that start with a . and the next
+character is a-z, A-Z, or 0-9 and everything after that being a wildcard.
+
+with preserve privilege option: -p
+* rsync
+You can also exclude multiple paths within curly braces:
+no space in between items in curly braces
+rsync -az --exclude={'.git','node_modules','*.bak'}  ../zenoe1 root@10.110.198.52:/home/
+z: include r
+rsync -zav  --exclude "fsroot" --exclude ".git" --exclude "*.gz" --exclude "*.rpm" --exclude "*.tgz" --exclude "*.jar" --exclude ".svn" . root@172.31.138.210:/root/r
+
+rsync --no-perms --no-owner --no-group -zav -e 'ssh -p 10022' --exclude "compile-result.tar.gz" --exclude "target" --exclude "fsroot" --exclude ".git" . root@172.28.57.44:/home/alan/sonic-ra
+
+-size-only
+rsync -size-only -zav -e 'ssh -p 10022' --exclude "compile-result.tar.gz" --exclude "target" --exclude "fsroot" --exclude ".git" . root@172.28.55.30:/home/alan/sonic-ra
+
+-avzP - archive mode, be verbose, use compression, preserve partial files, display progress.
+
+--delete参数删除目标目录比源目录多余的文件
+** -a: archive mode include :
+
+-r, --recursive recurse into directories
+
+-l, --links copy symlinks as symlinks
+
+-p, --perms preserve permissions
+
+-t, --times preserve modification times
+
+-g, --group preserve group
+
+-o, --owner preserve owner (super-user only)
+
+-D same as --devices --specials
+
+--devices preserve device files (super-user only)
+
+--specials preserve special files
+
+It excludes:
+-H, --hard-links preserve hard links
+-A, --acls preserve ACLs (implies -p)
+-X, --xattrs preserve extended attributes
+* tar -C / -cf - opt/t | ssh -o GSSAPIAuthentication=no root@172.31.138.211 tar -C / -xvf -
+
+* add to sudo
+/etc/sudoers: jenkins          ALL=(ALL)   NOPASSWD: ALL
+1. sudo visudo
+   username ALL=(ALL:ALL) ALL
+2. Adding sudo Users With usermod Command
+Editing the sudoers file is not the “cleanest” way of doing things when we have a utility created for helping us perform those actions. The usermod command allows us to add/edit groups that a user is in.
+
+For adding users to sudoers with the usermod command, we simply need to add the user to the sudo group. Let’s see how we can perform the same.
+
+Syntax:
+sudo usermod -a -G sudo <username>
+-a Amend the changes to the existing configuration
+-G The name of the group the user should be added to
+<username> The username of the user that needs to be modified
+* touch
+touch -a -m -t 201512180130.09 fileName.ext
+Where:
+-a = accessed
+-m = modified
+-t = timestamp - use [[CC]YY]MMDDhhmm[.ss] time format
+If you wish to use NOW just drop the t and the timestamp
+
+To verify they are all the same: stat fileName.ext

@@ -1,0 +1,94 @@
+The & is an extremely useful feature in Sass (and Less). It's used when nesting. It can be a nice time-saver when you know how to use it, or a bit of a time-waster when you're struggling and could have written the same code in regular CSS.
+
+Let's see if we can really understand it.
+
+#Basic Nesting
+.parent {
+  .child {}
+}
+This compiles to:
+
+.parent .child {}
+You can nest as deep as you'd like, but it's a good practice to keep it only a level or two to prevent overly specific selectors (which are less useful and harder to override).
+
+#Adding another class
+The & comes in handy when you're nesting and you want to create a more specific selector, like an element that has *both* of two classes, like this:
+
+.some-class.another-class { }
+You can do this while nesting by using the &.
+
+.some-class {
+  &.another-class {}
+}
+The & always refers to the parent selector when nesting. Think of the & as being removed and replaced with the parent selector. Like this:
+
+
+#The "aha" moment!
+Take this Sass:
+
+.parent {
+  .child {}
+}
+This can actually be thought of as short-hand for nesting with the &:
+
+.parent {
+  & .child {}
+}
+So, these two examples both compile to the same thing:
+
+.parent .child {}
+The example with the & isn't anything different than the example without the &. Nesting without the & is shorthand for nesting with it. We can think of the & as a mechanism that allows us to place the parent selector wherever we need it in our child selector. It allows us to nest with alterations. Let's look at some more examples.
+
+#Using the & with pseudo classes
+You can write pseudo classes on a class in a much less repetitive way with the &:
+
+.button {
+  &:visited { }
+  &:hover { }
+  &:active { }
+}
+This compiles to:
+
+.button:visited { }
+.button:hover { }
+.button:active { }
+The & in this case allows us to position .button directly next to pseudo classes without repetition in the authored code. If we left out the & from this example, basic nesting would put a space between them like this...
+
+.button :hover
+... which isn't the same.
+
+#Using the & with >, +, and ~
+Using the & with the child combinator >, adjacent sibling combinator +, and the general sibling combinator ~ is a breeze. At first I thought you had to use the &, but:
+
+// You don't actually have to do this.
+// Here, the ampersand is implied.
+.button {
+  & > span { }
+  & + span { }
+  & ~ span { }
+}
+Leaving the &'s out of the selector works here:
+
+// This compiles the same as above
+.button {
+  > span { }
+  + span { }
+  ~ span { }
+}
+Both of these examples compile into this CSS:
+
+.button > span { }
+.button + span { }
+.button ~ span { }
+#Qualifying based on context
+Nested selectors don't necessarily have to start with the ampersand. You can qualify a selector by putting the & on the right.
+
+.button {
+  body.page-about & { }
+}
+We're repositioning the parent selector exactly where we need it. This is really useful for qualifying a selector based on a different parent. This will compile to:
+
+body.page-about .button {}
+Meaning, select the button class only when a child of a body with a page-about class.
+
+https://css-tricks.com/the-sass-ampersand/

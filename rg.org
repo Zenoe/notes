@@ -1,0 +1,6 @@
+* exclude dir: node_modules and dist
+rg hash -g '!{node_modules,dist}'
+** for sub directory
+-g '!{**/node_modules/*,**/.git/*}'
+* rg "require\([^\"'].*?\)"
+require( + not "'

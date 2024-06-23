@@ -1,0 +1,15 @@
+
+  let tpl = `    ...    脚本正文：
+<% for(let i = 1; i <= len; i++) { %>
+    Comment    step <%=i%>
+    fw_step    测试描述<%=i%>：<%=steps[i-1]%>
+    fw_expect    预期结果<%=i%>：<%=exps[i-1]%>
+<% } %>
+`
+const data = {
+  len,
+  steps: steps,
+  exps: exps,
+}
+let html = ejs.render(tpl, data);
+console.log(html);

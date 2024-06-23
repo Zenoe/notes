@@ -1,0 +1,44 @@
+
+1. download googletest src
+2. compile gtest into a static library
+
+   create new project (static library) using visual studio
+   add include path for the project: ( C:\\googletest-1.13.0\googletest and C:\\googletest-1.13.0\googletest\include )
+3. add source gtest_all.cc and gtest_main.cc which are located in googletest\src
+4. Build GoogleTest into static library
+
+
+* create a simpleproject for testing
+// simplemath.h
+
+#include <cmath>
+
+double cubic(double d)
+{
+	return pow(d,3);
+}
+
+
+// SimpleMath.cpp : Defines the entry point for the console application.
+#include "simplemath.h"
+
+int main()
+{
+	cubic(10);
+	return 0;
+}
+* create a project: unittest-simple
+1. add include path: (C:\\simpleproject C:\\googletest-1.13.0\googletest and C:\\googletest-1.13.0\googletest\include )
+2. add new references( googletest and simpleproject )
+3. Create a Test Case
+   #+begin_src cpp
+    #include "gtest/gtest.h"
+    #include "simpleproject.h"
+
+    TEST(testMath, myCubeTest)
+    {
+        EXPECT_EQ(1000, cubic(10));
+    }
+   #+end_src
+
+   https://www.bogotobogo.com/cplusplus/google_unit_test_gtest.php

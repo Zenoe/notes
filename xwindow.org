@@ -1,0 +1,271 @@
+localhost=10:0
+The format of the display variable is [host]:<display>[.screen].
+
+on wondiws:
+install cygwin with xorg-server, xinit, open ssh
+start xwin server
+which will host a default display 0.0
+
+export DISPLAY before ssh to a remote host
+export DISPLAY=:0.0
+ssh -Y root@172.29.32.10
+
+on remote host:
+yum -y install xauth
+after running:
+echo $DISPLAY
+I got "localhost:10.0" which I thought was secreatly assigned by whatever ssh
+
+attach my old tmux session
+mannually do exporting
+export DISPLAY=localhost:10.0
+and then
+open emacs
+(require 'xclip)
+(xclip-mode 1)
+
+reload the config and now you can enjoy copying text from emacs to xclip
+
+ssh linux emacs copy to windows clipboard
+install xclip on linux
+enable: X11Forwarding yes
+/etc/ssh/sshd_config
+
+emacs install xclip
+enable xclip-mode
+
+restart emacs (tmux)
+
+* X11 forwarding failed
+ssh -X -vvv root@172.28.55.44
+==>
+X11 forwarding request failed on channel 0
+
+modify: /etc/ssh/sshd_config, then restart sshd
+X11UseLocalHost no
+
+* more info about xserver
+For security purposes, X servers won’t generally accept direct TCP connections from other hosts. Otherwise people could connect keyloggers to your X server, and your keystrokes would pass over the network unencrypted, allowing people to record passwords just by being on the same LAN.
+
+But SSH provides a secure way to forward X11 traffic over your SSH session, using the -X or -Y options.
+
+On your windows computer, make sure $DISPLAY is set correctly by trying to open an xterm from the command line. $DISPLAY will probably be set to :0 which stands for localhost:0. There are also additional tokens used to authenticate connections to the X server that are stored in ~/.Xauthority that you can view with xauth list.
+
+Now, run ssh -Y 10.10.101.96. If you get a message like X11 forwarding request failed on channel 0, then run ssh -v -Y 10.10.101.96 instead to get debugging messages. If the remote machine is a server, the reason will probably be that xauth isn’t installed. On CentOS, it’s in the xorg-x11-xauth RPM.
+
+On the remote machine, if everything went well, then $DISPLAY on the remote machine will now be set to a proxy display set up by SSH:
+
+$ echo $DISPLAY
+localhost:10.0
+At which point you can run a command like xterm on the remote machine, and have the window pop up on your local display.
+
+Although there’s no X server running on the remote machine, you may still need to install a bunch of X11 libraries for Java to be able to talk to your local X server…
+
+* xclip 操作
+2 终端输出保存到剪切板中
+ls -al | xclip
+此时ls -al的输出内容已经保存在剪切板中了，此时xclip -o可以看到剪切板的内容。
+但此时还不可以粘贴到终端以外的程序中，此时需要用到： xclip -selection c 
+
+ls -al | xclip -selection c
+3 文件内容复制到剪切板中
+xclip /etc/apt/sources.list
+xclip -selection c /etc/apt/sources.list
+4 剪切板内容输出到终端
+xclip -o
+xclip -selection c -o
+5 剪切板内容输出到文件
+xclip -o > ~/test.txt
+xclip -selection c -o > ~/test.txt
+
+* ssh x forwarding
+远程无图形机器A, 本地有图形机器B(XServer)
+SSH提供了X11转发的功能，可以使用SSH简单地实现上一节描述的功能。
+
+首先确认A机器上的SSH Server打开的X11转发功能。检查SSH Server配置文件/etc/ssh/sshd_config，确认有如下配置：
+
+X11Forwarding yes
+
+然后在从B机器上SSH到A机器：
+
+ssh -X 192.168.9.135
+
+-X选项打开SSH的X11转发功能。
+
+在此会话中查看A机器上的DISPLAY变量，应与下面类似：
+
+localhost:10.0
+
+在此会话中查看A机器上的TCP监听端口，应有6010端口。
+
+在此会话中启动A机器上的图形程序，图形应显示在B机器上。
+
+实际上，SSH在A机器上打开了一个监听端口6010，并且在登录会话开始时为会话设置了DISPLAY变量为localhost:10.0。随后此会话中的图形程序运行时，X11 client库会将X请求发送到SSH监听6010端口中，然后A机器上的SSH将X请求转发到B机器，B机器的SSH客户端收到X请求后交给B机器上的X Server显示。
+
+* How to use Cygwin X server for local and remote
+Install Cygwin/X
+Install Cygwin, if you do not already have it.
+Use the Cygwin setup program and install the xorg-server and xinit packages.
+The first one is the X server and the second installs a lot of scripts and programs that enable you to start the server and use it.
+Install the xeyes package. This is a small X application that we will use for testing X.
+Use Cygwin/X for local apps
+Kill the xinit, XWin and other X server processes if they are running and close all your Cygwin windows. Open a new Cygwin window.
+Set the DISPLAY environment variable:
+
+$ export DISPLAY=:0.0
+startx: If you run startx, you get X server opening a X window with XTerm
+running inside it.
+From here on, you can open X apps by running them from that XTerm. You can try by running xeyes inside that XTerm.
+Once you kill this X window, your X server is closed.
+startxwin: If you run startxwin, you get X server running, but no windows are displayed.
+You can now open another Cygwin window and can invoke individual X apps there
+and they will be displayed in individual windows.
+You can try by running xeyes from the Cygwin shell. This is called the multiwindow mode.
+
+Use Cygwin/X for remote apps
+
+Follow all the steps shown above for local X apps. Make sure you have killed the
+earlier X server processes, set the DISPLAY environment variable locally and run
+startxwin. Make sure local X apps can display a window to the Cygwin/X server.
+SSH to the remote computer running Linux using ssh on Cygwin or PuTTY. Make sure
+you have X11 Forwarding enabled for this SSH session. This is usually done by
+specifying -X (untrusted forwarding) or -Y (trusted forwarding) or setting the
+corresponding X11 Forwarding option in your SSH config file.
+
+Check the DISPLAY on the remote computer. It should be set to some value like shown below:
+$ echo $DISPLAY
+localhost:11.0
+If DISPLAY is empty, then either you did not set DISPLAY locally, did not cleanly restarted a X server locally or there was a problem with SSH X11 Forwarding. Please diagnose.
+
+Run the xeyes program from the remote computer. It should display in a window on your local machine. Your Cygwin/X server is working! You can now run GUI/X apps from the remote computer and display them locally. Beware that they will be slow to display and refresh.
+
+* x11 – 如何指定显示
+为了使客户端与用户交互，它需要知道如何查找服务器。有很多方法可以做到这一点。许多客户端允许-display或–displayoption指定它：
+
+xeyes -display paxbox1.paxco.com:0.0
+如果没有特别给出显示，许多人将使用DISPLAY环境变量。您可以像任何其他设置此变量：
+
+DISPLAY=paxbox1.paxco.com:0.0; export DISPLAY # in .profile
+export DISPLAY=paxbox1.paxco.com:0.0 # in your shell
+DISPLAY=paxbox1.paxco.com:0.0 firefox & # for that command (shell permitting)
+DISPLAY变量的第一部分只是显示服务器计算机的地址。它遵循与任何其他IP地址相同的规则;它可以是可解析的DNS名称(包括localhost)或特定的IP地址(如192.168.10.55)。
+
+第二部分是X特异性的。它给出了X“显示”(X服务器)号码和屏幕号码。第一(显示器编号)通常是指包含一个或多个屏幕但具有单个键盘和鼠标(即，一个输入流)的一组设备。屏幕编号通常给出该组内的特定屏幕。
+
+一个例子是：
+
++----------------------------------------+
+|paxbox1.paxco.com|                      |
++-----------------+                      |
+|                                        |
+|  +----------+----+  +----------+----+  |
+|  |Display :0|    |  |Display :1|    |  |
+|  +----------+    |  +----------+    |  |
+|  |               |  |               |  |
+|  | +-----------+ |  |               |  |
+|  | |Screen :0.0| |  |               |  |
+|  | +-----------+ |  |               |  |
+|  | +-----------+ |  |               |  |
+|  | |Screen :0.1| |  |               |  |
+|  | +-----------+ |  |               |  |
+|  | +-----------+ |  | +-----------+ |  |
+|  | |Screen :0.2| |  | |Screen :1.0| |  |
+|  | +-----------+ |  | +-----------+ |  |
+|  | +-----------+ |  | +-----------+ |  |
+|  | |Screen :0.3| |  | |Screen :1.1| |  |
+|  | +-----------+ |  | +-----------+ |  |
+|  | +-----------+ |  | +-----------+ |  |
+|  | | Keyboard  | |  | |  Keyboard | |  |
+|  | +-----------+ |  | +-----------+ |  |
+|  | +-----------+ |  | +-----------+ |  |
+|  | |   Mouse   | |  | |   Mouse   | |  |
+|  | +-----------+ |  | +-----------+ |  |
+|  +---------------+  +---------------+  |
+|                                        |
++----------------------------------------+
+这里有一台单机(paxbox1.paxco.com)，有两台显示服务器。第一个有四个屏幕，第二个有两个。可能性是：
+
+DISPLAY=paxbox1.paxco.com:0.0
+DISPLAY=paxbox1.paxco.com:0.1
+DISPLAY=paxbox1.paxco.com:0.2
+DISPLAY=paxbox1.paxco.com:0.3
+DISPLAY=paxbox1.paxco.com:1.0
+DISPLAY=paxbox1.paxco.com:1.1
+
+* Set X11Forwarding yes
+/etc/ssh/sshd_config
+** X11 forwarding request failed on channel 0:
+Adding the -v option to ssh when trying to log in will give a lot of debug information which might give a clue to exactly what the problem is, like for instance
+Set X11UseLocalhost no
+
+Save the file.
+
+$ sudo service sshd restart
+
+yum install xauth
+systemctl restart sshd
+
+export DISPLAY=172.30.93.19:10
+ssh -X root@host
+** xclip Error: Can't open display: (null)
+
+The clipboard is provided by the X server. It doesn't matter whether the server is headless or not, what matters is that your local graphical session is available to programs running on the remote machine. Thanks to X's network-transparent design, this is possible.
+
+I assume that you're connecting to the remote server with SSH from a machine running Linux. Make sure that X11 forwarding is enabled both in the client configuration and in the server configuration. In the client configuration, you need to have the line ForwardX11 yes in ~/.ssh/config to have it on by default, or pass the option -X to the ssh command just for that session. In the server configuration, you need to have the line X11Forwarding yes in /etc/ssh/sshd_config (it is present by default on Ubuntu).
+
+To check whether X11 forwarding is enabled, look at the value of the DISPLAY environment variable: echo $DISPLAY. You should see a value like localhost:10 (applications running on the remote machine are told to connect to a display running on the same machine, but that display connection is in fact forwarded by SSH to your client-side display). Note that if DISPLAY isn't set, it's no use setting it manually: the environment variable is always set correctly if the forwarding is in place. If you need to diagnose SSH connection issues, pass the option -vvv to ssh to get a detailed trace of what's happening.
+
+If you're connecting through some other means, you may or may not be able to achieve X11 forwarding. If your client is running Windows, PuTTY supports X11 forwarding; you'll have to run an X server on the Windows machine such as Xming.
+
+* emacs 在x window gui上无法输入中文
+** 在centos上安装中文输入法
+yum install fcitx dbus-x11 fcitx-table-chinese fcitx-configtool -y
+
+?? 不知道是否必需
+echo "export XMODIFIERS=@im=fcitx
+export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
+#export LC_CTYPE=\"zh_CN.UTF-8\"" > ~/.xprofilex
+
+2. 启动fcitx
+3. 通过fcitx-configtool配置输入法快捷键
+
+** 打开gedit，发现只能输入方框unocode码。原因是centos上没有中文字体
+
+从window上拷贝中文字体到centos上
+
+# fc-list 查看当前安装字体
+en_US.UTF-8
+
+export LC_CTYPE=en_US.UTF-8
+zh_CN.UTF-8
+en_US.UTF-8
+
+yum  -y  install  fontconfig
+mkdir -p /usr/share/fonts/chinese
+mv xxxfont /usr/share/fonts/chinese/
+chmod -R 755 /usr/share/fonts/chinese
+#安装ttmkfdir来搜索目录中所有的字体信息，并汇总生成fonts.scale文件
+yum -y install ttmkfdir
+ttmkfdir -e /usr/share/X11/fonts/encodings/encodings.dir
+
+#add font list
+vi /etc/fonts/fonts.conf
+
+#刷新内存中的字体缓存使配置对系统生效
+fc-cache
+
+#安装这个对字体有影响
+yum -y install fontforge
+** 此时：gedit 可以正常输入中文了，但是emacs不行，需要
+XMODIFIERS=@im=fcitx GTK_IM_MODULE=fcitx emacs
+
+** onboot script
+echo "#!/bin/bash
+# chkconfig: 2345 20 80
+# description: Description comes here....
+# Source function library.
+. /etc/init.d/functions
+fcitx -d" > fcitx.service
+
+mv fcitx.service /etc/init.d

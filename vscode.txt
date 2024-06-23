@@ -1,0 +1,7 @@
+* togglevim
+For example, here I want to use Ctrl+Alt+V to toggle Vim mode on/off. To do this I add the following to keybindings.json and save the file.
+
+    {
+        "key": "ctrl+alt+v",
+        "command": "toggleVim"
+    }

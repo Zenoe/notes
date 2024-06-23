@@ -1,0 +1,498 @@
+* sed
+sed -i "2,7 {s/^/#/}" test.txt lines 2, 3, 4, 5, 6 and 7 get commented
+comment out line 2,5,7
+sed -e '2s/^/#/' -e '5s/^/#/' -e '7s/^/#/'  file
+awk 'NR == 2 || NR == 5 || NR == 7 { print "#" $0; next } 1'  file
+find . -name '*.c' -o -name '*.h' | grep -v x86-xgs5-deb80/sdk-6.5.16-gpl-modules | xargs -i sed -r ':a; s%(.*)/\*.*\*/%\1%; ta; /\/\*/ !b; N; ba' '{}' | sed "s/[ \t]*\/\/.*$//" | sed "/^$/d"
+find . -name '*.c' -o -name '*.h' | grep -v x86-xgs5-deb80/sdk-6.5.16-gpl-modules | xargs wc -l
+
+
+s for substitution
+sed s/day/night/ <old >new
+sed 's/one/ONE/' <file
+s	  Substitute command
+/../../	  Delimiter
+one	  Regular Expression Pattern Search Pattern
+ONE	  Replacement string
+
+delimiter:
+other than slash:             sed 's/\/usr\/local\/bin/\/common\/bin/' <old >new
+underline                     sed 's_/usr/local/bin_/common/bin_' <old >new
+Some people use colons:       sed 's:/usr/local/bin:/common/bin:' <old >new
+
+Pick one you like. As long as it's not in the string you are looking for,
+anything goes. And remember that you need three delimiters. If you get a
+"Unterminated `s' command" it's because you are missing one of them.
+sed always removes the trailing \newline just before populating pattern space, and then appends one before writing out the results of its script.
+** remove single line comments
+
+
+sed "s/[ \t]*\/\/.*$//" sample-input.cpp > out.cpp
+
+s/<pattern>//    substitue pattern by nothing
+[ \t]*           any tab or space
+\/\/             quoted //
+.*               any chars
+$                to end of line
+to remove empty lines you can pipe into next sed
+
+sed "s/[ \t]*\/\/.*$//" sample-input.cpp | sed "/^$/d" > out.cpp
+
+** Using & as the matched string
+sed 's/[a-z]*/(&)/' <old >new
+% echo "123 abc" | sed 's/[0-9]*/& &/'
+123 123 abc
+
+sed scripts that treated "+" as a normal character would break GNU sed
+turns this feature(treat "+" as regular expression operator) on if you
+use the "-r" command line option Mac OS X and FreeBSD uses -E instead
+of -r echo 'ab 34 de' | sed -r 's/[a-z]+/(&)/g' (ab) 34 (de)
+
+echo 'ab 34 de' | sed -r 's/([a-z]+) (.*) ([a-z]+)/\3 \2 \1/'   # ")" and "(" have to be prefixed with '\' if no without '-r' option
+de 34 ab
+
+sed -r -i "s/(mariadb_sql_home:).*/\1 xx/" $file
+sed -i "s/host2name/$master2_hostname/" $file
+sed -i "/ ansible_ssh_host/s/=.*/=$master1_ip/" $file
+<param name="password" value="ruijie_wis" />
+sed -i "/<param name=\"password\"/s| value=.*| value=\"xxx\" />|" file
+
+‘&‘ should be escaped
+replace ^M
+sed -i -e 's/\r$//' scriptname.sh
+
+http://unixmysimpleview.blogspot.com/2010/03/sed-more-intro.html
+delete line with slashes
+change delimeter
+sed -i "\|export HADOOP_HOME=${HADOOP_HOME}|d" ~/.bashrc
+
+sed -i "s|data|home|g" v56.xml
+
+# & is a speckal character, should be escaped
+
+** sed -i "s/[^\"\']#.*//" testfile.md  #delete all lines start with #, but not with "# or '#
+** /g - Global replacement
+** "[^ ]*," that matches everything except a space.
+
+** The "\1" doesn't have to be in the replacement string (in the right hand side). It can be in the pattern you are searching for.
+If you want to detect duplicated words, you can use
+echo 'ab ab 32 de' | sed -r 's/([a-z]+) \1/\1/' --> ab 32 de
+
+If you want to eliminate duplicated words, you can try:
+sed -n '/\([a-z][a-z]*\) \1/p'
+or with extended regular expressions
+
+sed -rn '/([a-z]+) \1/p' # GNU sed
+sed -En '/([a-z]+) \1/p' # Mac OS X
+This, when used as a filter, will print lines with duplicated words (打印有重复words 的lines)
+echo 'abcde' | sed -r 's/(.)(.)(.)/\3\2\1/    --> cbade
+
+** /1, /2, etc. Specifying which occurrence
+echo 'ab de 32 de' | sed -r 's/([a-z]+) ([a-z]+) /\1 /'   -> ab 32 de   # 删除第2 个word
+or: (add a number after the substitution command to indicate you only want to match that particular pattern)
+echo 'ab de 32 de' |sed -r 's/([a-z]+) //2'  -> ab 32 de  只匹配第二个
+
+
+* echo 'a(sd)sdf(erer)' | awk -F"[()]" '{printf "%s, %s", $2,$4}'
+ awk -F"[()]" '{printf "%s \r\n", $2}' < 3b1705.txt | sort | uniq -u > uniq.txt
+export LC_ALL="zh_CN.GBK"
+* awk
+pattern { action } : The pattern specifies when the action is performed
+AWK is line oriented. That is, the pattern specifies a test that is performed with each line read as input. If the condition is true, then the action is taken. The default pattern is something that matches every line. This is the blank or null pattern.
+
+awk 'BEGIN { print "File\tOwner"}
+{ print $8, "\t", $3}
+END { print " - DONE -" }'
+
+$8, $3 mean the eighth and third field of the input line
+AWK does not evaluate variables within strings. To explain, the second line could not be written like this:
+{print "$8\t$3" }
+
+** Executing an AWK script
+create a script file with content: (Bourne shell not C shell)
+
+#!/bin/sh
+column=${1:-1}     # column: dynamic variable, -1 is default value. ${variable:-defaultvalue}
+awk '{print $'$column'}'
+
+save as "column.sh"
+chmod + x column.sh
+execute from shell: > ll | ./column.sh
+
+** native AWK script
+execute > awk -f filename
+
+#!/bin/awk -f
+BEGIN { print "File\tOwner" }
+{ print $8, "\t", $3}
+END { print " - DONE -" }
+
+** quote is just a switch
+In the C and Bourne shell, the quote is just a switch. It turns the interpretation mode on or off.
+awk '{print $'$column'}'
+Notice there are two dollar signs. The first one is quoted, and is seen by AWK. The second one is not quoted, so the shell evaluates the variable, and replaces "$column" by the value
+ - use variable
+awk '{print $c}' c=${1:-1} is equals to
+awk '{print $'${1:-1}'}'
+
+** Arithmetric operations
+ If you wanted to calculate something, and not read any lines for input, you could use the BEGIN keyword
+> awk 'BEGIN {print 8*8}'
+
+*** example file use BEGIN combine with EXIT command
+#!/bin/awk -f
+BEGIN {
+
+# Print the squares from 1 to 10 the first way
+
+	i=1;
+	while (i <= 10) {
+		printf "The square of ", i, " is ", i*i;
+		i = i+1;
+	}
+
+# do it again, using more concise code
+
+	for (i=1; i <= 10; i++) {
+		printf "The square of ", i, " is ", i*i;
+	}
+
+# now end
+exit;
+}
+
+*** The following asks for a number, and then squares it:
+#!/bin/awk -f
+BEGIN {
+    print "type a number";
+}
+{
+    print "The square of ", $1, " is ", $1*$1;
+    print "type another number";
+}
+END {
+    print "Done"
+}
+
+** AWK Built-in Variables positional and user defined
+*** positional a function triggered by the dollar sign
+  print $1;   equals to X=1; print$X
+"$0" refers to the entire line that AWK reads in
+if you had eight fields in a line,
+
+print $0;
+is similar to
+
+print $1, $2, $3, $4, $5, $6, $7, $8
+
+- delete a field
+$2="";  delete filed 2
+print out the second and fourth field. 2 ways:
+#!/bin/awk -f
+{
+	$1="";
+	$3="";
+	print;
+}
+and the second
+#!/bin/awk -f
+{
+	print $2, $4;
+}
+performe similarly, but not identically. The number of spaces between the values vary
+** FS - change input field separator  ( default separator is space )
+change the field separator character to be a colon using the "-F" command line option
+awk -F: '{if ($2 == "") print $1 ": no password!"}' </etc/passwd
+or: set varibale "FS" 
+
+#!/bin/awk -f
+BEGIN {
+	FS=":";
+}
+{
+	if ( $2 == "" ) {
+		print $1 ": no password!";
+	}
+}
+the internal variable allows to
+ - set the input field separator to be more than one character. If you specify
+FS=": ";
+ - can change the field separator character as many times as you want while reading a file.
+*** example
+ONE 1 I
+TWO 2 II
+#START
+THREE:3:III
+FOUR:4:IV
+FIVE:5:V
+#STOP
+SIX 6 VI
+SEVEN 7 VII
+
+#!/bin/awk -f
+{
+	if ($1 == "#START") {
+		FS=":";
+	} else if ($1 == "#STOP") {
+		FS=" ";
+	} else {
+		#print the Roman number in column 3
+		print $3
+	}
+}
+* What makes grep consider a file to be binary?
+If there is a NUL character anywhere in the file, grep will consider it as a binary file.
+
+There might a workaround like this cat file | tr -d '\000' | yourgrep to eliminate all null first, and then to search through file.
+
+grep -a worked for me:
+
+$ grep --help
+[...]
+ -a, --text                equivalent to --binary-files=text
+ 
+history | grep 'some text'  --> Binary file (standard input) matches
+because history contains some non ascii character (contains nulls (they show up as \0 in the od output))
+such as: 422  cat weather.html | grep -A 3 ▒▒（今天）
+* grep
+** grep's -A 1 option will give you one line after; -B 1 will give you one line before; and -C 1 combines both to give you one line both before and after.
+grep --help
+...
+-B, --before-context=NUM  print NUM lines of leading context
+-A, --after-context=NUM   print NUM lines of trailing context
+** /< 和 /> 分别标注单词的开始与结尾。 
+grep man * 会匹配 ‘Batman’、‘manic’、‘man’等，  
+grep '/<man' * 匹配‘manic’和‘man’，但不是‘Batman’，  
+grep '/<man/>' 只匹配‘man’，而不是‘Batman’或‘manic’等其他的字符串。  
+'^'：指匹配的字符串在行首，  
+'$'：指匹配的字符串在行尾，  
+图形界面的‘grep’，如 reXgrep 。这个软件提供 AND、OR、NOT 等语法，
+如果您只是需要更清楚的输出，不妨试试 fungrep 。 
+
+** [options]主要参数：
+grep pattern [file...]
+(1)grep 搜索字符串 [filename]
+(2)grep 正则表达式 [filename]
+在文件中搜索所有 pattern 出现的位置, pattern 既可以是要搜索的字符串,也可以是一个正则表达式.
+注意：在输入要搜索的字符串时最好使用双引号/而在模式匹配使用正则表达式时，注意使用单引号
+－c：只输出匹配行的计数。
+－I：不区分大 小写(只适用于单字符)。
+－h：查询多文件时不显示文件名。
+－l：查询多文件时只输出包含匹配字符的文件名。
+－n：显示匹配行及 行号。
+－s：不显示不存在或无匹配文本的错误信息。
+－v：显示不包含匹配文本的所有行。
+
+** 2、RE（正则表达式） 
+\ 忽略正则表达式中特殊字符的原有含义 
+^ 匹配正则表达式的开始行 
+$ 匹配正则表达式的结束行 
+\< 从匹配正则表达式的行开始 
+\> 到匹配正则表达式的行结束 
+[ ] 单个字符；如[A] 即A符合要求 
+[ - ] 范围 ；如[A-Z]即A，B，C一直到Z都符合要求 
+. 所有的单个字符 
+ * 所有字符，长度可以为0 
+
+** 4.grep命令使用简单实例
+$ grep "test" aa bb cc *.log 显示在aa，bb，cc, log文件中匹配test的行。
+
+(2)行匹配:输出匹配行的计数
+    grep -c "48" data.doc   #输出文档中含有48字符的行数
+
+(3)显示匹配行和行数
+    grep -n "48" data.doc       #显示所有匹配48的行和行号
+
+(4)显示非匹配的行
+    grep -vn "48" data.doc      #输出所有不包含48的行
+
+(4)显示非匹配的行
+    grep -vn "48" data.doc      #输出所有不包含48的行
+
+(5)大小写敏感
+    grep -i "ab" data.doc       #输出所有含有ab或Ab的字符串的行
+
+5, 使用类名
+可以使用国际模式匹配的类名：
+[[:upper:]]   [A-Z]
+[[:lower:]]   [a-z]
+[[:digit:]]   [0-9]
+[[:alnum:]]   [0-9a-zA-Z]
+[[:space:]]   空格或tab
+[[:alpha:]]   [a-zA-Z]
+
+(1)使用
+    grep '5[[:upper:]][[:upper:]]' data.doc     #查询以5开头以两个大写字母结尾的行
+4, 正则表达式的应用
+
+(1)正则表达式的应用 (注意：最好把正则表达式用单引号括起来)
+    grep '[239].' data.doc      #输出所有含有以2,3或9开头的，并且是两个数字的行
+
+(2)不匹配测试
+    grep '^[^48]' data.doc      #不匹配行首是48的行
+
+(3)使用扩展模式匹配
+    grep -E '219|216' data.doc
+$ grep ‘[a-z]\{5\}’ aa
+显示所有包含每个字符串至少有5个连续小写字符的字符串的行。
+$ grep ‘w\(es\)t.*\1′ aa
+如果west被匹配，则es就被存储到内存中，并标记为1，然后搜索任意个字符(.*)，这些字符后面紧跟着 另外一个es(\1)，找到就显示该行。如果用egrep或grep -E，就不用”\”号进行转义，直接写成’w(es)t.*\1′就可以了。
+
+** 5.grep命令使用复杂实例
+假设您正在’/usr/src/Linux/Doc’目录下搜索带字符 串’magic’的文件：
+$ grep magic /usr/src/Linux/Doc/*
+sysrq.txt:* How do I enable the magic SysRQ key?
+sysrq.txt:* How do I use the magic SysRQ key?
+其中文件’sysrp.txt’包含该字符串，讨论的是 SysRQ 的功能。
+默认情况下，’grep’只搜索当前目录。如果 此目录下有许多子目录，’grep’会以如下形式列出：
+grep: sound: Is a directory
+这可能会使’grep’ 的输出难于阅读。这里有两种解决的办法：
+明确要求搜索子目录：grep -r
+或忽略子目录：grep -d skip
+如果有很多 输出时，您可以通过管道将其转到’less’上阅读：
+$ grep magic /usr/src/Linux/Documentation/* | less
+这样，您就可以更方便地阅读。
+
+有一点要注意，您必需提供一个文件过滤方式(搜索全部文件的话用 *)。如果您忘了，’grep’会一直等着，直到该程序被中断。如果您遇到了这样的情况，按 <CTRL c> ，然后再试。
+
+下面还有一些有意思的命令行参数：
+grep -i pattern files ：不区分大小写地搜索。默认情况区分大小写，
+grep -l pattern files ：只列出匹配的文件名，
+grep -L pattern files ：列出不匹配的文件名，
+grep -w pattern files ：只匹配整个单词，而不是字符串的一部分(如匹配’magic’，而不是’magical’)，
+grep -C number pattern files ：匹配的上下文分别显示[number]行，
+grep pattern1 | pattern2 files ：显示匹配 pattern1 或 pattern2 的行，
+grep pattern1 files | grep pattern2 ：显示既匹配 pattern1 又匹配 pattern2 的行。
+
+grep -n pattern files  即可显示行号信息
+
+grep -c pattern files  即可查找总行数
+
+这里还有些用于搜索的特殊符号：
+\< 和 \> 分别标注单词的开始与结尾。
+例如：
+grep man * 会匹配 ‘Batman’、’manic’、’man’等，
+grep ‘\<man’ * 匹配’manic’和’man’，但不是’Batman’，
+grep ‘\<man\>’ 只匹配’man’，而不是’Batman’或’manic’等其他的字符串。
+‘^’：指匹配的字符串在行首，
+‘$’：指匹配的字符串在行 尾，
+
+cat weather.html | grep -A 6 （今天）| awk 'NR == 4 || NR == 6'  显示后5行中的第4，6行
+
+** 迭代进入子目录查找。
+grep -r "查找文本内容" *  
+grep -r abcd *.py
+这样的命令得不到你期待的结果，而
+
+grep -r abcd *
+这样得到的结果又太多，仍然不是你想要的。
+
+正解是： 
+find . -name *.py|xargs grep asdf
+
+grep -i pattern files ：不区分大小写地搜索。默认情况区分大小写，  
+grep -l pattern files ：只列出匹配的文件名，  
+grep -L pattern files ：列出不匹配的文件名，  
+grep -w pattern files ：只匹配整个单词，而不是字符串的一部分（如匹配‘magic’，而不是‘magical’），  
+grep -C number pattern files ：匹配的上下文分别显示[number]行，  
+grep pattern1 | pattern2 files ：显示匹配 pattern1 或 pattern2 的行，  
+grep pattern1 files | grep pattern2 ：显示既匹配 pattern1 又匹配 pattern2 的行。  
+这里还有些用于搜索的特殊符号： 
+
+** 3、举例 
+# grep '^root' /etc/group 匹配正则表达式的开始行 
+root::0:root 
+
+# grep 'uucp' /etc/group 
+uucp::5:root,uucp 
+nuucp::9:root,nuucp 
+
+# grep '\<uucp' /etc/group 
+uucp::5:root,uucp 
+
+# grep 'root$' /etc/group 匹配正则表达式的结束行 
+root::0:root 
+mail::6:root 
+
+# more size.txt | grep -i 'b1..*3' -i ：忽略大小写 
+
+b124230 
+b103303 
+B103303 
+
+# more size.txt | grep -iv 'b1..*3' -v ：查找不包含匹配项的行 
+
+b034325 
+a081016 
+m7187998 
+m7282064 
+a022021 
+a061048 
+m9324822 
+a013386 
+b044525 
+m8987131 
+B081016 
+M45678 
+BADc2345 
+
+# more size.txt | grep -in 'b1..*3' 
+1:b124230 
+9:b103303 
+15:B103303 
+
+# grep '$' /etc/init.d/nfs.server | wc -l 
+128 
+# grep '\$' /etc/init.d/nfs.server | wc –l 忽略正则表达式中特殊字符的原有含义 
+
+15 
+# grep '\$' /etc/init.d/nfs.server 
+case "$1" in 
+>/tmp/sharetab.$$ 
+[ "x$fstype" != xnfs ] && 
+echo "$path\t$res\t$fstype\t$opts\t$desc" 
+>>/tmp/sharetab.$$ 
+/usr/bin/touch -r /etc/dfs/sharetab /tmp/sharetab.$$ 
+/usr/bin/mv -f /tmp/sharetab.$$ /etc/dfs/sharetab 
+if [ -f /etc/dfs/dfstab ] && /usr/bin/egrep -v '^[ ]*(#|$)' 
+if [ $startnfsd -eq 0 -a -f /etc/rmmount.conf ] && 
+if [ $startnfsd -ne 0 ]; then 
+elif [ ! -n "$_INIT_RUN_LEVEL" ]; then 
+while [ $wtime -gt 0 ]; do 
+wtime=`expr $wtime - 1` 
+if [ $wtime -eq 0 ]; then 
+echo "Usage: $0 { start | stop }" 
+
+# more size.txt 
+
+the test file 
+their are files 
+The end 
+
+# grep 'the' size.txt 
+the test file 
+their are files 
+
+# grep '\<the' size.txt 
+the test file 
+their are files 
+
+# grep 'the\>' size.txt 
+the test file 
+
+# grep '\<the\>' size.txt 
+the test file 
+
+# grep '\<[Tt]he\>' size.txt 
+the test file
+
+* remove newline  \n
+sed is intended to be used on line-based input. Although it can do what you
+need.
+
+a better solution is to use tr
+
+tr '\n' ' ' < input_filename
+or remove the newline characters entirely:
+
+tr -d '\n' < input.txt > output.txt

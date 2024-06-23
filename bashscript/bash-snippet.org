@@ -1,0 +1,112 @@
+#+TITLE: Bash Useful Script
+
+fileDir="/cygdrive/c/Users/ab/Documents/WXWork/1688851803303537/Cache/File"
+cd $fileDir
+latestDir=$(ls -td */ | head -n 1)
+echo "latest dir: $latestDir"
+
+pwd
+cd "$fileDir/$latestDir"
+pwd
+latestFile=$(ls -t | head -n 1)
+echo $latestFile;
+timestamp=$(date +%Y%m%d_%H%m%s)
+scp $latestFile root@172.29.32.10:/root/lzy/monitor/yml/$timestamp$latestFile
+
+
+* wait until
+# After 60 seconds the loop will exit
+timeout=60
+
+while [ ! -f /tmp/list.txt ];
+do
+  # When the timeout is equal to zero, show an error and leave the loop.
+  if [ "$timeout" == 0 ]; then
+    echo "ERROR: Timeout."
+    exit 1
+  fi
+
+  sleep 1
+
+  # Decrease the timeout of one
+  ((timeout--))
+done
+
+* bool function
+isdirectory() {
+  if [ -d "$1" ]
+  then
+    true
+  else
+    false
+  fi
+}
+
+
+isdirectory() {
+  [ -d "$1" ]
+}
+
+fileExist(){
+    [ -f "$1"]
+}
+
+* bash function return value
+Although bash has a return statement, the only thing you can specify with it is the function's own exit status (a value between 0 and 255, 0 meaning "success"). So return is not what you want.
+
+You might want to convert your return statement to an echo statement - that way your function output could be captured using $() braces, which seems to be exactly what you want.
+
+Here is an example:
+
+function fun1(){
+  echo 34
+}
+
+function fun2(){
+  local res=$(fun1)
+  echo $res
+}
+Another way to get the return value (if you just want to return an integer 0-255) is $?
+
+function fun1(){
+  return 34
+}
+
+function fun2(){
+  fun1
+  local res=$?
+  echo $res
+}
+Also note that you can use the return value to use boolean logic like fun1 || fun2 will only run fun2 if fun1 returns a 0 value. The default return value is the last statement executed within the function.
+
+** return [n]
+Cause a shell function to stop executing and return the value n to its caller. If n is not supplied, the return value is the exit status of the last command executed in the function.
+otherwise the function’s return status is the exit status of the last command executed
+
+01  function i_should(){
+02      uname="$(uname -a)"
+03
+04      [[ "$uname" =~ Darwin ]] && return
+05
+06      if [[ "$uname" =~ Ubuntu ]]; then
+07          release="$(lsb_release -a)"
+08          [[ "$release" =~ LTS ]]
+09          return
+10      fi
+11
+12      false
+13  }
+14
+15  function do_it(){
+16      echo "Hello, old friend."
+17  }
+18
+19  if i_should; then
+20    do_it
+21  fi
+What we have here is...
+Line 04 is an explicit[-ish] return true because the RHS of && only gets executed if the LHS was true
+
+Line 09 returns either true or false matching the status of line 08
+
+Line 13 returns false because of line 12

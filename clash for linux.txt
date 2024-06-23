@@ -1,0 +1,19 @@
+gzip -d clash-linux-amd64-v1.8.0.gz
+
+从订阅地址获取 config.yml
+1. subconverter
+download subconverter_linux64.tar.gz from https://github.com/tindy2013/subconverter/releases
+uncompress and run ./subconverter  to start server
+
+2 sub-web
+git clone --depth 1 https://github.com/MSKNET/sub-web
+cnpm install
+cnpm run serve
+
+3. visit sub-web from browser
+http://x.x.x.x:8080/
+
+输入订阅地址和后端地址(subconverter 的服务地址)，生成订阅链接: http://127.0.0.1:25500/sub\?target\=clash\&url\=https%3A%2F%2Fadd.cloudoo.xyz%2Fapi%2Fv1%2Fclient%2Fsubscribe%3Ftoken%3Dcf6b86a3f9fa6c7f27b2f7c4eb19153f\&insert\=false
+
+4. 在clash 目录中 在 linux 服务器上 curl -o config.yml [订阅链接]
+5. 启动 ./clash -d .

@@ -1,0 +1,599 @@
+* create new repository in github anc push
+...
+>>>need to set remote url as the following form:
+git remote set-url origin https://xxxxx@github.com/zenoe/myBash
+git push --set-upstream origin main
+* compare
+= and == are for string comparisons, -eq is for numeric ones. -eq is in the same family as -lt, -le, -gt, -ge, and -ne, if that helps you remember which is which.
+
+== is a bash-ism, by the way. It's better to use the POSIX =. in plain sh = is the only one guaranteed to work.
+
+-n
+   string is not null.
+
+-z
+  string is null, that is, has zero length
+To illustrate:
+
+$ foo="bar";
+$ [ -n "$foo" ] && echo "foo is not null"
+foo is not null
+$ [ -z "$foo" ] && echo "foo is null"
+$ foo="";
+$ [ -n "$foo" ] && echo "foo is not null"
+$ [ -z "$foo" ] && echo "foo is null"
+
+** Getting "[: =: unary operator expected"   [ $i = "PASSWORD" ]
+if $i is empty, you got syntax error because of not enough arguments [ = "PASSWORD" ]
+you can use bash option [[ $i = "PASSWORD" ]] But it is bash operator, and it could be not compatible with old shells
+
+* check port open
+nc -zv 127.0.0.1 80
+
+Multiple ports:
+nc -zv 127.0.0.1 22 80 8080
+
+Range of ports:
+nc -zv 127.0.0.1 20-30
+* Why SSH takes a long time to Connect
+/etc/ssh/sshd_config:
+set GSSAPIAuthentication no
+UseDNS no  # works in my case
+sed -i "s/#\?UseDNS.*/UseDNS no/" /etc/ssh/sshd_config
+systemctl restart sshd
+* ssh -o StrictHostKeyChecking=no username@hostname.com
+* input   : C+V  then Enter  work both in emacs and bash terminal
+* &amp; --> &
+&lt; Less than: <
+&gt; Greater than: >
+
+&gt;= will display >=, but if you prefer to use the literal characters, greater or equal (≥) is &ge;, and less than or equal (≤) is &le;
+* Enabling Ctrl-S for forward-history-search in bash
+Ctrl-R and Ctrl-S are advertised in every readline command-line to do backward
+and forward search in your command history (as emacs does on text with the same
+shortcuts). And you've probably come to the fact that if Ctrl-R is working (and
+you use it every day), Ctrl-S doesn't seem to work and freezes the screen. So
+you've just learned not to use Ctrl-S. readline based command-line program (as
+any unix shell) will answer to Ctrl-S
+
+Ctrl-S is caught by the TTY driver. TTY driver will trigger a pause in the reception of characters upon
+Ctrl-S keystroke, You can unfreeze with Ctrl-Q.
+With nowadays hardware, this is not useful anymore, and you can safely
+de-activate this obsolete feature to enable back Ctrl-S in your readline based
+command-line with: stty stop ''  put this in your ~/.bashrc
+
+* bash shell - ssh remote script capture output and exit code?
+The reason you are not getting the correct error code is because local is actually the last thing executed. You need to declare the variable as local prior to running the command.
+
+local RESULTS
+RESULTS=$(ssh user@server /usr/local/scripts/test_ping.sh)
+echo $?
+You can see the issue here:
+
+$ bar() { foo=$(ls asdkjasd 2>&1); echo $?; }; bar
+2
+$ bar() { local foo=$(ls asdkjasd 2>&1); echo $?; }; bar
+0
+$ bar() { local foo; foo=$(ls asdkjasd 2>&1); echo $?; }; bar
+2
+* include other script
+source FILE
+Or
+. FILE
+it's the same thing.
+
+$ LANG=C help source
+source: source filename [arguments]
+Execute commands from a file in the current shell.
+
+Read and execute commands from FILENAME in the current shell.  The
+entries in $PATH are used to find the directory containing FILENAME.
+If any ARGUMENTS are supplied, they become the positional parameters
+when FILENAME is executed.
+
+Exit Status:
+Returns the status of the last command executed in FILENAME; fails if
+FILENAME cannot be read.
+
+Note that . is POSIX compliant whereas source isn't
+
+DIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+. "$DIR/incl.sh"
+. "$DIR/main.sh"
+. (dot) command is alias to source, $PWD is the Path for the Working Directory, BASH_SOURCE is an array variable whose members are the source filenames, ${string%substring} strips shortest match of $substring from back of $string
+
+* Dynamic variable name
+suffix=bzz
+declare prefix_$suffix=mystr
+
+varname=prefix_$suffix
+echo ${!varname}
+
+extend: http://mywiki.wooledge.org/BashFAQ/006#Indirection
+* Use A Jumphost in your SSH Client Configurations
+Classic SSH Jumphost configuration
+A configuration like this will allow you to proxy through HOST A.
+
+$ cat .ssh/config
+
+Host host-a
+  User ab
+  Hostname 172.30.93.19
+
+Host host_b
+  User root
+  Hostname 172.18.234.101
+  Port 22
+  ProxyCommand ssh -q -W %h:%p host-a
+
+Now if you want to connect to your HOST B, all you have to type is ssh host_b, which will first connect to host-a in the background (that's the ProxyCommand being executed) and start the SSH session to your actual target.
+
+SSH Jumphost configuration with netcat (nc)
+Alternatively, if you can't/don't want to use ssh to tunnel your connections, you can also use nc (netcat).
+
+$ cat .ssh/config
+
+Host host-a
+  User your_username
+  Hostname 10.0.0.5
+
+Host host_b
+  User your_username
+  Hostname 192.168.0.1
+  Port 22
+  ProxyCommand ssh host-a nc -w 120 %h %p
+This has the same effect.
+
+Sudo in ProxyCommands
+If netcat is not available to you as a regular user, because permissions are limited, you can prefix your ProxyCommand's with sudo. The SSH configuration essentially allows you to run any command on your intermediate host, as long as you have the privileges to do so.
+
+$ cat .ssh/config
+
+  ...
+  ProxyCommand ssh host-a sudo nc -w 120 %h %p
+* awk
+netstat -tulpn | gawk {'if ($5 != "0.0.0.0:*") print $0'}
+
+# exclude column 5 of which value include "0.0.0.0" and "211.64.112"
+netstat -anpl | awk '((index($5, "0.0.0.0") == 0) &&(index($5, "211.64.112") == 0) ) {print}'
+
+# print all rows whose cloumn 5 includee 0.0.0.0
+netstat -tulpn | awk '$5 ~ /0.0.0.0/ {print}'
+
+filename.txt
+sample1 0 0 4
+sample2 0 0 10
+sample3 0 0 15
+sample4 0 0 20
+awk '{ if ($4 >= 1 && $4 <= 10) print $1 }' sample.txt
+
+netstat with group by ip adress
+netstat -ntu | awk ' $5 ~ /^[0-9]/ {print $5}' | cut -d: -f1 | sort | uniq -c | sort -n
+
+* sendmail
+#!/bin/bash
+email_reciver="linzhengyuan@ruijie.com.cn"
+#发送者邮箱
+email_sender=253015111@qq.com
+#邮箱用户名
+email_username=253015111
+#邮箱密码
+#使用qq邮箱进行发送需要注意：首先需要开启：POP3/SMTP服务，其次发送邮件的密码需要使用在开启POP3/SMTP服务时候腾讯提供的第三方客户端登陆码。
+email_password=mountain_captian
+
+
+#smtp服务器地址
+email_smtphost=smtp.qq.com
+
+email_title="iOS客户端更新"
+email_content="谢谢!"
+
+./sendEmail -f ${email_sender} -t ${email_reciver} -s ${email_smtphost} -u ${email_title} -xu ${email_username} -xp ${email_password} -m ${email_content} -a ${file1_path} ${file2_path} -o message-charset=utf-8
+
+* firewalld
+firewall-cmd --permanent --zone=public --add-rich-rule=' rule family="ipv4" source address="172.29.32.61/32" port protocol="tcp" port="4567" accept'
+
+firewall-cmd --permanent --add-rich-rule="rule family="ipv4" source address="172.29.32.61" port protocol="tcp" port="8020" accept"
+firewall-cmd --permanent --remove-rich-rule="rule family="ipv4" source address="172.29.32.61" port protocol="tcp" port="8020" accept"
+
+对指定IP开放所有端口
+firewall-cmd --zone=public --add-rich-rule 'rule family="ipv4" source address=172.29.32.61 accept'
+
+firewall-cmd --permanent --zone=public --add-rich-rule="rule family="ipv4" source address="172.29.32.61" port protocol="tcp" port="8020" accept"
+
+--list-ports
+--list-services
+--list-all
+To add a service to the firewall, we use the following command, in which case the service will use any port to open in the firewall.
+
+firewall-cmd --add-services=ntp
+For this service to be permanently open we use the following command.
+
+firewall-cmd —-add-service=ntp --permanent
+To add a port, use the following command
+
+firewall-cmd --add-port=132/tcp  --permanent
+To run the firewall must be reloaded using the following command.
+
+I'd accomplish this by adding sources to a zone. First checkout which sources there are for your zone:
+
+firewall-cmd --permanent --zone=public --list-sources
+If there are none, you can start to add them, this is your "whitelist"
+
+firewall-cmd --permanent --zone=public --add-source=192.168.100.0/24
+firewall-cmd --permanent --zone=public --add-source=192.168.222.123/32
+(That adds a whole /24 and a single IP, just so you have a reference for both a subnet and a single IP)
+
+Set the range of ports you'd like open:
+
+firewall-cmd --permanent --zone=public --add-port=1-22/tcp
+
+firewall-cmd --get-zones
+sudo firewall-cmd --zone=home --list-all
+
+* at
+at now <<< "/home/test/script.sh arg1 arg2"
+which is equivalent to
+
+echo "/home/test/script.sh arg1 arg2" | at now
+* bash complain about  “-bash: !”: event not found"
+# use single quote to encolse !
+ansible -i hosts 'worker_servers:!master_servers' -m command -a "firewall-cmd --permanent --remove-port=22/tcp"
+
+! is a special character to bash, it is used to refer to previous commands; eg,
+
+!rm
+will recall and execute the last command that began with the string "rm", and
+
+!rm:p
+will recall but not execute the last command that began with the string "rm". bash is interpreting the exclamation mark in echo "reboot your instance!" as "substitute here the last command that began with the character(s) immediately following the exclamation mark", and grumbles at you that it cannot find an event (command) in your history that began with a single double-quote.
+
+Try
+
+echo reboot your instance\!
+to protect (escape) the exclamation mark from bash.
+
+* source
+# I would prefer if you used dirname "${BASH_SOURCE[0]}" rather than dirname "$0" for added support for sourced scripts.
+# The -- after cd and before "$0" are in case the directory starts with a -
+# SCRIPTPATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+
+# -P, --physical : avoid all symlinks
+SCRIPTPATH=$(cd -P "$(dirname "$0")" && pwd)
+echo $SCRIPTPATH
+. $SCRIPTPATH/wait-for.sh
+
+* source exports
+You can't do an export through a shell script, because a shell script runs in a
+child shell process, and only children of the child shell would inherit the
+export.
+
+* journalctl
+journalctl -u service-name.service
+Or, to see only log messages for the current boot:
+journalctl -u service-name.service -b
+For things named <something>.service, you can actually just use <something>, as in:
+journalctl -u service-name
+
+* How to 'set -x' for scripts other than my own
+Configure shell option for all shell scripts
+When you say “global”, I presume you want it set the xtrace option for all non-interactive invocations of Bash.
+To do this, set the BASH_ENV environment variable to a suitable filename and then create that file with set -x as its contents:
+
+export BASH_ENV=~/.bash_env
+echo set -x > ~/.bash_env
+From the man page:
+
+When bash is started non-interactively, to run a shell script, for example, it looks for the variable BASH_ENV in the environment, expands its value if it appears there, and uses the expanded value as the name of a file to read and execute.
+
+* inherit source variables from parent shell
+source tmp.txt
+export $(cut -d= -f1 tmp.txt)
+
+set -a  # turn on
+. ./tmp.txt
+set +a  # turn off
+
+set -a causes variables¹ defined from now on to be automatically exported. It's available in any Bourne-like shell. . is the standard and Bourne name for the source command so I prefer it for portability (source comes from csh and is now available in most modern Bourne-like shells including bash though (sometimes with a slightly different behaviour)).
+In POSIX shells, you can also use set -o allexport as a more descriptive alternative way to write it (set +o allexport to unset).
+
+** advance
+Your assumption is that shell variables are in the environment. This is incorrect. The export command is what defines a name to be in the environment at all. Thus:
+
+a=1 b=2
+export b
+results in the current shell knowing that $a expands to 1 and $b to 2, but subprocesses will not know anything about a because it is not part of the environment (even in the current shell).
+
+Some useful tools:
+
+set: Useful for viewing the current shell's parameters, exported-or-not
+set -k: Sets assigned args in the environment. Consider f() { set -k; env; }; f a=1
+set -a: Tells the shell to put any name that gets set into the environment. Like putting export before every assignment. Useful for .env files, as in set -a; . .env; set +a.
+export: Tells the shell to put a name in the environment. Export and assignment are two entirely different operations.
+env: As an external command, env can only tell you about the inherited environment, thus, it's useful for sanity checking.
+env -i: Useful for clearing the environment before starting a subprocess.
+Alternatives to export:
+
+name=val command # Assignment before command exports that name to the command.
+declare/local -x name # Exports name, particularly useful in shell functions when you want to avoid exposing the name to outside scope.
+set -a # Exports every following assignment.
+
+* centos gnome vncserver
+yum groupinstall 'GNOME Desktop'
+cp /lib/systemd/system/vncserver@.service /lib/systemd/system/vncserver@:1.service
+vi /lib/systemd/system/vncserver@:1.service
+将配置文件中<USER>改为用户名,如root
+
+systemctl daemon-reload
+firewall-cmd --permanent --add-service vnc-server
+vncpasswd root  #设置用户VNC密码
+systemctl start vncserver@:1.service
+
+vnc service start fail
+要启动 vncserver
+才会生成 /root/.vnc/xstartup
+
+vncviewer连接上黑屏，chmod 777 /root/.vnc/xstartup
+
+* awk add some prefix to the output
+xxx | awk '{print " someprefix "$2}'
+
+* svn
+svn st | grep ^! | awk '{print $2}' | xargs svn rm
+svn st | grep ^\? | awk '{print $2}'  | egrep "(*.csv|*.less)$" | xargs svn add
+svn st | grep ^\? | awk '{print $2}'| egrep -v "build|gradle" | xargs svn add
+
+svn log -r {2018-12-01}:{2019-12-05}
+# show the earlist log
+svn log -r 1:HEAD --limit 1 <REPO_URL>
+
+ -r [--revision] arg : ARG (some commands also take ARG1:ARG2 range)
+                             A revision argument can be one of:
+                                NUMBER revision number
+                                "{" DATE "}" revision at start of the date
+                                "HEAD" latest in repository
+                                "BASE" base rev of item's working copy
+                                "COMMITTED" last commit at or before BASE
+                                "PREV" revision just before COMMITTED
+
+
+java -jar statsvn.jar C:\statsvn\bookAir\svn.log C:\statsvn\bookAir -include **/*.java:**/*.jsp:**/*.js:**/*.css:**/*.xml 
+
+-exclude **/js/jquery-1.6.2.min.js
+
+ java -jar statsvn.jar 20180312-20190110.log ./ -charset gbk -output-dir ./20180312-20190110
+
+
+* Use mktemp to create a temporary file or directory:
+tmpfile=$(mktemp /tmp/abc-script.XXXXXX)
+exec 3>"$tmpfile"
+rm "$tmpfile"
+: ...
+echo foo >&3
+
+temp_file=$(mktemp)
+Or for a direcotry:
+
+temp_dir=$(mktemp -d)
+At the end of the script you have to delete the temporary file/dir:
+
+rm ${temp_file}
+rm -R ${temp_dir}
+
+* You want your local shell to expand $var1 but the remote shell to expand $var2:
+var1=1
+ssh -p 42 root@xxx /bin/bash << EOF    # un-quoted/escaped
+  var2=2
+  echo $var1
+  echo \$var2
+EOF
+
+* less vs tail
+When not to use less
+When you need to watch multiple files at the same time, tail -f can actually give you a better output. It will show you something like this:
+tail -f *.txt
+
+==> file1.txt <==
+content for first file
+
+==> file2.txt <==
+content for second file
+
+less +F *.txt
+
+content for first file
+
+It shows the content of just one file at a
+time. If you want to see what’s happening in the second file, you
+need to first Ctrl-c to go to normal mode, then type :n to go to the
+next buffer, and then F again to go back to the watching mode.
+* groupinstall
+yum groups summary
+groupinstall group1 [group2] […]
+
+groupupdate group1 [group2] […]
+
+grouplist [hidden]
+
+groupremove group1 [group2] […]
+
+groupinfo group1 […]
+* grep
+grep -Ir --exclude-dir=".." --exclude-dir={.emacs.d,.backups} --exclude=".zsh_history" emacs-nox .*
+
+grep -I --exclude-dir=".." --exclude-dir=".emacs.d" @21 .*
+-I ignore binary file
+-R recursive and follow symbolic link
+
+about shell wildcards, my first thought is .[!.]* ..[!.]*, as in
+grep -IR @21 .[!.]* ..[!.]*
+Which has the problem that grep will exit with an error if there are no files starting with ... To get around that, you can either add -s to grep to tell it to ignore missing files:
+# .[!.]* matches all dot files except the ones that begin with ..
+
+grep -IRs @21 .[!.]* ..[!.]*
+
+Failing all of the above, there's always find
+find . -path "./.*" -exec grep @21 {} +
+
+search include hidden files
+grep -r search * .*
+The * will match all files except hidden ones and .* will match only hidden files. However this will fail if there are either no non-hidden files or no hidden files in a given directory. You could of course explicitly add .git instead of .*.
+
+However, if you simply want to search in a given directory, do it like this:
+
+grep -r search .
+The . will match the current path, which will include both non-hidden and hidden files.
+* 如何在远程服务器运行一个本地脚本
+#无参数
+ssh user@server 'bash -s' < local.script.sh
+
+#有参数
+ssh user@server ARG1="arg1" ARG2="arg2" 'bash -s' < local_script.sh
+* 如何检查一个命令是否存在最好不要用which，因为很多操作系统的 which 命令没有设置退出状态码
+# POSIX 兼容:
+command -v hadoop >/dev/null 2>&1 || { echo "I require foo but it's not installed.  Aborting." >&2; exit 1; }
+# bash 环境:
+hash [the_command]
+type [the_command]
+
+# 示例：
+gnudate() {
+    if hash gdate 2> /dev/null; then
+        gdate "$@"
+    else
+        date "$@"
+    fi
+}
+* 命令行菜单
+#!/bin/bash
+# Bash Menu Script Example
+
+PS3='Please enter your choice: '
+options=("Option 1" "Option 2" "Option 3" "Quit")
+select opt in "${options[@]}"
+do
+    case $opt in
+        "Option 1")
+            echo "you chose choice 1"
+            ;;
+        "Option 2")
+            echo "you chose choice 2"
+            ;;
+        "Option 3")
+            echo "you chose choice $REPLY which is $opt"
+            ;;
+        "Quit")
+            break
+            ;;
+        *) echo "invalid option $REPLY";;
+    esac
+done
+* upcase first letter
+echo "$(echo "$foo" | sed 's/.*/\u&/')"
+
+$ echo "$a" | awk '{print tolower($0)}'
+hi all
+
+$ echo "$a" | perl -ne 'print lc'
+hi all
+* ip to int
+#!/bin/bash
+function ip2int(){
+A=$(echo $1 | cut -d '.' -f1)
+B=$(echo $1 | cut -d '.' -f2)
+C=$(echo $1 | cut -d '.' -f3)
+D=$(echo $1 | cut -d '.' -f4)
+result=$(($A<<24|$B<<16|$C<<8|$D))
+echo $result
+}
+
+function int2ip(){
+A=$((($1 & 0xff000000 ) >>24))
+B=$((($1 & 0x00ff0000)>>16))
+C=$((($1 & 0x0000ff00)>>8))
+D=$(($1 & 0x000000ff))
+result=$A.$B.$C.$D
+echo $result
+}
+a='7.91.205.21'
+b=123456789
+ip2int $a
+int2ip $b
+
+* zsh
+# find find files that changed today.
+ls *(m0)
+
+# recursive list files
+ls **/somefilename
+
+# use a modifier again to recursively find files over 20mb.
+ls -lh **/*(Lm+20)
+
+# We aren't limited to just using ls. How many lines of Clojure code do I have in this project?
+wc -l **/*.cpp
+# Hmm. I'd rather tbe sure about this. So let's press tab to get all the files listed explicitly instead.
+rm **/*.bk<TAB>
+
+Edit that long command in Vim
+
+Whenever you find yourself in this position hit <CTRL>+X <CTRL>+E to drop the current command into your $EDITOR.
+
+** plugin
+plugins=(git zsh-autosuggestions zsh-syntax-highlighting copyfile copydir copybuffer dirhistory jsontools)
+
+git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+
+autosuggestions
+autosuggest-accept: Accepts the current suggestion.
+autosuggest-execute: Accepts and executes the current suggestion.
+autosuggest-clear: Clears the current suggestion.
+
+dirhistory
+alt + left	Go to previous directory
+alt + right	Undo alt + left
+alt + up	Move into the parent directory
+alt + down	Move into the first child directory by alphabetical order
+
+
+jsontools
+pp_json: pretty prints json.
+is_json: returns true if valid json; false otherwise.
+urlencode_json: returns a url encoded string for the given json.
+urldecode_json: returns decoded json for the given url encoded string.
+curl https://coderwall.com/bobwilliams.json | pp_json
+
+* arithmetic
+let "i=i+1"
+
+i=$((i+1))
+((i=i+1))
+
+((i+=1))
+((i++))
+((++i))
+
+
+* update screen :flush:
+while :; do
+    echo "$RANDOM"
+    echo "$RANDOM"
+    sleep 0.2
+    tput cuu1 # move cursor up by one line
+    tput el # clear the line
+    tput cuu1
+    tput el
+done
+
+* read
+while read line; do
+    echo "$line"
+done < my_file
+
+
+grep xxx file | while read line
+do
+    echo $line
+done

@@ -1,0 +1,307 @@
+sqlfiddle.com
+* How can prepared statements protect from SQL injection attacks?
+The idea is very simple - the query and the data are sent to the database server separately.
+That's all.
+
+The root of the SQL injection problem is in the mixing of the code and the data.
+* node js mysql
+Client does not support authentication protocol requested by server
+== > ALTER USER 'root'@'localhost' IDENTIFIED BY '123456';
+== > syntax error
+== > update mariadb to 10.5 (from 10.1)
+* can not update root password in localhost
+https://mariadb.com/kb/en/authentication-plugin-unix-socket/
+ MariaDB trusts operating system credentials received over the socket and does not rely on a password.
+ By using sudo or logging on as root you can connect to the database server as root,
+ because you're root on the OS, but other OS users can't.
+
+ can change this behavior by: (or change mysql.conf)
+ update user set plugin='' where User='root';
+* order of sql operators
+FROM & JOINs determine & filter rows
+WHERE more filters on the rows
+GROUP BY combines those rows into groups
+HAVING filters groups
+ORDER BY arranges the remaining rows/groups
+LIMIT filters on the remaining rows/groups
+* How to store data with dynamic number of attributes in a database
+If you ever plan on searching for specific attribtes, it's a bad idea to serialize them into a single column, since you'll have to use per-row functions to get the information out - this never scales well.
+I would opt for your second choice. Have a list of attributes in an attribute table, the objects in their own table, and a many-to-many relationship table called object attributes.
+objects:
+    object_id    integer
+    object_name  varchar(20)
+    primary key  (object_id)
+attributes:
+    attr_id      integer
+    attr_name    varchar(20)
+    primary key  (attr_id)
+object_attributes:
+    object_id    integer  references (objects.object_id)
+    attr_id      integer  references (attributes.attr_id)
+    primary key (object_id,attr_id)
+* text filed being truncated
+ the max size of a MySQL TEXT field is smaller than 2^16 bytes. Using UTF-8 encoding, this can mean even less characters. You could use MEDIUMTEXT for 2^24 or LONGTEXT for 2^32 bytes 
+* select name, length( name )
+from my_table
+where length( name ) = ( select max( length( name ) ) from my_table );
+* query table structure
+describe tablename in mysql
+sp_help tablename in sql server
+desc tablename in oracle
+* GRANT ALL PRIVILEGES
+一个用户不能设置在多个Host地址上
+
+modify  /etc/mysql/mariadb.conf.d/50-server.cnf : bind 0.0.0.0
+flush privileges is not needed when you use grant commands
+grant all privileges on mydb.* to myuser@localhost identified by '123456';
+grant all privileges on *.* to root@'172.20.94.86' identified by '123qaz';
+GRANT ALL PRIVILEGES ON *.* TO 'admin'@'%' IDENTIFIED BY 'saiclient';
+
+% seems to not cover socket communications, that the localhost is
+for. WITH GRANT OPTION is only good for the super user, otherwise it
+is usually a security risk.
+
+GRANT ALL PRIVILEGES ON database_name.* TO 'username'@'localhost';
+
+with grant option;
+
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, INDEX, ALTER, CREATE TEMPORARY TABLES ON *.* TO 'username'@'localhost' IDENTIFIED BY 'password';
+
+** mysql.user :global:
+GRANT ALL PRIVILEGES ON database.db_solution TO 'admin'@'192.168.180.153' WITH GRANT OPTION
+==> SELECT * FROM mysql.user WHERE User='admin'==>  Select_priv: N Insert_priv: N Update_priv: N Delete_priv: N Create_priv: N .... N
+==> what you are selecting are the global privileges. you are however giving database (and host, but that doesnt matter) specific privileges.
+
+** mysql.db
+The table you want to look at is mysql.db which defines database specific privileges.
+
+** change password
+ALTER USER 'root'@'localhost' IDENTIFIED BY '123456';
+
+* /etc/mysql/mariadb.conf.d/50-server.cnf
+change bind address from 127.0.0.1 to 0.0.0.0
+* index
+1．ALTER TABLE
+ALTER TABLE用来创建普通索引、UNIQUE索引或PRIMARY KEY索引。
+ALTER TABLE table_name ADD INDEX index_name (column_list)
+2．CREATE INDEX
+CREATE INDEX可对表增加普通索引或UNIQUE索引。
+CREATE INDEX index_name ON table_name (column_list)
+CREATE UNIQUE INDEX index_name ON table_name (column_list)
+
+mysql> show index from tblname;
+mysql> show keys from tblname;
+
+DROP INDEX index_name ON talbe_name
+ALTER TABLE table_name DROP INDEX index_name
+ALTER TABLE table_name DROP PRIMARY KEY
+
+* navicat for mysql
+1.ctrl+q           打开查询窗口
+2.ctrl+/            注释sql语句
+3.ctrl+shift +/  解除注释
+4.ctrl+r           运行查询窗口的sql语句
+5.ctrl+shift+r   只运行选中的sql语句
+6.F6               打开一个mysql命令行窗口
+7.ctrl+l            删除一行
+8.ctrl+n           打开一个新的查询窗口
+9.ctrl+w          关闭一个查询窗口
+
+* select report
+** SELECT sum(CASE WHEN (score >= 0 AND score < 60) THEN 1 ELSE 0 END) AS D,
+			 sum(CASE WHEN (score >= 60 AND score <= 80) THEN 1 ELSE 0 END) AS C,
+       SUM(CASE WHEN (score > 80 AND score <= 90) THEN 1 ELSE 0 END) AS B,
+       SUM(CASE WHEN (score > 90 AND score <= 100) THEN 1 ELSE 0 END) AS A,
+sum(CASE WHEN (score >= 0 AND score < 60) THEN 1 ELSE 0 END)/count(score) as DP,
+sum(CASE WHEN (score >= 60 AND score <= 80) THEN 1 ELSE 0 END)/count(score) as CP,
+SUM(CASE WHEN (score > 80 AND score <= 90) THEN 1 ELSE 0 END)/count(score) as BP,
+       SUM(CASE WHEN (score > 90 AND score <= 100) THEN 1 ELSE 0 END)/count(score) as AP
+from 
+
+(SELECT
+	score
+FROM
+	t_ue_web_testing_report a
+LEFT JOIN t_ue_web_customer tc ON a.customer_id = tc.id
+WHERE
+	score IS NOT NULL
+AND test_total_times > 0
+AND (
+	tc.customer_name NOT IN (
+		'吴振盛',
+		'李子泽'
+	)
+	OR customer_name IS NULL
+)
+AND address NOT LIKE '中国福建省福州市仓山区横一号路'
+AND report_type LIKE '%app%') as T
+
+* Every derived table (AKA sub-query) must indeed have an alias. I.e. each query in brackets must be given an alias (AS whatever), which can the be used to refer to it in the rest of the outer query.
+
+SELECT ID FROM (
+    SELECT ID, msisdn FROM (
+        SELECT * FROM TT2
+    ) AS T
+) AS T
+In your case, of course, the entire query could be replaced with:
+
+SELECT ID FROM TT2
+
+* why view
+1. hide complexity
+
+If you have a query that requires joining several tables, or has complex logic or calculations, you can code all that logic into a view, then select from the view just like you would a table.
+
+2. used as a security mechanism
+
+A view can select certain columns and/or rows from a table, and permissions set on the view instead of the underlying tables. This allows surfacing only the data that a user needs to see.
+
+3. Views can simplify supporting legacy code
+
+If you need to refactor a table that would break a lot of code, you can replace the table with a view of the same name. The view provides the exact same schema as the original table, while the actual schema has changed. This keeps the legacy code that references the table from breaking, allowing you to change the legacy code at your leisure.
+
+* Table Scan and Index Scan in SQL
+Most query engines have a query optimizer, which tries to generate an effective query execution strategy. If indexes are available, which can make a query faster, then the query optimizer will perform an index scan or index seek, otherwise a table scan.
+Example:
+SELECT * FROM tbl WHERE category_id = 5;
+If there is no index on category_id then a table scan will be performed, i.e. every single record in the table will be inspected for the right category_id.
+
+If, however, category_id is indexed the things become more complicated. If the table is very large, an index seek will probably be chosen. However, if the table is small, then the optimizer might decide that a table scan is still faster, since some overhead is required to access an index. If the category_id is not selective enough, for instance if there are only two categories, scanning the table might be faster even for big tables.
+
+Indexes are usually organized as tree structures. Finding an item in a tree is an O(log n) operation. A table scan is an O(n) operation. The speed is mainly determined by the number of disk accesses required to perform the query. Seeking the index first and then accessing the table for the found entries can generate more disk accesses for small tables.
+
+Let us have a look at another query:
+
+SELECT category_id FROM tbl WHERE category_id BETWEEN 10 AND 100;
+
+Here there is another option available. An index seek might not be
+faster than a table scan in this situation, but, since we are only
+retrieving catergory_id's an index scan (not index seek) might be even
+faster. An index scan reads every entry of the index table instead of
+taking advantage of the tree structure (what the index seek
+does). However, since the requested information is fully contained in
+the index, no access to the data table will be required. Index scan
+is, like the table scan an O(n) operation, but since the index is
+usually smaller than the table, fewer disk accesses are required to
+scan the index than to scan the table.
+
+* Unable to lock ./ibdata1 mysql error?
+lsof -i:3306 or ps aux | grep mysql
+kill -9 PROCESS
+
+* accidentlly delete mysql.user table
+initialize db use mysql_install_db on mariadb
+mysqld --initialize on mysql
+* Database replication 
+ the frequent electronic copying data from a database in one computer
+ or server to a database in another so that all users share the same
+ level of information. The result is a distributed database in which
+ users can access data relevant to their tasks without interfering
+ with the work of others. The implementation of database replication
+ for the purpose of eliminating data ambiguity or inconsistency among
+ users is known as normalization.
+* Linux下MySQL的数据文件存放在哪里的？？
+http://bbs.csdn.NET/topics/390620630
+MySQL> show variables like '%dir%';
++-----------------------------------------+----------------------------+
+| Variable_name                           | Value                      |
++-----------------------------------------+----------------------------+
+| basedir                                 | /usr                       |
+| binlog_direct_non_transactional_updates | OFF                        |
+| character_sets_dir                      | /usr/share/mysql/charsets/ |
+| datadir                                 | /var/lib/mysql/            |
+| ignore_db_dirs                          |                            |
+| innodb_data_home_dir                    |                            |
+| innodb_log_group_home_dir               | ./                         |
+| innodb_max_dirty_pages_pct              | 75                         |
+| innodb_max_dirty_pages_pct_lwm          | 0                          |
+| innodb_undo_directory                   | .                          |
+| lc_messages_dir                         | /usr/share/mysql/          |
+| plugin_dir                              | /usr/lib/mysql/plugin/     |
+| slave_load_tmpdir                       | /tmp                       |
+| tmpdir                                  | /tmp                       |
++-----------------------------------------+----------------------------+
+数据库文件默认在：cd /usr/share/mysql
+配置文件默认在：/etc/my.cnf
+
+
+数据库目录：/var/lib/mysql/
+配置文件：/usr/share/mysql(mysql.server命令及配置文件)
+相关命令：/usr/bin(mysqladmin、mysqldump等命令)(*mysql的一种安全启动方式：/usr/bin/mysqld_safe –user=root &)
+启动脚本：/etc/rc.d/init.d/
+
+首先你可以使用以下的命令来寻找MySQL
+[root@stuhome /]# find / -name “mysql” -print
+一般来说mysql是放在/usr/local/mysql/下的。
+然后在其bin目录下有个mysql_config文件，vi之，你会看见这么一句：
+ldata=’/usr/local/mysql/var’
+
+
+rpm安装默认目录：
+数据文件：/var/lib/mysql/
+配置文件模板：/usr/share/mysql
+mysql客户端工具目录：/usr/bin
+日志目录：/var/log/
+pid，sock文件目录：/tmp/
+
+* data backup
+ mysqldump -uroot -proot --databases cm activity_monitor > back.sql
+
+* Best practice for parent child relation
+All tasks should be kept in a Task table, because subtasks after all are just tasks.
+
+The relationship between tasks should be stored in a second table that has columns to identify the parent/sub task relationship based on a foreign-key relationship with the Tasks table, and which together would form a composite primary key.
+
+Tasks
+
+id
+
+title
+
+description
+
+start_date
+
+end_date
+
+TaskRelationships
+
+parent_task_id
+
+sub_task_id
+
+In order to find the parent tasks of a given task you can query the sub_task_id column. To find the sub-tasks of a given task search the parent_task_id column.
+
+This structure has the added benefit of having the flexibility to add as many parent tasks to a task as your wish.
+* create user
+CREATE USER 'tom'@'localhost' IDENTIFIED BY '123456';
+CREATE USER 'tom'@'%' IDENTIFIED BY '123456';
+CREATE USER 'tom'@'%';
+
+GRANT SELECT, INSERT ON test.user TO 'pig'@'%';
+GRANT ALL ON *.* TO 'tom'@'%';
+三.设置与更改用户密码
+命令:
+SET PASSWORD FOR 'username'@'host' = PASSWORD('newpassword');
+
+如果是当前登陆用户用:
+SET PASSWORD = PASSWORD("newpassword");
+
+例子:
+SET PASSWORD FOR 'pig'@'%' = PASSWORD("123456");
+
+四. 撤销用户权限
+命令:
+REVOKE privilege ON databasename.tablename FROM 'username'@'host';
+说明:
+privilege, databasename, tablename：同授权部分
+
+DROP USER 'username'@'host';
+
+* mariadb
+connect from remote refused
+    change bind-address to 0.0.0.0 in /etc/mysql/mariadb.conf.d/50-server.cnf
+
+when start node application ==> Access denied for user 'root'@'localhost'
+
+    ALTER USER 'root'@'localhost' IDENTIFIED VIA mysql_native_password USING PASSWORD('root');

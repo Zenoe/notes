@@ -1,0 +1,1063 @@
+* Using Logical OR ADN
+test $? -eq 0 || echo "something bad happened"
+
+Logical OR in bash script is used with operator -o
+
+read -p "Enter First Numeric Value: "   first
+read -p "Enter Second Numeric Value: "  second
+
+if [ $first -le 10  -o  $second -gt 20 ]
+then
+else
+fi
+
+Logical AND in bash script is used with operator -a
+
+if [ $first -le 10  -a  $second -gt 20 ]
+
+Using Multiple Logical OR & AND
+
+read -p "Enter Your Number:"  i
+
+if [ ( $i -ge 10  -a  $i -le 20 ) -o ( $i -ge 100  -a  $i -le 200 ) ]
+
+if [[ ! -f /etc/benchmarking/code ]] && [[ ! -f /etc/benchmarking/code.class ]]; then
+ echo "match"
+fi
+if [[ ! -f /etc/benchmarking/code ]] && [[ ! -f /etc/benchmarking/code.class ]]; then
+ echo "match"
+fi
+* remove file extensions
+NAME=`basename /foo/fizzbuzz.bar .bar`
+* bashrc
+/etc/profile
+       The systemwide initialization file, executed for login shells
+~/.bash_profile
+       The personal initialization file, executed for login shells
+~/.bashrc
+       The individual per-interactive-shell startup file
+~/.bash_logout
+       The individual login shell cleanup file, executed when a login shell exits
+~/.inputrc
+       Individual readline initialization file
+
+Most of the time you don’t want to maintain two separate config files for login and
+non-login shells — when you set a PATH, you want it to apply to
+both. You can fix this by sourcing .bashrc from your .bash_profile
+file, then putting PATH and common settings in .bashrc.
+
+To do this, add the following lines to .bash_profile:
+
+if [ -f ~/.bashrc ]; then 
+    source ~/.bashrc 
+fi
+* get ipaddress from ip a
+LOCAL_IP=`ip a |grep inet|grep -v inet6|grep -v "127.0.0.1"|awk '{print $2}' | cut -d '/' -f 1`
+* source file
+https://stackoverflow.com/questions/192292/bash-how-best-to-include-other-scripts/12694189#12694189
+DIR="${BASH_SOURCE%/*}"
+if [[ ! -d "$DIR" ]]; then DIR="$PWD"; fi
+. "$DIR/incl.sh"
+* How to get the char at a given position of a string in shell script
+In bash with "Parameter Expansion" ${parameter:offset:length}
+
+var=abcdef
+echo ${var:0:1} => a
+echo ${var:3:1} => d
+Edit: Without parameter expansion (not very elegant, but that's what came to me first)
+
+$ charpos() { pos=$1;shift; echo "$@"|sed 's/^.\{'$pos'\}\(.\).*$/\1/';}
+$ charpos 8 what ever here
+r
+
+Alternative to parameter expansion is expr substr
+
+substr STRING POS LENGTH
+    substring of STRING, POS counted from 1
+For example:
+
+$ expr substr hello 2 1
+e
+* bash script Segmentation fault
+check_other_slaves()
+{
+# inifinite loop
+    check_other_slaves $hadoop_slaves
+}
+* read -p "Continue (y/n)?" choice
+case "$choice" in 
+  y|Y ) echo "yes";;
+  n|N ) echo "no";;
+  * ) echo "invalid";;
+esac
+* extra single quote
+https://stackoverflow.com/questions/6087494/bash-inserting-quotes-into-string-before-execution
+I have managed to track done a weird problem in an init script I am working on. I have simplified the problem down in the following example:
+
+> set -x                           # <--- Make Bash show the commands it runs
+> cmd="echo \"hello a test\""
++ cmd='echo "hello a test"'
+> $cmd
++ echo '"hello' this is a 'test"'  # <--- Where have the single quotes come from?
+"hello this is a test"
+Why is bash inserting those extra single quotes into the executed command?
+
+The extra quotes don't cause any problems in the above example, but they are really giving me a headache.
+
+==> Because when you try to execute your command with
+$cmd
+only one layer of expansion happens.  $cmd contains echo "hello this is a test", which is expanded into 6 whitespace-separated tokens:
+
+echo
+"hello
+a
+test"
+
+and that's what the set -x output is showing you: it's putting single quotes
+around the tokens that contain double quotes, in order to be clear about what the individual tokens are.
+
+If you want $cmd to be expanded into a string which then has all the bash quoting rules applied again, try executing your command with:
+
+bash -c "$cmd" or (as @bitmask points out in the comments, and this is probably more efficient)
+
+eval "$cmd" instead of just $cmd
+* array
+declare -a arr=("element1" "element2" "element3")
+
+## now loop through the above array
+for i in "${arr[@]}"
+do
+   echo "$i"
+   # or do whatever with individual element of the array
+done
+
+# You can access them using echo "${arr[0]}", "${arr[1]}" also
+Also works for multi-line array declaration
+
+declare -a arr=("element1"
+                "element2" "element3"
+                "element4"
+                )
+
+or:
+
+for databaseName in a b c d e f; do
+  # do something like: echo $databaseName
+done
+----------------
+  ${arr[*]}         # All of the items in the array
+  ${!arr[*]}        # All of the indexes in the array
+  ${#arr[*]}        # Number of items in the array
+  ${#arr[0]}        # Length of item zero
+
+#!/bin/bash
+
+array=(one two three four [5]=five)
+
+echo "Array size: ${#array[*]}"
+
+echo "Array items:"
+for item in ${array[*]}
+do
+    printf "   %s\n" $item
+done
+
+echo "Array indexes:"
+for index in ${!array[*]}
+do
+    printf "   %d\n" $index
+done
+
+echo "Array items and indexes:"
+for index in ${!array[*]}
+do
+    printf "%4d: %s\n" $index ${array[$index]}
+done
+Running it produces the following output:
+Array size: 5
+Array items:
+   one
+   two
+   three
+   four
+   five
+Array indexes:
+   0
+   1
+   2
+   3
+   5
+Array items and indexes:
+   0: one
+   1: two
+   2: three
+   3: four
+   5: five
+Note that the "@" sign can be used instead of the "*" in constructs such as ${arr[*]}, the result is the same except when expanding to the items of the array within a quoted string. In this case the behavior is the same as when expanding "$*" and "$@" within quoted strings: "${arr[*]}" returns all the items as a single word, whereas "${arr[@]}" returns each item as a separate word.
+
+The following example shows how unquoted, quoted "*", and quoted "@" affect the expansion (particularly important when the array items themselves contain spaces):
+
+#!/bin/bash
+
+array=("first item" "second item" "third" "item")
+
+echo "Number of items in original array: ${#array[*]}"
+for ix in ${!array[*]}
+do
+    printf "   %s\n" "${array[$ix]}"
+done
+echo
+
+arr=(${array[*]})
+echo "After unquoted expansion: ${#arr[*]}"
+for ix in ${!arr[*]}
+do
+    printf "   %s\n" "${arr[$ix]}"
+done
+echo
+
+arr=("${array[*]}")
+echo "After * quoted expansion: ${#arr[*]}"
+for ix in ${!arr[*]}
+do
+    printf "   %s\n" "${arr[$ix]}"
+done
+echo
+
+arr=("${array[@]}")
+echo "After @ quoted expansion: ${#arr[*]}"
+for ix in ${!arr[*]}
+do
+    printf "   %s\n" "${arr[$ix]}"
+done
+When run it outputs:
+Number of items in original array: 4
+   first item
+   second item
+   third
+   item
+
+After unquoted expansion: 6
+   first
+   item
+   second
+   item
+   third
+   item
+
+After * quoted expansion: 1
+   first item second item third item
+
+After @ quoted expansion: 4
+   first item
+   second item
+   third
+   item
+* Iterate over two arrays simultaneously
+#!/bin/bash
+
+array=( "Vietnam" "Germany" "Argentina" )
+array2=( "Asia" "Europe" "America" )
+
+for ((i=0;i<${#array[@]};++i)); do
+    printf "%s is in %s\n" "${array[i]}" "${array2[i]}"
+done
+Another possibility would be to use an associative array:
+
+#!/bin/bash
+
+declare -A continent
+
+continent[Vietnam]=Asia
+continent[Germany]=Europe
+continent[Argentina]=America
+
+for c in "${!continent[@]}"; do
+    printf "%s is in %s\n" "$c" "${continent[$c]}"
+done
+Depending on what you want to do, you might as well consider this second possibility. But note that you won't easily have control on the order the fields are shown in the second possibility (well, it's an associative array, so it's not really a surprise).
+
+** pass index
+array=(
+  Vietnam
+  Germany
+  Argentina
+)
+array2=(
+  Asia
+  Europe
+  America
+)
+
+for index in ${!array[*]}; do
+  echo "${array[$index]} is in ${array2[$index]}"
+don
+
+Vietnam is in Asia
+Germany is in Europe
+Argentina is in America
+* wait-for-it.sh
+
+#!/usr/bin/env bash
+set -e
+
+host="$1"
+shift
+cmd="$@"
+
+until [ "`curl --silent --show-error --connect-timeout 1 http://waitRegistry:8761/eureka/apps/config-server | grep '<status>UP</status>'`" != "" ];
+do
+  echo "Config Server is unavailable - sleeping"
+  sleep 5
+done
+
+>&2 echo "Config Server is up - executing command"
+sleep 30
+exec $cmd
+
+
+
+function isConnected
+{
+    curl -s $1 | grep $2 >>/dev/null
+    if [ $? -eq 0 ]; then
+        true
+    else
+        false
+    fi
+}
+
+wait_timeout=60
+wait_time=0
+while (! isConnected "http://localhost:8082" "keyword" ) && [[ $wait_time -le $wait_timeout ]]; do
+     sleep 1
+     echo "waits for jcr $wait_time"
+     wait_time=$((wait_time + 1))
+done
+
+* replace text in a file
+#! /bin/bash                                                                                                                                                                                           
+
+if (( $# < 3 )); then
+  echo "$0 old_string new_string file [file...]"
+  exit 0
+else
+  ostr="$1"; shift
+  nstr="$1"; shift  
+fi
+
+echo "Replacing \"$ostr\" with \"$nstr\""
+for file in $@; do
+  if [ -f $file ]; then
+    echo "Working with: $file"
+    eval "sed 's/"$ostr"/"$nstr"/g' $file" > $file.tmp 
+    mv $file.tmp $file
+  fi  
+done
+
+* parse option
+Usage   ./myscript.sh -e conf -s /etc -l /usr/lib /etc/hosts 
+
+#!/bin/bash
+
+POSITIONAL=()
+while [[ $# -gt 0 ]]
+do
+key="$1"
+
+case $key in
+    -e|--extension)
+    EXTENSION="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    -s|--searchpath)
+    SEARCHPATH="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    -l|--lib)
+    LIBPATH="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    --default)
+    DEFAULT=YES
+    shift # past argument
+    ;;
+    *)    # unknown option
+    POSITIONAL+=("$1") # save it in an array for later
+    shift # past argument
+    ;;
+esac
+done
+set -- "${POSITIONAL[@]}" # restore positional parameters
+
+echo FILE EXTENSION  = "${EXTENSION}"
+echo SEARCH PATH     = "${SEARCHPATH}"
+echo LIBRARY PATH    = "${LIBPATH}"
+echo DEFAULT         = "${DEFAULT}"
+echo "Number files in SEARCH PATH with EXTENSION:" $(ls -1 "${SEARCHPATH}"/*."${EXTENSION}" | wc -l)
+if [[ -n $1 ]]; then
+    echo "Last line of file specified as non-opt/last argument:"
+    tail -1 "$1"
+fi
+
+* chmod 755 $(find . -type f -name "*.sh")
+* find . -type f -iname "*.sh" -exec chmod +x {} \;
+* find ./ -type f -exec sed -i 's/string1/string2/g' {} \;
+For global case insensitive:
+find ./ -type f -exec sed -i 's/FIFO/LAST_ONLY/g' {}
+find ./ -type f -exec sed -i 's/string1/string2/gI' {} \;
+** find print0 & xargs
+➜  ~ ls -rthl *.test
+-rw-r--r-- 1 root root 0 Feb 20 18:21 file1.test
+-rw-r--r-- 1 root root 0 Feb 20 18:21 file2.test
+-rw-r--r-- 1 root root 0 Feb 20 18:21 file 3.test
+-rw-r--r-- 1 root root 0 Feb 20 18:21 fi1e 4.test
+
+➜  ~ find . -name "*.test" -print
+./fi1e 3.test
+./file 4.test
+./file1.test
+./file2.test
+
+➜  ~ find . -name "*.test" -print0
+./fi1e 3.test./file 4.test./file1.test./file2.test
+
+➜  ~ find . -name "*.test" -print | xargs rm
+rm: cannot remove ‘./fi1e’: No such file or directory
+rm: cannot remove ‘3.test’: No such file or directory
+rm: cannot remove ‘./file’: No such file or directory
+rm: cannot remove ‘4.test’: No such file or directory
+
+➜  ~ find . -name "*.test" -print0 | xargs -0 rm
+* trim sting
+echo "${output}" | sed -e 's/^[ \t]*//'
+
+output="    This is a test    "
+echo "=${output}="
+ 
+## Use awk to trim leading and trailing whitespace
+echo "${output}" | awk '{gsub(/^ +| +$/,"")} {print "=" $0 "="}'
+
+# Just remove leading whiltespace
+#turn it on
+shopt -s extglob
+ 
+output="    This is a test"
+output="${output##*( )}"
+echo "=${output}="
+ 
+# turn it off
+shopt -u extglob
+* start shell on system boot
+Red Hat based system
+
+Create a script and place in /etc/init.d (e.g /etc/init.d/myscript)
+#!/bin/bash
+# chkconfig: 2345 20 80
+# description: Description comes here....
+
+# Source function library.
+. /etc/init.d/functions
+
+start() {
+    # code to start app comes here 
+    # example: daemon program_name &
+}
+
+stop() {
+    # code to stop app comes here 
+    # example: killproc program_name
+}
+
+case "$1" in 
+    start)
+       start
+       ;;
+    stop)
+       stop
+       ;;
+    restart)
+       stop
+       start
+       ;;
+    status)
+       # code to check status of app comes here 
+       # example: status program_name
+       ;;
+    *)
+       echo "Usage: $0 {start|stop|status|restart}"
+esac
+
+exit 0 
+The format is pretty standard and you can view existing scripts in /etc/init.d. You can then use the script like so /etc/init.d/myscript start or chkconfig myscript start. The ckconfig man page explains the header of the script:
+
+ > This says that the script should be started in levels 2,  3,  4, and
+ > 5, that its start priority should be 20, and that its stop priority
+ > should be 80.
+The example start, stop and status code uses helper functions defined in /etc/init.d/functions
+
+Enable the script
+
+$ chkconfig --add myscript 
+$ chkconfig --level 2345 myscript on 
+Check the script is indeed enabled - you should see "on" for the levels you selected.
+
+$ chkconfig --list | grep myscript
+* auto start on boot
+#!/bin/sh
+#chkconfig: 2345 80 90
+#description:开机自动启动的脚本程序
+
+# 开启redis服务 端口为6379
+/usr/local/service/redis-2.8.3/src/redis-server --port 6379 &
+
+
+autostart.sh脚本移动到/etc/rc.d/init.d/目录下
+cd /etc/rc.d/init.d/
+chmod +x autostart.sh
+
+chkconfig --add autostart.sh
+chkconfig autostart.sh on
+* [[https://misc.flogisoft.com/bash/tip_colors_and_formatting][color stdout]]
+颜色定义，你可以使用 echo -e "${Blu}blue ${Red}red ${RCol}etc...."
+
+RCol='\e[0m'    # Text Reset
+# Regular           Bold                Underline           High Intensity      BoldHigh Intens     Background          High Intensity Backgrounds
+Bla='\e[0;30m';     BBla='\e[1;30m';    UBla='\e[4;30m';    IBla='\e[0;90m';    BIBla='\e[1;90m';   On_Bla='\e[40m';    On_IBla='\e[0;100m';
+Red='\e[0;31m';     BRed='\e[1;31m';    URed='\e[4;31m';    IRed='\e[0;91m';    BIRed='\e[1;91m';   On_Red='\e[41m';    On_IRed='\e[0;101m';
+Gre='\e[0;32m';     BGre='\e[1;32m';    UGre='\e[4;32m';    IGre='\e[0;92m';    BIGre='\e[1;92m';   On_Gre='\e[42m';    On_IGre='\e[0;102m';
+Yel='\e[0;33m';     BYel='\e[1;33m';    UYel='\e[4;33m';    IYel='\e[0;93m';    BIYel='\e[1;93m';   On_Yel='\e[43m';    On_IYel='\e[0;103m';
+Blu='\e[0;34m';     BBlu='\e[1;34m';    UBlu='\e[4;34m';    IBlu='\e[0;94m';    BIBlu='\e[1;94m';   On_Blu='\e[44m';    On_IBlu='\e[0;104m';
+Pur='\e[0;35m';     BPur='\e[1;35m';    UPur='\e[4;35m';    IPur='\e[0;95m';    BIPur='\e[1;95m';   On_Pur='\e[45m';    On_IPur='\e[0;105m';
+Cya='\e[0;36m';     BCya='\e[1;36m';    UCya='\e[4;36m';    ICya='\e[0;96m';    BICya='\e[1;96m';   On_Cya='\e[46m';    On_ICya='\e[0;106m';
+Whi='\e[0;37m';     BWhi='\e[1;37m';    UWhi='\e[4;37m';    IWhi='\e[0;97m';    BIWhi='\e[1;97m';   On_Whi='\e[47m';    On_IWhi='\e[0;107m';
+
+The ANSI/VT100 terminals and terminal emulators are not just able to display
+black and white text ; they can display colors and formatted texts thanks to
+escape sequences. Those sequences are composed of the Escape character (often
+represented by “^[” or “<Esc>”) followed by some other characters:
+“<Esc>[FormatCodem”.
+
+In Bash, the <Esc> character can be obtained with the following syntaxes:
+\e
+\033
+\x1B
+
+eg:
+echo -e "\e[31mHello World\e[0m"
+echo -e "\033[31mHello\e[0m World"
+
+printf "\033[1;31mThis is red text in bold\033[0m\n"
+printf "\033[2;31mThis is red text in dim\033[0m\n"
+printf "\033[4;31mThis is red text with underline\033[0m\n"
+
+eg:
+echo -e "\x1B[31m foobar \x1B[0m"
+echo -e "\x1B[32m foobar \x1B[0m"
+echo -e "\x1B[96m foobar \x1B[0m"
+echo -e "\x1B[01;96m foobar \x1B[0m"
+echo -e "\x1B[01;95m foobar \x1B[0m"
+* [[https://superuser.com/questions/380772/removing-ansi-color-codes-from-text-stream][remove color]]
+The characters ^[[37m and ^[[0m are part of the ANSI escape sequences (CSI codes).  See also these specifications.
+
+Using GNU sed
+sed 's/\x1b\[[0-9;]*m//g'
+\x1b (or \x1B) is the escape special character
+(sed does not support alternatives \e and \033)
+\[ is the second character of the escape sequence
+[0-9;]* is the color value(s) regex
+m is the last character of the escape sequence
+⚠ On macOS, the default sed command does not support special characters like \e as pointed out by slm and steamer25 in the comments. Use instead gsed that you can install using brew install gnu-sed.
+
+Example with OP's command line:   (OP means Original Poster)
+
+perl -e 'use Term::ANSIColor; print color "white"; print "ABC\n"; print color "reset";' |
+      sed 's/\x1b\[[0-9;]*m//g'
+Tom Hale suggests to remove all other escape sequences using [a-zA-Z] instead of just the letter m specific to the graphics mode (color) escape sequence. But [a-zA-Z] may be too wide and could remove too much. Michał Faleński and Miguel Mota propose to remove only some escape sequences using [mGKH] and [mGKF] respectively. Britton Kerin indicates K must also be used in addition to m to remove the colors from gcc error/warning (do not forget to redirect gcc 2>&1 | sed...).
+
+sed 's/\x1b\[[0-9;]*m//g'           # Remove color sequences only
+sed 's/\x1b\[[0-9;]*[a-zA-Z]//g'    # Remove all escape sequences
+sed 's/\x1b\[[0-9;]*[mGKH]//g'      # Remove color and move sequences
+sed 's/\x1b\[[0-9;]*[mGKF]//g'      # Remove color and move sequences
+Last escape
+sequence
+character   Purpose
+---------   -------------------------------
+m           Graphics Rendition Mode (including Color)
+G           Horizontal cursor move
+K           Horizontal deletion
+H           New cursor position
+F           Move cursor to previous n lines
+Using perl
+The version of sed installed on some operating systems may be limited (e.g. macOS). The command perl has the advantage of being generally easier to install/update on more operating systems. Adam Katz suggests to use \e (same as \x1b) in PCRE.
+
+Choose your regex depending on how much commands you want to filter:
+
+perl -pe 's/\e\[[0-9;]*m//g'          # Remove colors only
+perl -pe 's/\e\[[0-9;]*[mG]//g'
+perl -pe 's/\e\[[0-9;]*[mGKH]//g'
+perl -pe 's/\e\[[0-9;]*[a-zA-Z]//g'
+perl -pe 's/\e\[[0-9;]*m(?:\e\[K)?//g' # Adam Katz's trick
+Example with OP's command line:
+
+perl -e 'use Term::ANSIColor; print color "white"; print "ABC\n"; print color "reset";' \
+      | perl -pe 's/\e\[[0-9;]*m//g'
+Usage
+As pointed out by Stuart Cardall's comment, this sed command line is used by the project Ultimate Nginx Bad Bot (1000 stars) to clean up the email report ;-)
+* [[https://stackoverflow.com/questions/35006457/choosing-between-0-and-bash-source][BASH_SOURCE and $0]]
+${BASH_SOURCE[0]} (or, more simply, $BASH_SOURCE[1] ) contains the (potentially relative) path of the containing script in all invocation scenarios, notably also when the script is sourced, which is not true for  $0.
+
+Furthermore, as Charles Duffy points out, $0 can be set to an arbitrary value by the caller.
+On the flip side, $BASH_SOURCE can be empty, if no named file is involved; e.g.:
+echo 'echo "[$BASH_SOURCE]"' | bash
+
+The following example illustrates this:
+
+Script foo:
+
+#!/bin/bash
+echo "[$0] vs. [${BASH_SOURCE[0]}]"
+$ bash ./foo
+[./foo] vs. [./foo]
+
+$ ./foo
+[./foo] vs. [./foo]
+
+$ . ./foo
+[bash] vs. [./foo]
+$0 is part of the POSIX shell specification, whereas BASH_SOURCE, as the name suggests, is Bash-specific.
+
+[1] Optional reading: ${BASH_SOURCE[0]} vs. $BASH_SOURCE:
+
+Bash allows you to reference element 0 of an array variable using scalar notation: instead of writing ${arr[0]}, you can write $arr; in other words: if you reference the variable as if it were a scalar, you get the element at index 0.
+
+Using this feature obscures the fact that $arr is an array, which is why popular shell-code linter shellcheck.net issues the following warning (as of this writing):
+
+SC2128: Expanding an array without an index only gives the first element.
+
+On a side note: While this warning is helpful, it could be more precise, because you won't necessarily get the first element: It is specifically the element at index 0 that is returned, so if the first element has a higher index - which is possible in Bash - you'll get the empty string; try 'a[1]='hi'; echo "$a"'.
+(By contrast, zsh, ever the renegade, indeed does return the first element, irrespective of its index).
+
+You may choose to eschew this feature due to its obscurity, but it works predictably and, pragmatically speaking, you'll rarely, if ever, need to access indices other than 0 of array variable ${BASH_SOURCE[@]}.
+
+* array assignment
+a=('a' 'b' 'c')
+b=( "${a[@]}" )
+
+ ${arr[*]} # All of the items in the array
+ ${!arr[*]} # All of the indexes in the array
+ ${#arr[*]} # Number of items in the array
+ ${#arr[0]} # Length of item zero
+
+
+#!/bin/bash
+
+array=(one two three four [5]=five)
+
+echo "Array size: ${#array[*]}"
+
+echo "Array items:"
+for item in ${array[*]}
+do
+ printf " %s\n" $item
+done
+
+
+echo "Array indexes:"
+for index in ${!array[*]}
+do
+ printf " %d\n" $index
+done
+
+
+echo "Array items and indexes:"
+for index in ${!array[*]}
+do
+ printf "%4d: %s\n" $index ${array[$index]}
+done
+Running it produces the following output:
+Array size: 5
+Array items:
+ one
+ two
+ three
+ four
+ five
+Array indexes:
+ 0
+ 1
+ 2
+ 3
+ 5
+Array items and indexes:
+ 0: one
+ 1: two
+ 2: three
+ 3: four
+ 5: five
+Note that the "@" sign can be used instead of the "*" in constructs such as ${arr[*]}, the result is the same except when expanding to the items of the array within a quoted string. In this case the behavior is the same as when expanding "$*" and "$@" within quoted strings: "${arr[*]}" returns all the items as a single word, whereas "${arr[@]}" returns each item as a separate word.
+
+
+The following example shows how unquoted, quoted "*", and quoted "@" affect the expansion (particularly important when the array items themselves contain spaces):
+
+
+#!/bin/bash
+
+
+array=("first item" "second item" "third" "item")
+
+
+echo "Number of items in original array: ${#array[*]}"
+for ix in ${!array[*]}
+do
+ printf " %s\n" "${array[$ix]}"
+done
+echo
+
+
+arr=(${array[*]})
+echo "After unquoted expansion: ${#arr[*]}"
+for ix in ${!arr[*]}
+do
+ printf " %s\n" "${arr[$ix]}"
+done
+echo
+
+
+arr=("${array[*]}")
+echo "After * quoted expansion: ${#arr[*]}"
+for ix in ${!arr[*]}
+do
+ printf " %s\n" "${arr[$ix]}"
+done
+echo
+
+
+arr=("${array[@]}")
+echo "After @ quoted expansion: ${#arr[*]}"
+for ix in ${!arr[*]}
+do
+ printf " %s\n" "${arr[$ix]}"
+done
+When run it outputs:
+Number of items in original array: 4
+ first item
+ second item
+ third
+ item
+
+
+After unquoted expansion: 6
+ first
+ item
+ second
+ item
+ third
+ item
+
+
+After * quoted expansion: 1
+ first item second item third item
+
+
+After @ quoted expansion: 4
+ first item
+ second item
+ third
+ item
+* bash 执行流程
+https://segmentfault.com/a/1190000008215772
+输入
+交互模式
+在交互模式下，输入来自终端。bash使用GNU Readline库处理用户命令输入，Readline提供类似于vi或emacs的行编辑功能(如Ctrl+a、Ctrl+e等等)。
+当敲击键盘时，字符会存入Readline的编辑缓冲区，Readline会处理输入的变化并及时地将结果显示到终端上。
+Readline还要保持命令提示符(prompt)的稳定(比如提示符的颜色)。
+在将编辑缓冲区的内容交给bash之前，Readline会执行历史扩展(见这里)，之后由bash负责将本条命令存储到历史列表并进入下一步骤。
+
+
+非交互模式
+在非交互模式下，输入一般来自文件。此时，bash使用C语言标准库的stdio来获得输入。
+不像Readline那样需要实现各种功能，stdio的工作较为简单：缓冲文件内容并逐行提供输入给bash处理。
+
+
+解析
+解析阶段的主要工作为：词法分析和语法解析
+词法分析指分析器从Readline或其他输入获取字符行，根据元字符将它们分割成word，并根据上下文环境标记这些word(确定单词的类型)。
+元字符包括：
+
+
+| & ; ( ) < > space tab
+语法解析指解析器和分析器合作，根据各个单词的类型以及它们的位置，判断命令是否合法以及确定命令类型。
+单词(word)有很多种，bash从左到右依次分析它们的类型。下面对一些情况做一下简介：
+1、重定向
+分析器分析每个单词，如果单词表示一个重定向，则保持至执行阶段再处理。
+2、赋值语句
+对于非重定向的首个单词进行分析，如果该单词是一个赋值语句，则保持至扩展阶段处理。
+然后继续分析下一个单词，对于连续的赋值语句或重定向都做如上处理。
+3、关键字
+对于非重定向或赋值语句的第一个单词进行判定，如果是保留关键字，则根据语法定义判定该种命令类型的语法和结尾(结尾一般为某种控制操作符)。
+4、别名
+如果非重定向或赋值语句的第一个单词是一个普通单词，bash会根据别名记录判定该单词是不是一个命令别名，如果是，则使用对应的文本替换该别名(注意此文本可以是shell能够接受的任意字符)ã
+然后继续分割并判定替换后的文本，重复上述同样过程，如果替换后仍有别名(不同于前面曾扩展过的别名)，则递归地展开并判定。
+另外，默认时只有在交互式shell环境下才允许别名扩展。如果需要在脚本中使用命令别名，则需开启选项shopt -s expand_aliases。由于别名的功能都可以用函数实现，建议在脚本中使用函数来代替命令别名。
+5、其他
+如果非重定向或赋值语句的第一个单词不是别名或复合命令的起始单词，解析器将标记它为命令名，并赋值给位置变量0，其余单词(控制操作符之前的)为此命令的参数($1、$2...$n)。
+
+
+然后分析器继续分析下一条命令(控制操作符之后的)，直到整行都分析完毕。
+
+
+注意，在同一命令内，赋值语句后面必须是一个简单命令。如果是复合命令，将会报错。
+
+
+还要注意，引用(见这里)会使元字符失去其特殊意义，其内部的多个单词可能会被bash看做是一个word。
+
+
+最终解析器返回一个C结构体来表达一个命令(对于复合命令，这个结构体中可能还包含有其他命令)，然后将其传递给shell的下一阶段：单词展开。
+
+
+扩展
+扩展阶段对应于单词的各种变换，最终得到可用于执行的命令。
+以如下脚本为例解释此阶段依次进行的扩展(各种扩展的方法请看之前的文章)：
+
+
+#!/bin/bash
+TMP='temp/tmp' num=2
+cat ~/"${TMP:0:$((num+2))}"/test_{[0-9],[a-z]}.txt
+脚本第三行是一条简单命令(只为举例说明)。
+
+
+大括号扩展
+首先进行的是大括号扩展，此扩展会导致单词数量的变化。
+
+
+扩展后的命令形如：
+
+
+cat ~/"${TMP:0:$((num+2))}"/test_[0-9].txt ~/"${TMP:0:$((num+2))}"/test_[a-z].txt
+波浪号扩展
+然后进行的是波浪号扩展，~被$HOME的值所代替。
+
+
+扩展后的命令形如：
+
+
+cat /root/"${TMP:0:$((num+2))}"/test_[0-9].txt /root/"${TMP:0:$((num+2))}"/test_[a-z].txt
+变量、命令、进程、数学扩展
+在波浪号扩展后进行变量扩展、命令替换、进程替换和数学扩展，它们按其出现的位置依次扩展。对于嵌套的情况，先进行内部扩展。
+
+
+扩展后的命令形如：
+
+
+cat /root/"temp"/test_[0-9].txt /root/"temp"/test_[a-z].txt
+单词分割
+单词分割只作用于前一种扩展(变量、命令、进程、数学扩展)的结果，如果扩展处于双引号中，则不会分割(变量或数组使用@的情况例外)。
+
+
+bash利用环境变量IFS的值进行单词分割，如果扩展的结果单词中包含IFS中的任意字符，则被分割为多个单词。如果扩展的结果为空，则此单词被移除(引号中的空值会被保留)。
+
+
+我们的例子中扩展的结果单词temp不包含IFS中字符，所以没有进行单词分割。
+
+
+注意如果没有上述扩展发生，也不会进行本阶段的单词分割。
+
+
+路径扩展
+单词分割结束后，bash扫描每个单词中的字符*、?和[，如果包含这些字符，此单词就作为一个模式对文件名进行通配符匹配。
+匹配到的所有结果将成为命令的新单词。
+
+
+我们的例子中，路径扩展后的命令形如：
+
+
+cat /root/"temp"/test_1.txt /root/"temp"/test_4.txt /root/"temp"/test_x.txt
+移除引用
+路径扩展完毕后，将移除所有的非扩展结果的引用字符(包括'' "" \)。
+
+
+我们的例子中，作用于单词temp的双引号，并不是扩展后的结果，所以会被移除：
+
+
+cat /root/temp/test_1.txt /root/temp/test_4.txt /root/temp/test_x.txt
+脚本执行：
+
+
+[root@centos7 temp]# ./test.sh
+我是文件 test_1.txt
+我是文件 test_4.txt
+我是文件 test_x.txt
+[root@centos7 temp]#
+抛开我们的例子，如果一条简单命令有前置的赋值语句，等号右边的单词会经过：波浪号括展、变量|命令|进程|数学扩展和移除引用。大括号扩展、单词分割和路径扩展不会发生。
+
+
+执行
+不同类型的命令，bash的执行方式有所差异。
+
+
+复合命令
+bash中每种复合命令都使用一个C函数来实现，功能包括执行恰当的展开(如for循环中关键词in后面的单词)，执行特定的命令，根据命令的返回值来变更执行流程等等。
+
+
+管道命令
+对于管道命令，管道两侧的命令会在不同的两个子进程中执行。
+此时命令要先后经历
+1、fork()系统调用创建子进程。
+2、连接管道
+然后命令的执行步骤如下述简单命令的执行。
+
+
+简单命令
+无论是什么类型的命令，最终都将归结到简单命令的执行。
+一条简单命令的执行过程如下：
+命令搜索
+1、如果命令名中包含字符/(目录分隔符)，则直接执行该路径指定的文件。
+2、如果命令名中无斜线，则搜索当前环境中定义的函数，如果找到，则执行该函数。
+3、如果未找到函数，则搜索内置命令，如果找到，则执行该内置命令(注意内置命令eval会使其后的所有单词再次经过解析、扩展和执行)。
+4、如果没有对应的内置命令，则搜索hash缓存中记录的对象，如果有该命令的缓存，则直接执行该绝对路径对应的文件。
+5、如果hash表中无缓存记录，则搜索环境变量PATH值中所有目录内的文件，如果找到该名称的文件，则执行(并缓存至hash表)；如果未找到，则返回错误信息，设置返回值为127并exit。
+命令执行
+对于命令的执行，我们介绍更一般的情况(命令位于磁盘文件系统之上的情况)：
+1、bash执行fork()系统调用创建子进程(如果命令已经处于子shell内，则不会再次fork()，例如上述管道命令)
+2、执行重定向
+3、执行execve()系统调用，控制权移交给操作系统。
+4、内核判断该文件是否是操作系统能够处理的可执行格式(如ELF格式的可执行二进制文件或开头顶格写#!的可执行文本文件)
+5、如果操作系统能够处理该文件，则调用相应的函数(二进制文件)或解释器(脚本文件)进行执行。
+6、如果文件不具备操作系统的可执行格式(如文本文件但没有顶格写的#!)，execve()失败，此时，bash会判断该文件，如果该文件有可执行权限并且不是一个目录，则认为该文件是一个脚本，于是调ç¨默认解释器解释执行该文件的内容。
+7、执行完毕后，bash收集命令的返回值。
+
+
+这些，就是bash执行命令的整个流程。
+
+* for ele in
+for i in $(seq 1 $END)
+arrayofnumber=(22 50010 50075 50020 50070 8088 8030 8031)
+for ele in ${theport[*]}; do
+done
+
+rm xx_1_{0000..0999}.hmf
+
+for c in {1..6}; do virsh undefine v5$c; done
+
+start=1
+end=10
+for ((i=start; i<=end; i++))
+do
+ echo "i: $i"
+done
+* tar pipe to ssh
+tar -C / -cf - opt/t | ssh -o GSSAPIAuthentication=no root@172.31.138.211 tar -C / -xvf -
+* #!/usr/bin/env bash
+val=$(< c.txt)
+comp=$1
+if [[ "$val" -gt "$comp" ]]
+  then echo "greater"
+elif [[ "$val" -eq "$comp" ]]
+  then echo "equal"
+fi
+
+bash while loop syntax
+
+The syntax is as follows:
+
+while [ condition ]
+do
+   command1
+   command2
+   command3
+done
+command1 to command3 will be executed repeatedly till condition is true. The argument for a while loop can be any boolean expression. Infinite loops occur when the conditional never evaluates to false. For example following while loop will print welcome 5 times on screen:
+
+#!/bin/bash
+x=1
+while [ $x -le 5 ]
+do
+  echo "Welcome $x times"
+  x=$(( $x + 1 ))
+done
+Here is a sample shell code to calculate factorial using while loop:
+
+#!/bin/bash
+counter=$1
+factorial=1
+while [ $counter -gt 0 ]
+do
+   factorial=$(( $factorial * $counter ))
+   counter=$(( $counter - 1 ))
+done
+echo $factorial
+To run just type:
+$ chmod +x script.sh
+$ ./script.sh 5
+
+Output:
+
+120
+* split string by space
+1. echo $var | cut -d' ' -f1
+
+2.
+var="129 148     181"
+vars=( $var )
+echo "First  word of var: '${vars[0]}'"
+echo "Second word of var: '${vars[1]}'"
+echo "Third  word of var: '${vars[2]}'"
+echo "Number of words in var: '${#vars[@]}'"
+
+3.
+sentence="This is   a sentence."
+for word in $sentence
+do
+    echo $word
+done
+* Split string into an array in Bash
+
+
+t="one,two,three"
+a=$(echo $t | tr ',' "\n")
+echo ${a[2]}
+
+IFS=', ' read -r -a array <<< "$string"
+To access an individual element:
+
+echo "${array[0]}"
+To iterate over the elements:
+
+for element in "${array[@]}"
+do
+    echo "$element"
+done
+To get both the index and the value:
+
+for index in "${!array[@]}"
+do
+    echo "$index ${array[index]}"
+done
+The last example is useful because Bash arrays are sparse. In other words, you can delete an element or add an element and then the indices are not contiguous.
+
+unset "array[1]"
+array[42]=Earth
+To get the number of elements in an array:
+
+echo "${#array[@]}"
+As mentioned above, arrays can be sparse so you shouldn't use the length to get the last element. Here's how you can in Bash 4.2 and later:
+
+echo "${array[-1]}"
+in any version of Bash (from somewhere after 2.05b):
+
+echo "${array[@]: -1:1}"
+Larger negative offsets select farther from the end of the array. Note the space before the minus sign in the older form. It is required.
+
+Just use IFS=', ', then you don't have to remove the spaces separately. Test: IFS=', ' read -a array <<< "Paris, France, Europe"; echo "${array[@]}"
+* Grep only the first match and stop
+
+
+-m 1 means return the first match in any given file. But it will still continue to search in other files. Also, if there are two or more matched in the same line, all of them will be displayed.
+
+You can use head -1 to solve this problem:
+
+grep -o -a -m 1 -h -r "Pulsanti Operietur" /path/to/dir | head -1

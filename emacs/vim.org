@@ -1,0 +1,88 @@
+* copy matched lines to reg A
+:g/^match/yank A
+* search
+docker\n    a newline character (line ending)
+\_s    a whitespace (space or tab) or newline character
+\_^    the beginning of a line (zero width)
+\_$    the end of a line (zero width)
+\_.    any character including a newline
+
+Finding this or that
+red\|green\|blue
+
+\<\(red\|green\|blue\)\>          match whole word
+
+:%s/\<\(red\|green\|blue\)\>/"&"/g       put a quote around the whole match
+
+If you do not want the whole matched pattern, you can use parentheses to group text in the search pattern, and use the replacement variable \1
+
+Finding duplicate words
+Sometimes words are accidentally duplicated in text (like this this). The following pattern finds repeated words that are separated by whitespace (spaces, tabs, or newlines):
+
+\(\<\w\+\>\)\_s*\<\1\>
+The pattern searches for \<\w\+\> (word beginning \<, word character \w, one or more \+ word characters, word end \>). That is, it searches for a whole word. It then looks for any amount of whitespace (\_s*); \s matches space or tab, while \_s matches space or tab or newline (end-of-line character). Finally, the pattern looks for \1 which is the whole word that was found in the escaped parentheses.
+* q / search history
+* q?  command hisory
+* How can I use vim as a hex editor
+:setlocal display=uhex
+   or
+:%!xxd (: to normal model, % whole file, ! execute, xxd
+
+Once you make the changes (in the hex part), you can go back to text with -r command on xxd, so
+
+:%!xxd -r
+* substitute
+:s current line   :%s all lines
+:5,12s/foo/bar/g	Change each 'foo' to 'bar' for all lines from line 5 to line 12 (inclusive).
+:'a,'bs/foo/bar/g	Change each 'foo' to 'bar' for all lines from mark a to mark b inclusive (see Note below).
+:'<,'>s/foo/bar/g	When compiled with +visual, change each 'foo' to 'bar' for all lines within a visual selection. 
+Vim automatically appends the visual selection range ('<,'>) for any ex command when you select an area and enter :. Also, see Note below.
+
+:.,$s/foo/bar/g	Change each 'foo' to 'bar' for all lines from the current line (.) to the last line ($) inclusive.
+:.,+2s/foo/bar/g	Change each 'foo' to 'bar' for the current line (.) and the two next lines (+2).
+:g/^baz/s/foo/bar/g	Change each 'foo' to 'bar' in each line starting with 'baz'.
+
+:s/as\C/df match 'as' not 'AS', the same as :s/as/df/I
+:s/AS\c/df match 'AS' and 'as', the same as :s/AS/df/i
+
+The g flag means global – each occurrence in the line is changed, rather than
+just the first. This tip assumes the default setting for the 'gdefault' and
+'edcompatible' option (off), which requires that the g flag be included in
+%s///g to perform a global substitute. Using :set gdefault creates confusion
+because then %s/// is global, whereas %s///g is not (that is, g reverses its
+meaning)
+* multiple cursor at desired location
+http://vi.stackexchange.com/questions/4307/multiple-cursors-at-desired-location
+* Using the current word or registers
+** :%s//bar/g
+Replace each match of the last search pattern with 'bar'.
+For example, you might first place the cursor on the word foo then press * to search for that word.
+The above substitute would then change all words exactly matching 'foo' to 'bar'.
+** :%s/foo/<c-r><c-w>/g
+Replace each occurrence of 'foo' with the word under the cursor.
+** :%s/foo/<c-r><c-a>/g
+Replace each occurrence of 'foo' with the WORD under the cursor (delimited by whitespace).
+** :%s/foo/<c-r>a/g
+Replace each occurrence of 'foo' with the contents of register 'a'.
+** :%s/foo/\=@a/g
+Replace each occurrence of 'foo' with the contents of register 'a'.
+\=@a is a reference to register 'a'.
+The contents of register 'a' is not shown in the command. This is useful if the register contains many lines of text.
+** :%s//<c-r>//g
+Replace each match of the last search pattern with the / register (the last search pattern).
+After pressing Ctrl-R then / to insert the last search pattern (and before pressing Enter to perform the command), you could edit the text to make any required change.
+:%s/<c-r>*/bar/g
+Replace all occurrences of the text in the system clipboard (in the * register) with 'bar' (see next example if multiline).
+On some systems, selecting text (in Vim or another application) is all that is required to place that text in the * register.
+** :%s/<c-r>a/bar/g
+Replace all occurrences of the text in register 'a' with 'bar'.
+<c-r>a means that you press Ctrl-R then a. The contents of register 'a' will be inserted as though you typed it.
+Any newlines in register 'a' are inserted as ^M and are not found.
+The search works if each ^M is manually replaced with '\n' (two characters: backslash, 'n').
+This replacement can be performed while you type the command:
+** :%s/<c-r>=substitute(@a,"\n",'\\n','g')<CR>/bar/g
+The "\n" (double quotes) represents the single character newline; the '\\n' (single quotes) represents two backslashes followed by 'n'.
+The substitute() function is evaluated by the <c-r>= (Ctrl-R =) expression register; it replaces each newline with a single backslash followed by 'n'.
+The <CR> indicates that you press Enter to finish the = expression.
+** :%s/<c-r>0/bar/g
+Same as above, using register 0 which contains the text from the most recent yank command

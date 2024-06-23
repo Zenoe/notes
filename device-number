@@ -1,0 +1,12 @@
+https://stackoverflow.com/questions/4309882/device-number-in-stat-command-output
+The only important thing with a device file are its major and minor device numbers, which are shown instead of the file size:
+
+      $ ls -l /dev/hda
+brw-rw---- 1 root disk 8, 0 mars  9 07:56 /dev/sda
+Shows permissions ( brw-rw----), owner (root), group (disk), major device number (8), minor device number (0), date (mars 9 - french, no year), hour (07:56) and device name (guess :-).
+
+When accessing a device file, the major number selects which device driver is
+being called to perform the input/output operation. This call is being done with
+the minor number as a parameter and it is entirely up to the driver how the
+minor number is being interpreted. The driver documentation usually describes
+how the driver uses minor numbers.

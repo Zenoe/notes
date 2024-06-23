@@ -1,0 +1,233 @@
+* send receive must be paired
+send data1 then receive data1-back
+send data2 without receiving immediately.
+begin to send data3, then try to receive data. warning: here we would probably receive data2-back and data3-back that had messed up
+[telnetlib.write("command"), read instantly, it's better for the two proceudre enclolsed in one routine]
+* god's light
+windows 透明png图片绘画：一开始信心满满，源于对WIC的信心。随着深入，发现透明png
+图片无法正确绘制。搜索大量大量的资料，各种demo程序混合并用，都无法处理透明部分的
+绘制。今天周四了，基本想放弃的时候，突然间获得了突破。WICDemo的
+CWICImagingFactory 创建decoder，把png图片转化为HBITMAP,(这个转化是从
+LoadSplashImage 例子中无意看到)，应用到CAlphaImage例子SetHandle中，WICDemo中把
+alpha_img draw 到button的HDC上，button无法及时显示png图片，需要手动Invalidate窗
+口后才能看到。那一刻，结合了这么多因素的操作，见到了光明。
+
+macosx sslvpn 巫的问题缠绕我很深。无法随时现场调试，只能不断猜测，又无法验证。下
+午突然想到把他的网络环境配置文件
+/Library/Preferences/SystemConfiguration/preferences.plist发过来，放到自己机器上，
+重现了那个bug。天!
+
+就这样，2个无比头疼的问题，正当要放弃的时候，... 我无法理解这种东西，只能称为上帝之光吧。
+* rwiki显示的图片链接地址不对，指向了wireless1 （原工程名)
+搜遍程序目录，没有wireless1的引用。结果 wireless1 隐藏在数据库的字段里
+select * from sp_posts where sp_posts.post_content like '%wireless1%'
+* bz lbzip
+lbzip lbz2 搞混了！！！
+undefined reference to `BZ2_bzDecompressEnd'  需要link bz2 ，不是 lbzip
+LIBS += -LD:/cygwin/usr/local/lib -lbzip  // link --> bzip2.lib 
+LIBS += -LD:/cygwin/usr/local/lib -lbz2   // link --> libbz2.a
+* carelessness wastes lots of time
+** get wrong/null value
+| ACL        | input box |       |          |            |
+|------------+-----------+-------+----------+------------|
+| Interface: | input box | Port: | inputbox | add_btn |
+|            |           |       |          |            |
+function add_if_addr(add_btn){
+    var table_id = $(add_btn).closest('table').attr('id');
+    var table = document.getElementById(table_id);
+(1) var row0 = table.rows[0];// error. should be "table.rows[1]"
+    var trow = table.insertRow(2);
+    for( var j = 0, col; col = row0.cells[j]; j++){
+        var tcell = trow.insertCell(j);
+        tcell.innerHTML = col.innerHTML;// row0.cells[2,3,4].innerHTML 为空，因为line (1) 错误.
+        // 但是总以为是innerHTML接口调用出错，先入为主总以为row0.cells[2,3,4].innerHTML不该为空。其实就是空.
+        // 反省:换个方向四维。确实是空值，是什么导致了空值，取的值不是所要取的，取了错误的对象的值。
+    }
+** $("#interface-ip").eq(i)
+actually #interface is id(supposed to be unique), it doesn't support eq . $(".interface-ip").eq(i)
+but I try took it wrongly. I thought the newly inserted element in dom's way couldn't be accessed instantly.
+hence I try to jquery way, both in vain. 不要随便质疑API
+jquery:    $(table).after('<tr><td>column 1 value</td><td>column 2 value</td></tr>');
+dom:       var trow = table.insertRow(this_row_idx + 1);
+* prograqmming
+** shared_ptr with thread:                                   :thread:bug:
+  func(){
+    std::shared_ptr<HttpRequestThrd> http_req_thrd(new HttpRequestThrd(_T("172.18.33.61"),tbuf ));
+    http_req_thrd->startThread();
+ }
+
+http_req_thrd 是一个独立的线程，跳出func作用域后,在线程run的过程，http_req_thrd 很可能已经销毁了。典型的线程隐患bug
+
+** 全局变量很方便，随时可以调用，但是往往会在它初始化之前便被调用了，这个很危险
+** address.sin_port = htons(iport)
+
+** authorizationexecutewithprivileges launchctl load fail. I don't know why. but I know one awkward way that is sh "sudo launchctl load xxx.plist" could be OK. 
+but I don't want to give it a try. I waste alot time on trying to work with
+authorizationexe, in vain. Then I try sh, everything is ok as expected, then I
+changed my mind. well, this could be a good way. just it.
+
+u must overcome barrier built by yourself in ur mind.
+
+** g_cur_selcert_idx第一次是为了表示ListBox的选中的index,后来发现不行,赋予它另外一个意义，item的index,但是没有修改变量名。一个月之后修改代码，就认为了是表示ListBox的选中的index。险些导致bug。
+
+** g_winhttpThrd 构造函数生成sid，然后写入注册表。
+升级情况释放了变量，重现初始化，会重现生成sid，与之前注册表村的那条sid冲突。应该先检查前一次的存储值
+** 函数封装 popbuf
+   uint8 iinit_lag = *((char*)(buf));
+    icursor += sizeof(char);    ==> iinit_lag = popbuf(buf, sizeof(char))
+    
+    route = *((char*)(buf + icursor));
+    icursor += sizeof(char);   ==> route = popbuf(buf, sizeof(char))
+    
+    uint32 isslvpn_addr = *((uint32*)(buf + icursor));
+    icursor += sizeof(uint32); ==> isslvpn_addr = popbuf(buf, sizeof(uint32))
+    ......
+    
+    should package in a fun 
+    popbuf(buf, size){
+    icursor += size;
+    .....
+    }
+
+** change_route(arg1);//fail
+change_route(arg2);//fail cause by pre call, there are global variables in change_route
+change_route(arg2);//success
+
+** compile err: variable 'valeu' is not global:    actually 'value' : spell mistake, don't overlook it
+* 用过不同的dns，要先清空缓存，ipconfig /flushdns 
+* packaging windows sslvpn waste my whole day
+没有完全update guid 和 Ax 文件名 ，总是漏了一些，导致打包失败。
+浪费了一天。卸载没有删除guid 和 Ax的关联(保存在注册表的信息)，导致后来同一个RgSslvpnAx_151130.dll对应多个guid.
+及时guid, Ax's name 完全更新，也无法正常使用
+* 运用新技术（重构前）先做demo。如：用异步wininet改造http(s)请求
+* 变量定义后一定要初始化。overlap结构没有初始化导致
+* Exhausted available authentication methods 
+CM 自动安装时，出的错。
+结果是由于一个配置文件中的集群机器密码没有设置，导致 authenticate host x.x.x.x failed
+耽误了一整天。当得知这个失误时，非常沮丧。
+重复了多少次安装，每次操作都是机械重复，配置文件时更是如此，只关心某些项，其它内容视而不见.而被忽视的就是致命点。
+思维盲点也好，定势也好，防不胜防。
+* Warning "root" does not have permission to access the dev dir
+npm rebuild 时出现权限不足. 原因是npm 执行时使用的用户没有对当前目录的写权限
+* npm build failed again!!!!!!
+要777权限，766不够!!!!!!
+[root@wbda ui2]# npm rebuild
+
+> node-sass@4.5.3 install /opt/bigdata/wbda/ui2/node_modules/node-sass
+> node scripts/install.js
+
+module.js:538
+    throw err;
+    ^
+
+Error: Cannot find module '/opt/bigdata/wbda/ui2/node_modules/node-sass/scripts/install.js'
+    at Function.Module._resolveFilename (module.js:536:15)
+    at Function.Module._load (module.js:466:25)
+    at Function.Module.runMain (module.js:676:10)
+    at startup (bootstrap_node.js:187:16)
+    at bootstrap_node.js:608:3
+npm ERR! code ELIFECYCLE
+npm ERR! errno 1
+npm ERR! node-sass@4.5.3 install: `node scripts/install.js`
+npm ERR! Exit status 1
+npm ERR!
+npm ERR! Failed at the node-sass@4.5.3 install script.
+npm ERR! This is probably not a problem with npm. There is likely additional logging output above.
+
+npm ERR! A complete log of this run can be found in:
+npm ERR!     /root/.npm/_logs/2017-12-04T15_06_41_689Z-debug.log
+
+
+同样的错误。犯错都有一个倾向。犯过了，往往会再犯同样的错,是顽固无比的
+* tomcat  catalina.out
+07-Dec-2017 15:57:38.893 严重 [localhost-startStop-1] org.apache.catalina.core.ContainerBase.addChildInternal ContainerBase.addChild: start:
+ org.apache.catalina.LifecycleException: Failed to start component [StandardEngine[Catalina].StandardHost[localhost].StandardContext[/TopBI]]
+
+java verion confilct
+* 数据只要不是临时变量，就要有init and reset/clear
+* Environments need to be reset according to request  eg: 环境（虚拟机） 快速还原
+* recursive callback function
+  startMarkerCreatedCB = (ins) => {
+    const { velocity } = this.state;
+    this.currentPathSection=0;
+    ins.moveAlong(this.pathSections[0], velocity);
+    this.startMarkerInstance = ins;
+  }
+  startMarkerEvents = {
+    created: (ins) => { this.startMarkerCreatedCB(ins)},
+    movealong: () => { this.moveAlongCB()},
+    dblclick: () => {
+      const { velocity } = this.state;
+      const self = this;
+      this.currentPathSection += 1;
+      if(this.currentPathSection === this.pathSections.length){
+        this.currentPathSection = 0;
+      }
+
+      const hilight={
+        strokeOpacity: 1,
+      }
+      this.modifyRouteColor(this.currentPathSection, hilight);
+      self.startMarkerInstance.moveAlong(self.pathSections[self.currentPathSection], velocity);
+    }
+  };
+
+  moveAlongCB = () => {
+    // this.drawRoute(this.pathSections[this.currentPathSection], this.mapInstance)
+    // this.currentPathSection += 1;
+    // if(this.currentPathSection === this.pathSections.length){
+    //   this.currentPathSection = 0;
+    // }
+
+    // this.drawRoute(this.pathSections[this.currentPathSection], this.mapInstance, '#47D27E')
+    // this.startMarkerInstance.on('movealong', this.moveAlongCB);
+    // self.startMarkerInstance.moveAlong(self.pathSections[self.currentPathSection], velocity);
+    // this.startMarkerInstance.moveAlong(this.pathSections[this.currentPathSection], velocity, (k)=>{return k;}, true);
+
+    this.resetRouteColor();
+
+    const self = this;
+    setTimeout(function(e){
+        // cant trigger another movealong in the movealong callback function directly
+        // but you can do some trick by setting up a timeer, to invoke an
+        // asynchronous  event in which, you can trigger some event, dblclick for example, which
+        // in turn, calls movealong to perform the desire action
+
+      AMap.event.trigger(self.startMarkerInstance, 'dblclick', {target: self.startMarkerInstance});
+    }, 0)
+
+  }
+
+* remove a chile component in react only require a switch during render phase
+do not confuse with the native way of removing an element
+
+* asynchronous function returns asynchronous Variable combine with new version's class value cause troubles
+
+let's name Parent as P, Child as C, both of them are react components
+P receives a data prop (let's say prop(v1)) from somewhere else, and in turn ,pass it to C.
+C calls an asynchronous function using v1 to retrieve result data from some
+server. when the asynchronous returns, C will invoke a function Process(R1, prop(v1)) to do
+caculations base on the returning result and the prop value, which is porp(v1) obviously.
+
+But,
+P does not stop to waiting for the return. by any chance it receives a new data
+prop data which update prop(v1) to prop(v2). it is then passed to Process, cause
+Process(R1, prop(v1)) change to  Process(R1, prop(v2))
+
+* when you do not see the desire effects or results, it doesn't necessary mean that the cooresponding codes have defect
+some other code segment might affect the original code
+or your code is affected by the existing code. (covered by another control that
+alreay exists)
+
+* simulated mouse click event has no effect 'cause the onclick callback of the target dom is null
+it's not that the click dispatching phase was amiss
+it's not the problem with the process
+sometimes you don't see the desire value, it's because some other elements block
+the value.
+
+    updateParameterValue(state, data){
+      return{
+        ...state,
+        configValue: data.payload,
+      }
+    },

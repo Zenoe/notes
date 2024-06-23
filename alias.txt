@@ -1,0 +1,43 @@
+alias mkd='foo(){ mkdir -p "$1"; cd "$1" }; foo '
+alias yins='yum install '
+alias ..="cd .."
+alias ...="cd ..; cd .."
+alias ct='column -t'
+alias dfc='df -hPT | column -t'
+alias mount='mount | column -t'
+alias datef='date +%F'
+alias nowt='date +"%T"'
+alias nowdate='date +"%m-%d-%Y"'
+alias grep='grep --color=auto'
+alias egrep='egrep --color=auto'
+alias fgrep='fgrep --color=auto'
+alias ax="chmod a+x"
+alias ports='netstat -tulanp'
+alias sct='systemctl status'
+alias scts='systemctl start'
+alias scte='systemctl stop'
+alias agp='ag --path-to-ignore ~/.ignore'
+alias fn='find . -name'
+alias svd='svn diff | colordiff | less'
+alias svu='svn update'
+alias svc='svn ci -m '
+alias svt='svn status '
+alias svr='svn revert'
+alias sva='svn add '
+
+# svn diff -r HEAD <item> if you want to get the difference between your working copy and the last committed revision
+alias svdi='foo(){ svn diff -r HEAD "$1" | colordiff  }; foo '
+# svn diff -r PREV:COMMITTED <item> if you want to see what the last commit did.
+alias svdc='foo(){ svn diff -r PREV:COMMITTED "$1" | colordiff  }; foo '
+
+
+
+GOPATH=/usr/local/go
+export PATH=$PATH:$GOPATH/bin:/root/go/bin:/root/.cargo/bin
+eval "$(fasd --init auto)"
+source /etc/profile.d/myalias
+source ~/.nvm/nvm.sh
+
+MAVEN_HOME=/usr/local/maven3
+export MAVEN_HOME
+export PATH=${PATH}:${MAVEN_HOME}/bin

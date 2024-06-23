@@ -1,0 +1,6 @@
+flycheck-select-checker
+    python-pylint
+
+
+pip install pylint
+pylint --generate-rcfile > ${HOME}/.pylintrc

@@ -1,0 +1,161 @@
+* public directory can be directly accessed
+http://10.110.198.52:3009/images/mbt.png
+where mbt.png is placed in frontend project root/public/images
+* img in public or src/
+Using the src Directory: When you import an image (or any asset) into a JavaScript file, tools like Webpack process the import and may rename the file (for caching purposes), place it into your build folder, and give you the final path. This is why importing images from the src directory is often preferred for React projects created with create-react-app or similar setups.
+
+Using the public Directory: Assets in the public directory are not processed by Webpack. They're copied as-is into the build folder. Referencing images from the public directory is useful when you have a large number of assets or when you want to dynamically generate image paths. However, keep in mind that since these assets aren't processed, features like version hashing (for cache busting) won't be applied.
+* debounce vs throttle
+debounce: limite execution, wait for a ertain amount of time b4 running it again
+delay 时间内不停按键，停止后经过 delay 时间才触发
+throttle: control fireing frequency
+不停按键期间，每隔delay 就触发一次
+
+* iterate through object
+** through entries
+for (let [key, value] of Object.entries(obj)) {
+    console.log(key, value);
+}
+** keys
+Object.keys(obj).forEach(key => {
+  let value = obj[key];
+  console.log(key, value);
+});
+** value
+Object.values(obj).forEach(value => {
+   console.log(value);
+});
+
+** for in #fastest#
+for (let key in obj) {
+  let value = obj[key];
+  if (obj.hasOwnProperty(key)) {
+    console.log(`Property ${key} is NOT from prototype chain`);
+  } else {
+    console.log(`Property ${key} is from prototype chain`);
+  }
+}
+* forEach vs for of
+loops support continue and break
+By loops I mean for, for...in, for...of, while and do...while, not forEach, which is actually a function defined on the Array prototype
+
+for of supports all kinds of control flow in the loop body, like continue, break, return, yield and await
+async await not with forEach
+Reading in sequence
+If you want to read the files in sequence, you cannot use forEach indeed. Just use a modern for … of loop instead, in which await will work as expected:
+
+async function printFiles () {
+  const files = await getFilePaths();
+
+  for (const file of files) {
+    const contents = await fs.readFile(file, 'utf8');
+    console.log(contents);
+  }
+}
+Reading in parallel
+If you want to read the files in parallel, you cannot use forEach indeed. Each of the async callback function calls does return a promise, but you're throwing them away instead of awaiting them. Just use map instead, and you can await the array of promises that you'll get with Promise.all:
+
+async function printFiles () {
+  const files = await getFilePaths();
+
+  await Promise.all(files.map(async (file) => {
+    const contents = await fs.readFile(file, 'utf8')
+    console.log(contents)
+  }));
+}
+// Using Babel will transform async/await to generator function and using forEach means that each iteration has an individual generator function, which has nothing to do with the others. so they will be executed independently and has no context of next() with others. Actually, a simple for() loop also works because the iterations are also in one single generator function.
+* promise
+const promise1 = Promise.resolve('hello');
+const promise2 = 10;
+const promise2 = new Promise((resolve, reject)=>{
+    setTimeout(resolve, 2000, 'Goodbye')
+})
+
+const promise4 = fetch
+('https://jsonplaceholder.typicode.com/posts')
+.then(res => res.json());
+
+
+Promise.all([promise1, promise2, promise3, promise4])
+.then(values = >{
+console.log(values)
+})
+
+* index.spec.js
+Use of spec.js is for writing you unit test cases for your angular application. We write test cases in angular using Jasmine & Karma.
+
+Jasmine is a Behavior Driven Development testing framework for JavaScript. It does not rely on browsers, DOM, or any JavaScript framework. Thus it's suited for websites, Node.js projects, or anywhere that JavaScript can run.
+
+https://github.com/jasmine/jasmine
+
+Karma is essentially a tool which spawns a web server that executes source code against test code for each of the browsers connected. The results of each test against each browser are examined and displayed via the command line to the developer such that they can see which browsers and tests passed or failed.
+
+https://karma-runner.github.io/1.0/index.html
+
+* react click 传参
+<button onClick={this.handleClick.bind(this, props0, props1, ...}></button>
+handleClick(porps0, props1, ..., event) {
+    // your code here
+}*
+* use computed property notation
+export default {
+    [actionTypes.SELECT_HOST]: selectHost
+};
+For instance, if actionTypes.SELECT_HOST contains the string "foo", that would produce an object with a property named foo whose value was the value of selectHost.
+
+* use if statement instead of nesting ternary operators
+Instead of nesting ternary operators as it is often suggested or creating a separate function that will not be reused anywhere else, you can simply call an inline expression:
+<div className="some-container">
+{
+   (() => {
+       if (conditionOne)
+          return <span>One</span>
+       if (conditionTwo)
+          return <span>Two</span>
+       else (conditionOne)
+          return <span>Three</span>
+   })()
+}
+</div>
+* require
+require is part of node js, it's a build-in function with a special purpose: to load modules
+
+Modules are a way to split an application into seperate files instead of having
+all of your application in one file.
+
+In browser JavaScript, scripts are added via the <script> element. When they
+execute, they all have direct access to the global scope, a "shared space" among
+all scripts. Any script can freely define/modify/remove/call anything on the
+global scope.
+
+In Node.js, each module has its own scope. A module cannot directly access
+things defined in another module unless it chooses to expose them. To expose
+things from a module, they must be assigned to exports or module.exports. For a
+module to access another module's exports or module.exports, it must use
+require()
+* index.js
+When you pass a folder to Node's require(), it will check for a package.json for
+an endpoint. If that isn't defined, it checks for index.js, and finally
+index.node (a c++ extension format). So the index.js is most likely the entry
+point for requiring a module
+* Object.getPrototypeOf(new Foobar()) refers to the same object as Foobar.prototype.
+* https://www.fullstackreact.com/articles/what-are-babel-plugins-and-presets/
+* Overview of async exception handling
+If I cause an error with: throw new Error()
+try {} catch {}:Yes, but if the throw happens in a Promise it must have been awaited with the await syntax, and resolve must not have been called before the throw. Will not catch errors thrown in another call stack via a setTimeout() or setInterval() callback.
+
+promise.catch(e => {}):Yes, unless resolve() was called earlier or the error happened in an asynchronous callback function, for example, a function passed to setTimeout().
+
+window.onunhandledrejection:Yes, but not until script execution has completed, your call stack is unwound, and control is yielded back to the runtime, and none of the other mechanisms have dealt with error up until then.
+
+window.onerror: Not if the error was thrown in a Promise.
+
+If I cause an error with: reject()
+try/catch:  Yes, but only if the function was called with the await syntax, and only if resolve() has not been called for the promise already.
+
+promise.catch: Yes, unless resolve() was called earlier.
+
+window.onunhandledrejection:Yes, but not until script execution has completed, your call stack is unwound, and control is yielded back to the runtime, and none of the other mechanisms have dealt with error up until then.
+
+window.onerror: No.
+

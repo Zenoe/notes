@@ -1,0 +1,109 @@
+#+TITLE:
+isteachcol = 7
+buildcol = 4
+rowmax = ActiveSheet.UsedRange.Rows.Count
+
+For i = 2 To rowmax
+    keyvalue = Cells(i, buildcol).Value
+    'If (StrComp(keyvalue, "凌水校区-图书馆", vbTextCompare) = 0) Then
+    If (InStr(keyvalue, "教") > 0) Or (InStr(keyvalue, "A0") > 0) Or (InStr(keyvalue, "主楼") > 0) Then
+    Cells(i, isteachcol).Value = 1
+    Else
+    Cells(i, isteachcol).Value = 0
+    End If
+Next i
+
+Sub fillbykey_Click()
+keycol = 1
+rowmax = 20000
+
+'value to be copied
+valuecopied = ActiveCell.Value
+currentrow = ActiveCell.Row
+currentcol = ActiveCell.Column
+keyvalue = Cells(currentrow, keycol).Value
+
+
+Dim i As Integer
+
+For i = currentrow + 1 To rowmax
+    If (StrComp(keyvalue, Cells(i, keycol).Value, vbTextCompare) = 0) Then
+    Cells(i, currentcol).Value = valuecopied
+    End If
+Next i
+End Sub
+
+......
+If (StrComp(keyvalue, "凌水校区-图书馆", vbTextCompare) = 0) Then
+    Cells(i, 11).Value = "纬度:38.877932 经度121.528129"
+End If
+
+Sub SelectRange()
+Workbooks("Book2.xlsx").Worksheets("Sheet1").Activate
+Range("A1:D20").Select
+End Sub
+
+``````````````````````````````````
+Sub 按钮3_Click()
+Set dict = CreateObject("Scripting.Dictionary")
+Set sh1 = ThisWorkbook.Worksheets(1)
+Set sh2 = ThisWorkbook.Worksheets(2)
+
+For i = 2 To sh1.UsedRange.Rows.Count
+
+buildname = sh1.Range("D" & i).Value
+
+xpos = sh1.Range("E" & i).Value
+ypos = sh1.Range("F" & i).Value
+xypos = xpos & "," & ypos
+If Not dict.Exists(buildname) Then
+    dict.Add buildname, xypos
+End If
+Next i
+
+
+For i = 2 To sh2.UsedRange.Rows.Count
+
+xxx = dict(sh2.Range("D" & i).Value)
+idx = InStr(xxx, ",")
+
+aa = Left(xxx, idx - 1)
+bb = Right(xxx, Len(xxx) - idx)
+
+sh2.Range("E" & i).Value = aa
+sh2.Range("F" & i).Value = bb
+
+Next i
+
+End Sub
+
+````````````````````````````````
+Sub fillClassName_Click()
+rowmax = ActiveSheet.UsedRange.Rows.Count
+
+'rowmax = 3
+For i = 2 To rowmax
+grade = ActiveSheet.Range("f" & i).Value
+
+'ActiveSheet.Range("j" & i).Value = grade & "0915"
+'Debug.Print grade
+
+If IsEmpty(ActiveSheet.Range("G" & i).Value) Then
+
+class = ActiveSheet.Range("e" & i).Value & ActiveSheet.Range("f" & i).Value
+ActiveSheet.Range("G" & i).Value = class
+End If
+
+Next i
+
+End Sub
+
+............................
+Columns(1).Font.Color = vbRed
+
+For i = 1 To 6
+
+If Cells(i, 2).Value < Range("F7").Value And Not IsEmpty(Cells(i, 1).Value) Then
+    Cells(i, 2).Font.Color = vbRed
+End If
+............................

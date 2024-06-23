@@ -1,0 +1,71 @@
+* the missing of antd table rowKey cause warning
+* tabItem can not receive updated state
+must update tabItem by useEffect
+  useEffect(() => {
+    setTabItems(prevTabItems =>
+      prevTabItems.map(tabItem =>
+        tabItem.key === 'atsprojectdashboard'
+          ? {
+              ...tabItem,
+              label: renderTitleNRefresh('项目看板', fetchDashBoardData),
+            }
+          : tabItem
+      )
+    )
+  }, [currentProject])
+
+* jest cause Cannot find module 'define-property'
+For Babel version 6 the package name is babel-preset-es2015 and for Babel version 7 the package name is @babel/preset-es2015.
+
+From the error it seems that you're using version 7. The es20XX-presets are deprecated, so I recommend you switch to @babel/preset-env.
+
+First install the preset (using npm):
+
+npm install --save-dev @babel/preset-env
+Then add the preset to your .babelrc
+
+{
+    presets: ["@babel/preset-env"]
+}
+
+* jest do not reconize ES6 (import)
+**  安装babel-preset-stage-2组件 (deprecated)
+npm install --save-dev babel-preset-stage-2
+修改.babelrc配置文件
+{
+    "presets": ["es2015", "react", "stage-2"]
+}
+**   remove deprecated packages and Replace with Scope Packages
+http://flummox-engineering.blogspot.com/2018/11/webpack--babel-react-reactjs-pluginpreset-files-are-not-allowed-to-export-objects-only-functions.html
+* Plugin/Preset files are not allowed to export objects, only function
+What I did was to remove the deprecated projects
+
+$ yarn remove babel-core babel-loader babel-preset-env babel-preset-react
+
+
+and replace them with the newer packages
+
+
+$ yarn add -D @babel/core babel-loader @babel/preset-env @babel/preset-react
+
+
+If you are using npm:
+
+
+$ npm uninstall babel-core babel-loader babel-preset-env babel-preset-react
+$ npm add -D @babel/core babel-loader @babel/preset-env @babel/preset-react
+
+Update .babelrc Presets
+After installing the newer packages, remember to update your .babelrc presets from react to @babel/preset-react. Here is a simple example
+
+
+{
+"presets": [
+"@babel/preset-env",
+"@babel/preset-react"
+],
+"plugins": [
+"transform-class-properties",
+"transform-object-rest-spread"
+]
+}

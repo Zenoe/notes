@@ -1,0 +1,10 @@
+* path that g++ looks for header files
+You can use environment variables to change the path g++ looks for header files. From man page:
+
+Some additional environments variables affect the behavior of the preprocessor.
+
+   CPATH
+   C_INCLUDE_PATH
+   CPLUS_INCLUDE_PATH
+   OBJC_INCLUDE_PATH
+gcc -I/path -L/path

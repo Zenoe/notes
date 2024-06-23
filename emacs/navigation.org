@@ -1,0 +1,56 @@
+
+*  use + to go to the first non blank character on the next line. - do the opporsite
+* C-spc => Activate mark , expand region init
+* marker and jumps
+ma	set mark a at current cursor location
+'a	jump to line of mark a (first non-blank character in line)
+`a	jump to position (line and column) of mark a
+d'a	delete from current line to line of mark a
+d`a	delete from current cursor position to position of mark a
+c'a	change text from current line to line of mark a
+y`a	yank text to unnamed buffer from cursor to position of mark a
+:marks	list all the current marks
+:marks aB	list marks a, B
+Commands like d'a operate "linewise" and include the start and end lines.
+Commands like d`a operate "characterwise" and include the start but not the end character.
+
+It is possible to navigate between lowercase marks:
+
+Command	Description
+]'	jump to next line with a lowercase mark
+['	jump to previous line with a lowercase mark
+]`	jump to next lowercase mark
+[`	jump to previous lowercase mark
+The above commands take a count. For example, 5]` jumps to the fifth mark after the cursor.
+
+Vim has some special marks which it sets automatically. Here are some of the most useful:
+
+`.	jump to position where last change occurred in current buffer
+`"	jump to position where last exited current buffer
+`0	jump to position in last file edited (when exited Vim)
+`1	like `0 but the previous file (also `2 etc)
+''	jump back (to line in current buffer where jumped from)
+``	jump back (to position in current buffer where jumped from)
+`[ or `]	jump to beginning/end of previously changed or yanked text
+`< or `>	jump to beginning/end of last visual selection
+
+mx tells Vim to add a mark called x.
+`x tells Vim to return to the line and column for mark x.
+
+'x tells Vim to return to the beginning of the line where mark x is set.
+
+`. moves the cursor to the line and column where the last edit was made.
+
+'. moves the cursor to the line where the last edit was made.
+
+'" moves the cursor to the last position of the cursor when you exited the previous session.
+
+:marks shows all marks set.
+
+:marks x shows the mark named x.
+
+:jumps shows the jumplist.
+
+Ctrl-o moves the cursor to the last jump.
+
+Ctrl-i moves the cursor to the previous jump.

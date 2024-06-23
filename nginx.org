@@ -1,0 +1,85 @@
+#+TITLE:
+* 文件索引
+location / {
+  autoindex on;
+  root /usr/shart/nginx/html
+}
+* 打开页面空白
+react路由问题,没有在最后加tools, http://10.110.198.52/tools/
+    <BrowserRouter basename="/tools">
+* enable your configuration by linking it into /etc/nginx/sites-enabled/:
+sudo ln -s /etc/nginx/sites-available/matomo.conf /etc/nginx/sites-enabled/
+Use nginx -t to verify that the configuration file syntax is correct:
+ finally, reload the nginx service to pick up the new configuration:sudo systemctl reload nginx
+* change default 80
+/etc/nginx/sites-enabled/default
+* proxy from https to http
+        location ^~ /map {
+           proxy_pass http://map.dlut.edu.cn;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $remote_addr;
+           proxy_http_version 1.1;
+           proxy_set_header Connection "";
+        }
+
+        location ^~ /openmap {
+           proxy_pass http://map.dlut.edu.cn;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $remote_addr;
+           proxy_http_version 1.1;
+           proxy_set_header Connection "";
+        }
+
+        location ^~ /dlutmap {
+           proxy_pass http://map.dlut.edu.cn/openmap/config/demo/;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $remote_addr;
+           proxy_http_version 1.1;
+           proxy_set_header Connection "";
+        }
+
+* 1、全局块：配置影响nginx全局的指令。一般有运行nginx服务器的用户组，nginx进程pid存放路径，日志存放路径，配置文件引入，允许生成worker process数等。
+2、events块：配置影响nginx服务器或与用户的网络连接。有每个进程的最大连接数，选取哪种事件驱动模型处理连接请求，是否允许同时接受多个网路连接，开启多个网络连接序列化等。
+3、http块：可以嵌套多个server，配置代理，缓存，日志定义等绝大多数功能和第三方模块的配置。如文件引入，mime-type定义，日志自定义，是否使用sendfile传输文件，连接超时时间，单连接请求数等。
+4、server块：配置虚拟主机的相关参数，一个http中可以有多个server。
+5、location块：配置请求的路由，以及各种页面的处理情况。
+* location
+1：Nginx location 规则匹配
+^~          标识符匹配后面跟一个字符串。匹配字符串后将停止对后续的正则表达式进行匹配。
+             如：location ^~ /images/,  在匹配了/images、这个字符串后就停止对后续的匹配
+=          精准匹配，如：location=/,只会匹配urrl为/的请求
+~          区分大小写的匹配
+~*         不区分大小写的匹配
+!~          对区分大小写的匹配取非
+!~*         对区分大小写的匹配取非
+/             通用匹配，如果没有其他匹配，任何匹配请求都会被匹配到
+ 2：正则表达式
+(a | b)    匹配a或b
+^          以.....开头
+$         以.....结尾
+{n}        重复前面的字符n次
+{n,}       重复前面的字符n次或更多次
+{n,m}     重复前面的字符n次到m次
+*?           重复前面的字符0次或多次 ,但尽可能的少重复
++?           重复前面的字符1次或更多次 ,但尽可能的少重复
+??           重复前面的字符0次或1次 ,但尽可能的少重复
+{n,m} ?    重复前面的字符n次或m次 ,但尽可能的少重复
+{n,} ?       重复前面的字符n次以上 ,但尽可能的少重复
+3：正则补充
+\w           匹配任意不是字母，数字，下划线，汉子的字符
+\s           匹配任意不是空白字符串的字符
+\D          匹配任意非数字的字符
+\B          匹配不是单词开头或结束的位置
+[a]         匹配a-z小写字母的任意一个
+[^a]        匹配除a以外的任意字符
+4：Nginx location应用规则
+location [=|~|~*|^~|!~|!~*] /url/{...}
+默认值：no
+使用字段：server
+location参数根据URL的不同需求来进行位置配置。可以使用字符串与正则表达式匹配
+location ~*.*\.jsp$ {
+      proxy_pass http://tomcat_server;
+}

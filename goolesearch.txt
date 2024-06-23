@@ -1,0 +1,161 @@
+基本搜索技巧
+
+1 +（英文）：逻辑“与”的意思，也可以用“空格”表示
+
+示例：搜索包含关键词“苹果和癌症”的中文网页
+
+搜索：苹果 癌症
+
+结果：找到约6150000条结果，
+
+2 -（英文）：逻辑“非”的意思
+
+示例：搜索包含“美女”而不含“帅哥”的中文网页
+
+搜索：美女 -帅哥 ，注意区别美女 - 帅哥和 美女-帅哥的搜索结果
+
+结果：找到约1440000000条结果
+
+3 OR:逻辑“或”的意思
+
+示例1：搜索包含“apple”或者“mother”、或者两者均有的中英文网站
+
+搜索：apple ORmother
+
+结果：找到约5190000000条结果
+
+示例2: 搜索包含“天龙八部”和“古龙”、或者两者均有的网站
+
+搜索：天龙八部和古龙，天龙八部和 古龙，天龙八部 和古龙
+
+结果：找到约881000条结果
+
+辅助搜索
+
+1 google不支持通配符
+
+？；*；%
+
+2 google对英文字符大小写不敏感
+
+God和GOD是一样的
+
+3 google 的关键词可以是词组（中间没有空格），也可以是句子，但是用句子做关键词，必须加英文引号
+
+4 google对中文句子做智能化处理，会自动把句子分割成词语作为关键词
+
+5 google对一些网络上出现频率极高的词（主要是英文），如“i”“com”等以及一些符号如“*”“.”等，做忽略处理，如果用户必须要求关键字中包含这些常用词，就要用强制语法“+” ，符号不可以
+
+高级搜索
+
+1 site：可以查询某个网站页面的收录情况，
+
+apple site:http://www.apple.com/查看包含关键词apple的网页收录情况
+
+site:http://www.apple.com/查看网站的收录情况
+
+apple-pear site:http://www.apple.com/查看包含关键词apple但不包含pear的网页的收录情况
+
+2 link: 查询所有和某个URL有链接的网页，只能单独使用
+
+link:http://www.apple.com/
+
+3 inurl：
+
+apple inurl:happy返回结果为包含happy的URL，其它任何地方则包含了apple
+
+4 intitle：
+
+apple intitle:happy返回结果为包含happy的标题，其它任何地方则包含了apple
+
+5 intext：
+
+apple intitle:happy返回结果为包含happy的正文，其它任何地方则包含了apple
+
+6 inanchor:
+
+7 allinurl:查询返回的网页链接中包含所有查询的关键词
+
+8 allintitle：查询返回的网页标题中包含所有查询的关键词
+
+9 allinanchor(锚文本):返回的网页的锚文本里边包含所查询的关键词
+
+allinanchor:apple happy
+
+10 related：用来搜索结构内容方面相似的页面
+
+11 cache：用来搜索google服务器上某页面的缓存
+
+12 info:查询相关网站的信息
+
+Info:http://www.Apple.com
+
+13 filetype:搜寻结果为包含某个关键词的固定文件格式
+
+apple filetype:pdf
+
+14 cache:返回结果为google收录的当前网页的快照信息
+
+cache:http://www.apple.com/
+
+15 define:返回结果为包含关键词定义的网页
+
+define:apple
+
+16 location:查询指定区域包含某个关键词的网站
+
+apple location:china
+
+17 movie:和关键词相关的电影（目前只支持英语）
+
+18 safesearch:谷歌会过滤搜索结果，包括色情，暴力，赌博等信息，但不能保证百分之百的安全
+
+Safesearch:apple
+
+19 surce:搜索结果为那些指定了特定ID或者新闻源的网址（有问题）？？？
+
+apple source:http://www.sina.com.cn/
+
+20 stocks:和关键词相关的股票信息，大多数来自专业的财经网站
+
+21 store：只返回指定store ID的结果(只支持英文)
+
+apple store:llbean
+
+22 图片搜索功能
+
+针对论坛
+
+1 insubject:论坛搜索结果主题包含关键词的网页
+
+Insubject:”apple”
+
+2 group:返回结果是几个固定的论坛组或者特定主题组的新闻文章
+
+apple group:kids.childen
+
+3 author:返回的结果是包含了指定作者的谷歌论坛，这里的作者可以是全名，部分或者邮件地址
+
+apple author:apple
+
+hello author:dingdm1989@163.com
+
+和电话相关
+
+1 bphonebook:返回结果是商务电话资料
+
+2 phonebook:返回结果是美国当地和关键词相关的住宅信息,但是要指定详细的州名和地点名
+
+3 rphonebook:返回结果是美国当地和关键词相关的住宅信息
+
+谷歌不推荐使用
+
+1 tq
+
+2 weather
+
+3 ext
+
+4 id
+
+5 datarange

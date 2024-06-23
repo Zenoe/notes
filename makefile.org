@@ -1,0 +1,327 @@
+
+?= indicates to set the KDIR variable only if it's not set/doesn't have a value.
+
+For example:
+
+KDIR ?= "foo"
+KDIR ?= "bar"
+
+test:
+    echo $(KDIR)
+
+
+************
+$@ is the name of the target being generated, and $< the first prerequisite (usually a source file). You can find a list of all these special variables in the GNU Make manual.
+
+For example, consider the following declaration:
+
+all: library.cpp main.cpp
+In this case:
+
+$@ evaluates to all
+$< evaluates to library.cpp
+$^ evaluates to library.cpp main.cpp
+
+**************
+.PHONY
+By default, Makefile targets are "file targets" - they are used to build files from other files.
+These special targets are called phony and you can explicitly tell Make they're not associated with files, e.g.:
+
+.PHONY: clean
+clean:
+  rm -rf *.o
+Now make clean will run as expected even if you do have a file named clean.
+
+In terms of Make, a phony target is simply a target that is always out-of-date, so whenever you ask make <phony_target>, it will run, independent from the state of the file system. Some common make targets that are often phony are: all, install, clean, distclean, TAGS, info, check.
+
+
+Newprog :: foo.c
+
+       $(CC) $(CFLAGS) $< -o $@
+
+Newprog :: bar.c
+
+       $(CC) $(CFLAGS) $< -o $@
+
+       如果“foo.c”文件被修改，执行make以后将根据“foo.c”文件重建目标“Newprog”。而如果“bar.c”被修改那么“Newprog”将根据“bar.c”被重建。回想一下，如果以上两个规则为普通规时出现的情况是什么？（make将会出错并提示错误信息）
+
+       当同一个目标出现在多个双冒号规则中时，规则的执行顺序和普通规则的执行顺序一样，按照其在Makefile中的书写顺序执行。
+
+       GNU make的双冒号规则给我们提供一种根据依赖的更新情况而执行不同的命令来重建同一目标的机制。一般这种需要的情况很少，所以双冒号规则的使用比较罕见。一般双冒号规则都需要定义命令，如果一个双冒号规则没有定义命令，在执行规则时将为其目标自动查找隐含规则。
+
+ ==============================================
+
+       百分号%：代表任何目标都要使用这个规则
+%::
+
+@+$(PREP_MK) $(NO_TRACE_MAKE) -s prereq
+
+@+$(SUBMAKE) -r $@
+
+百分号代表任何目标都要使用这个规则，没有依赖的::表示引用此目标时，命令被无条件执行。
+
+* double colon
+https://web.archive.org/web/20180122002430/http://owen.sj.ca.us/~rk/howto/slides/make/slides/makecolon.html
+make has a little used feature that is signified with the double colon (::). This tells make to associate more than one action for a target. Normally, with a the single colon (:), you can have multiple target and prerequisites to map the dependencies, but only one of them can have an associated action. For example:
+
+aaa.o : aaa.c in.h
+	cc -c aaa.c
+
+aaa.o : another.h
+aaa.o : yetanother.h
+The double colon allows your to do something like this:
+libxxx.a :: sub1.o
+	ar rv libxxx.a sub1.o
+
+libxxx.a :: sub2.o
+	ar rv libxxx.a sub2.o
+Where the library libxxx.a depends on sub[12].o and will add them into the library collection as needed.
+The double colon mechanism is very useful for automatically generated Makefiles. The actions can be collected together in a verticle sense, as opposed to the usual approach that lists prerequisites in a horizontal sense. The latter is more efficient from a make operational view, but can be difficult to automate Makefile generation for a batch of source files.
+* double dolor sign
+LIST = one two three
+all:
+        for i in $(LIST); do \
+            echo $$i; \
+        done
+results in the following command being passed to the shell:
+
+for i in one two three; do \
+    echo $i; \
+done
+which generates the expected result:
+
+one
+two
+three
+* assignment
+Simple assignment :=
+A simple assignment expression is evaluated only once, at the very first occurrence. For example, if CC :=${GCC} ${FLAGS} during the first encounter is evaluated to gcc -W then each time ${CC} occurs it will be replaced with gcc -W.
+
+Recursive assignment =
+A Recursive assignment expression is evaluated everytime the variable is encountered in the code. For example, a statement like CC = ${GCC} {FLAGS} will be evaluated only when an action like ${CC} file.c is executed. However, if the variable GCC is reassigned i.e GCC=c++ then the ${CC} will be converted to c++ -W after the reassignment.
+
+Conditional assignment ?=
+Conditional assignment assigns a value to a variable only if it does not have a value
+
+Appending +=
+Assume that CC = gcc then the appending operator is used like CC += -w
+then CC now has the value gcc -W
+
+For more check out these tutorials
+https://github.com/amjadmajid/Makefile
+
+* export
+https://stackoverflow.com/questions/2838715/makefile-variable-initialization-and-export
+export exports the variable to the subshells used by the commands; it is not available for expansion in other assignments. So don't try to get it from the environment outside a rule.
+
+somevar := apple
+export somevar
+
+update1 := $(shell perl -e 'print "method 1 $$ENV{somevar}\n"')
+# Make runs the shell command, the shell does not know somevar, so update1 is "method 1 ".
+
+update2 := perl -e 'print "method 2 $$ENV{somevar}\n"'
+# Now update2 is perl -e 'print "method 2 $$ENV{somevar}\n"'
+
+# Lest we forget:
+update3 := method 3 $(somevar)
+
+all:
+    echo $(update1)
+    $(update2)
+    echo $(update3)
+    perl -e 'print method 4 "$$ENV{somevar}\n"'
+
+* static pattern
+https://www.gnu.org/software/make/manual/make.html#Static-Usage
+targets …: target-pattern: prereq-patterns …
+        recipe
+
+
+Each target is matched against the target-pattern to extract a part of the target name, called the stem. This stem is substituted into each of the prereq-patterns to make the prerequisite names (one from each prereq-pattern).
+Each pattern normally contains the character ‘%’ just once. When the target-pattern matches a target, the ‘%’ can match any part of the target name; this part is called the stem. The rest of the pattern must match exactly. For example, the target foo.o matches the pattern ‘%.o’, with ‘foo’ as the stem. The targets foo.c and foo.out do not match that pattern.
+
+objects = foo.o bar.o
+
+all: $(objects)
+
+$(objects): %.o: %.c
+        $(CC) -c $(CFLAGS) $< -o $@
+
+
+====>
+
+foo.o: foo.c
+    $(CC) -c $(CFLAGS) foo.c -o foo.o
+bar.o: bar.c
+    $(CC) -c $(CFLAGS) bar.c -o bar.o
+
+
+* LOG
+&>> /sonic/tttest.log || { [ $? -eq 0 ] || pushd /sonic > /dev/null ; ./update_screen.sh -e tttest ; popd > /dev/null ; false ; }
+* HEADER
+@
+
+rm -f tttest.log
+./update_screen.sh -a tttest
+* FOOTER
+/update_screen.sh -d tttest
+* SONIC_DERIVED_DEBS
+libmpdec-dev_2.4.2-2_amd64.deb
+libthrift-dev_0.11.0-4_amd64.deb
+python-thrift_0.11.0-4_amd64.deb
+thrift-compiler_0.11.0-4_amd64.deb
+libpython3.6-stdlib_3.6.0-1_amd64.deb
+libpython3.6_3.6.0-1_amd64.deb
+python3.6-minimal_3.6.0-1_amd64.deb
+python3.6_3.6.0-1_amd64.deb
+libpython3.6-dev_3.6.0-1_amd64.deb
+libsairedis-dev_1.0.0_amd64.deb
+libsaivs_1.0.0_amd64.deb
+libsaivs-dev_1.0.0_amd64.deb
+syncd_1.0.0_amd64.deb
+libsaimetadata_1.0.0_amd64.deb
+libsaimetadata-dev_1.0.0_amd64.deb
+libsairedis-dbg_1.0.0_amd64.deb
+libsaivs-dbg_1.0.0_amd64.deb
+syncd-dbg_1.0.0_amd64.deb
+libsaimetadata-dbg_1.0.0_amd64.deb
+frr-pythontools_7.2.1-sonic-0_all.deb
+frr-dbgsym_7.2.1-sonic-0_amd64.deb
+frr-snmp_7.2.1-sonic-0_amd64.deb
+frr-snmp-dbgsym_7.2.1-sonic-0_amd64.deb
+radvd-dbgsym_2.17-2~bpo9+1_amd64.deb
+isc-dhcp-relay-dbgsym_4.3.5-2_amd64.deb
+swss-dbg_1.0.0_amd64.deb
+monit-dbgsym_5.20.0-6_amd64.deb
+redis-tools-dbgsym_5.0.3-3~bpo9+2_amd64.deb
+redis-server_5.0.3-3~bpo9+2_amd64.deb
+redis-sentinel_5.0.3-3~bpo9+2_amd64.deb
+iccpd-dbg_0.0.5_amd64.deb
+lm-sensors-dbgsym_3.4.0-4_amd64.deb
+fancontrol_3.4.0-4_all.deb
+libsensors4_3.4.0-4_amd64.deb
+libsensors4-dbgsym_3.4.0-4_amd64.deb
+sensord_3.4.0-4_amd64.deb
+sensord-dbgsym_3.4.0-4_amd64.deb
+libswsscommon-dev_1.0.0_amd64.deb
+python-swsscommon_1.0.0_amd64.deb
+libswsscommon-dbg_1.0.0_amd64.deb
+hsflowd-dbg_2.0.26-1_amd64.deb
+liblldpctl-dev_0.9.6-1_amd64.deb
+lldpd-dbgsym_0.9.6-1_amd64.deb
+sonic-mgmt-framework-dbg_1.0-01_amd64.deb
+libyang-dev_1.0.73_amd64.deb
+libyang-dbg_1.0.73_amd64.deb
+libyang-cpp_1.0.73_amd64.deb
+python3-yang_1.0.73_amd64.deb
+python2-yang_1.0.73_amd64.deb
+libteam5-dbgsym_1.28-1_amd64.deb
+libteam-dev_1.28-1_amd64.deb
+libteamdctl0_1.28-1_amd64.deb
+libteamdctl0-dbgsym_1.28-1_amd64.deb
+libteam-utils_1.28-1_amd64.deb
+libteam-utils-dbgsym_1.28-1_amd64.deb
+libnl-3-dev_3.5.0-1_amd64.deb
+libnl-genl-3-200_3.5.0-1_amd64.deb
+libnl-genl-3-dev_3.5.0-1_amd64.deb
+libnl-route-3-200_3.5.0-1_amd64.deb
+libnl-route-3-dev_3.5.0-1_amd64.deb
+libnl-nf-3-200_3.5.0-1_amd64.deb
+libnl-nf-3-dev_3.5.0-1_amd64.deb
+libnl-cli-3-200_3.5.0-1_amd64.deb
+libnl-cli-3-dev_3.5.0-1_amd64.deb
+quagga-dbg_0.99.24.1-2.1_amd64.deb
+swig_3.0.12-2_amd64.deb
+swig3.0-dbgsym_3.0.12-2_amd64.deb
+libtac-dev_1.4.1-1_amd64.deb
+libip4tc0_1.6.0+snapshot20161117-6_amd64.deb
+libip6tc0_1.6.0+snapshot20161117-6_amd64.deb
+libiptc0_1.6.0+snapshot20161117-6_amd64.deb
+libxtables12_1.6.0+snapshot20161117-6_amd64.deb
+libhiredis-dev_0.14.0-3~bpo9+1_amd64.deb
+libhiredis0.14-dbgsym_0.14.0-3~bpo9+1_amd64.deb
+linux-headers-4.19.0-12-2-amd64_4.19.152-1_amd64.deb
+linux-image-4.19.0-12-2-amd64-unsigned_4.19.152-1_amd64.deb
+snmptrapd_5.7.3+dfsg-1.5_amd64.deb
+snmp_5.7.3+dfsg-1.5_amd64.deb
+snmpd_5.7.3+dfsg-1.5_amd64.deb
+snmp-dbgsym_5.7.3+dfsg-1.5_amd64.deb
+snmpd-dbgsym_5.7.3+dfsg-1.5_amd64.deb
+libsnmp30_5.7.3+dfsg-1.5_amd64.deb
+libsnmp30-dbg_5.7.3+dfsg-1.5_amd64.deb
+libsnmp-dev_5.7.3+dfsg-1.5_amd64.deb
+libsnmp-perl_5.7.3+dfsg-1.5_amd64.deb
+python-netsnmp_5.7.3+dfsg-1.5_amd64.deb
+tkmib_5.7.3+dfsg-1.5_all.deb
+libsaibcm-dev_3.4.1.2_amd64.deb
+libsaibcm-modules-4.19.0-12-2-amd64_3.4.1.2_amd64.deb
+
+* SONIC_STRETCH_DEBS
+initramfs-tools_0.130_all.deb
+initramfs-tools-core_0.130_all.deb
+frr_7.2.1-sonic-0_amd64.deb
+sonic-ztp_1.0.0_all.deb
+radvd_2.17-2~bpo9+1_amd64.deb
+isc-dhcp-relay_4.3.5-2_amd64.deb
+monit_5.20.0-6_amd64.deb
+kdump-tools_1.6.1-1_all.deb
+python-click_6.7-4_all.deb
+smartmontools_6.6-1_amd64.deb
+hsflowd_2.0.26-1_amd64.deb
+sflowtool_5.04_amd64.deb
+psample_1.1-1_amd64.deb
+ifupdown2_1.2.8-1_all.deb
+libyang_1.0.73_amd64.deb
+swig3.0_3.0.12-2_amd64.deb
+libpam-tacplus_1.4.1-1_amd64.deb
+libnss-tacplus_1.0.4-1_amd64.deb
+iptables_1.6.0+snapshot20161117-6_amd64.deb
+sonic-device-data_1.0-1_all.deb
+libsaibcm_3.4.1.2_amd64.deb
+platform-modules-ragile-ra-b6510-48v8c_1.0_amd64.deb
+
+* DOCKER_IMAGES
+target/docker-sonic-mgmt.gz
+target/docker-sonic-mgmt-framework.gz
+target/docker-nat.gz
+target/docker-teamd.gz
+target/docker-base.gz
+target/docker-orchagent.gz
+target/docker-fpm-quagga.gz
+target/docker-snmp-sv2.gz
+target/docker-base-stretch.gz
+target/docker-config-engine-stretch.gz
+target/docker-fpm-gobgp.gz
+target/docker-config-engine.gz
+target/docker-fpm-frr.gz
+target/docker-iccpd.gz
+target/docker-database.gz
+target/docker-dhcp-relay.gz
+target/docker-ptf.gz
+target/docker-lldp-sv2.gz
+target/docker-platform-monitor.gz
+target/docker-router-advertiser.gz
+target/docker-sonic-telemetry.gz
+target/docker-reup.gz
+target/docker-sflow.gz
+target/docker-syncd-brcm.gz
+target/docker-syncd-brcm-rpc.gz
+target/docker-saiserver-brcm.gz
+target/docker-ptf-brcm.gz
+* DOCKER_DBG_IMAGES
+target/docker-sonic-mgmt-framework-dbg.gz
+target/docker-nat-dbg.gz
+target/docker-teamd-dbg.gz
+target/docker-orchagent-dbg.gz
+target/docker-snmp-sv2-dbg.gz
+target/docker-fpm-frr-dbg.gz
+target/docker-iccpd-dbg.gz
+target/docker-database-dbg.gz
+target/docker-dhcp-relay-dbg.gz
+target/docker-lldp-sv2-dbg.gz
+target/docker-platform-monitor-dbg.gz
+target/docker-router-advertiser-dbg.gz
+target/docker-sonic-telemetry-dbg.gz
+target/docker-sflow-dbg.gz
+target/docker-syncd-brcm-dbg.gz

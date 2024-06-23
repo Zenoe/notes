@@ -1,0 +1,27 @@
+* expect scp
+#!/usr/bin/expect
+set timeout 60
+
+spawn scp saiserver admin@172.28.55.59:~
+set pass "Ragile123"
+expect {
+password: {send "$pass\r"; exp_continue}
+}
+
+
+* auto login
+#!/usr/bin/expect -f
+
+set timeout 10
+set ip [lindex $argv 0]
+
+set password "Ragile123"
+spawn ssh -p 22 admin@$ip
+ expect {
+ "*yes/no" { send "yes\r"; exp_continue}
+ "*password:" { send "$password\r" }
+ }
+ expect "sonic*"
+ send "run-system-shell\r"
+
+interact //交互模式,用户会停留在远程服务器上面.

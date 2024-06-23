@@ -1,0 +1,160 @@
+#+TITLE:
+* UNIFORM INITIALIZATION
+Initializer Lists
+Before C++11, there was no easy way to do things like initialize a std::vector or std::map (or a custom container) to a set of values. You could do so for an old C-style array, but not easily for STL collections (you could initialize an old C-style array and then pass it in to a vector with some ugly code, but it wasn't particularly pretty or simple).
+
+Initializer Lists provide a solution to this problem. Thus, like with the auto keyword, they work to remove a lot of the verbosity that has traditionally attached with using the STL collection classes.
+
+Old C++:
+int arr[] = { 1,2,3,4,5 };
+
+std::vector<int> v;
+for(int i=0; i<5; i++) { v.push_back(arr[i]); }
+
+std::set<int> s;
+for(int i=0; i<5; i++) { s.insert(arr[i]); }
+
+std::map<int, std::string> m;
+m[0] = "zero";
+m[1] = "one";
+m[2] = "two";
+
+vector<int> v;
+v.push_back(10);
+v.push_back(20);
+v.push_back(30);
+v.push_back(40);
+int total = totalElementsInVector(v);
+C++11:
+int arr[]          { 1,2,3,4,5 };
+std::vector<int> v { 1,2,3,4,5 };
+std::set<int> s    { 1,2,3,4,5 };
+std::map<int,std::string> m { {0,"zero"}, {1,"one"}, {2,"two"} };
+
+int total = totalElementsInVector({10,20,30,40});
+Uniform Initialization
+Uniform Initialization expands on the Initializer List syntax, to provide a syntax that allows for fully uniform type initialization that works on any object – removing the distinction between initialization of aggregate + non-aggregate classes, arrays, STL/custom collection classes, and PODs.
+
+Thus, where we previously had to choose between:
+
+() (initing by calling constructor, but watch-out when using with no parameters!)
+{} (initing an aggregate class or array)
+no braces (initing with default constructor)
+Now, we can safely always use {} braces in all these cases.
+
+So given for example the following definitions:
+
+
+// 'aggregate' class - no user-declared constructor, no private/protected members,
+// no base, no virtual function
+struct ClassA {
+   int x;
+   double y;
+};
+
+// non-aggregate class
+class ClassB {
+private:
+   int x;
+   double y;
+public:
+   ClassB(int _x, double _y):x(_x),y(_y) {}
+};
+Old C++:
+int i = 3;
+int j = 0;
+std::string s("hello");
+
+ClassA objA1;              // init using default constructor
+ClassA objA1woops();       // same as above? woops, actually just declared a function!
+ClassA objA2 = { 1, 2.0 }; // or can pass arguments to aggregate type in this form
+ClassB objB1(1, 2.0);      // but now have to switch syntax to call constructor
+
+// ClassA is an aggregate type, so can initialize this way
+ClassA arrOfAs[] = { {1,1.0}, {2,2.0}, {3,3.0} };
+
+// ClassB is not an aggregate type, so have to be verbose
+ClassB arrOfBs[] = { ClassB(1,1.0), ClassB(2,2.0), ClassB(3,3.0) };
+
+// now with vector (as seen previously), can't even do the above ...
+vector<classB> vectorOfBs;
+vectorOfBs.push_back(ClassB(1,1.0));
+vectorOfBs.push_back(ClassB(2,2.0));
+vectorOfBs.push_back(ClassB(3,3.0));
+
+std::pair<double, double> multiplyVectors(
+   std::pair<double,double> v1,
+   std::pair<double,double> v2) {
+   return std::pair<double,double>(v1.first*v2.first, v1.second*v2.second);
+}
+std::pair<double, double> result = multiplyVectors(
+   std::pair<double,double>(1.0, 2.0),
+   std::pair<double,double>(3.0, 4.0));
+C++11:
+now our method of initialization looks much more similar across the different types ….
+
+int i {3};
+int j {}; // empty braces initialize the object to it's default (0)
+std::string s {"hello"};
+
+ClassA objA1 {};
+ClassA objA2 {1, 2.0};
+ClassB objB1 {1, 2.0};
+ClassA arrOfAs[] = { {1,1.0}, {2,2.0}, {3,3.0} };
+
+// ouch, the theory is that this should work in C++11, however this doesn't compile, at least
+// with clang, comments?
+ClassB arrOfBs[] = { {1,1.0}, {2,2.0}, {3,3.0} };
+
+// however, this does work
+vector<ClassB> vectorOfBs = { {1,1.0}, {2,2.0}, {3,3.0} };
+
+
+std::pair<double, double> multiplyVectors(
+   std::pair<double,double> v1,
+   std::pair<double,double> v2) {
+   return { v1.first*v2.first, v1.second*v2.second };
+}
+auto result = multiplyVectors({1.0,2.0}, {3.0,4.0});
+Further Uniform Initialization Benefits
+Minimizing Redundant Typenames
+The last example above – the multiplyVectors function and the call to it – shows how uniform initialization can be used to avoid repeating the typename:
+
+in function arguments
+in function returns
+Solving the 'Most Vexing Parse' problem
+Unlike with the old syntax of calling constructors, uniform initialization cannot be interpreted as a function prototype. i.e. if the following code were writing with () braces instead of {} braces, you would be actually definiing a function foo() which takes as its parameter a function returning type Bar.
+
+class Bar;
+
+void Func() {
+  int foo{Bar{}};
+}
+Gotchas
+There are however a couple of minor new cases to be aware of, where using initializer lists / uniform initialization can lead to new issues …
+
+Vector Initialization
+std::vector<int> v { 3 };
+std::vector defines a constructor that takes a single-int to create a vector of that size, so is the vector here being initialized as a single-element vector that contains the element 3, or as a vector of size 3?
+
+Apparently it will create a vector containing the element 3, and to get a vector of size 3 you'll need to use the old syntax.
+
+Implicit Type Narrowing
+int i { 2.0 }
+For whatever reason, this won't compile, whereas int i = 2.0 does. Just something to be aware of …
+
+Supporting initializer lists in your own classes
+To support initializer list in a class (i.e. if creating your own collection), you simply define a constructor that takes a std::initializer_list as its parameter, which can then be used like a collection, i.e.:
+
+template<class T>
+class MyVector {
+   T* arrayData;
+   int size;
+public:
+   MyVector(std::initializer_list<T> l) {
+     size = (int)l.size();
+     reserve(size);
+     uninitialized_copy(l.begin(), l.end(), arrayData);
+   }
+   ...
+};

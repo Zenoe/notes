@@ -1,0 +1,11 @@
+#+TITLE:
+
+* look up array
+*array@length
+
+display *a@5
+undisplay 显示的号码
+* enhanced
+gdb-peda
+gdb-pwndbg
+gdb-gef

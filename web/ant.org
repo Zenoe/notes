@@ -1,0 +1,20 @@
+* table
+setting table width not work for ellipsis column
+has to add customizde onCell function
+        width: 240,
+        ellipsis: true,
+        onCell: () => {
+          return {
+            style: {
+              maxWidth: 100,
+              overflow: 'hidden',
+              whiteSpace: 'nowrap',
+              textOverflow: 'ellipsis',
+            },
+          }
+        },
+
+
+
+        scroll={{ x: true }}  // conflict with ellipsis
+use   scroll={{ x: 'max-content' }}

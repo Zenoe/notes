@@ -1,0 +1,246 @@
+nmap -sC -sV -p9100,80,9200 -oN services 172.28.55.44
+
+* nmap
+udp port open?
+nmap -sU -p port ip
+
+Some nmap commands need to create raw sockets. . On windows nmap uses the winpcap packet driver to send raw packets.
+
+Scan network for live hosts - Ping Probe/Ping Sweep
+
+This is the first and most basic form of network scan that can be done with nmap, to detect hosts that are alive and responding on the network.
+
+$ nmap -sP 192.168.1.1-254
+
+
+The CIDR notation can also be used, for example like this 192.168.1.1/24
+
+Avoid DNS resolution
+
+When doing ping sweeps, nmap tries reverse dns resolution of the target ip addresses. This is generally not needed and can be disabled with the -n option.
+
+$ nmap -sP -n 192.168.1.1-255
+
+** Port scan a host
+  nmap 192.168.1.1
+
+Not shown: 998 closed ports
+PORT   STATE SERVICE
+23/tcp open  telnet
+80/tcp open  http
+
+** Getting the daemon/service banner or version information
+
+$ nmap -sV localhost
+
+PORT     STATE SERVICE   VERSION
+21/tcp   open  ftp       vsftpd 2.3.5
+22/tcp   open  ssh       OpenSSH 5.9p1 Debian 5ubuntu1 (protocol 2.0)
+25/tcp   open  smtp      Postfix smtpd
+53/tcp   open  domain    dnsmasq 2.59
+80/tcp   open  http      Apache httpd 2.2.22 ((Ubuntu))
+631/tcp  open  ipp       CUPS 1.5
+3000/tcp open  ntop-http Ntop web interface 4.1.0
+3306/tcp open  mysql     MySQL 5.5.24-0ubuntu0.12.04.1
+9050/tcp open  tor-socks Tor SOCKS Proxy
+Service Info: Host:  enlightened-desktop; OSs: Unix, Linux
+
+** Types of port scan
+
+- tcp connect: -sT scan a full TCP connection is established (When running as non-root on linux, nmap does tcp connect by default)
+- syn scan: -sS only half connection is established (root required)
+- udp scan: -sU
+- fin scan
+
+Syn scanning is faster since it does not establish a full TCP handshake. It is to some extent stealthier as well since old style firewalls may not be able to detect syn scans since full connection is not established. However modern firewalls can very well catch syn packets and detect port scanning attempts and stop the hacker right away.
+However note that when nmap is run as root the default scanning technique used is syn scan. So the following are equivalent since in both cases nmap is running as root
+
+sudo nmap host
+sudo nmap -sS host
+
+Check out the -sF, -sX , -sA , -sN flags for more information on them
+
+** Scanning specific ports only
+
+Nmap can be instructed to scan on specific ports or a range of port numbers by using the -p switch as follows :
+
+nmap -p1-1000 192.168.1.1/24
+The above command would scan port numbers 1 to 1000 on all machines from 192.168.1.1 - 192.168.1.255
+
+More examples :
+
+$ nmap -p22,23,100-150 192.168.10.0/24
+The above will scan port numbers 22 , 23 and 100 to 150
+
+$ nmap -sU -pT:21,22,23,U:53,137 192.168.10.0/24
+The above will scan TCP ports 21 22 and 23 and udp ports 53 and 137
+
+Skip online check
+
+Nmap by default first check if a host is online or not by doing a ping. If the host is not online then nmap would not port scan it. Many hosts now a days have firewalls installed that block ping requests. In such cases nmap can be instructed to not check if the host is online and that it should start port scan rightaway. This is done using the -PN option
+
+$ nmap 192.168.1.1 -PN
+
+To scan for all ports from 1 through 65535, use the -p- option:
+nmap -p- 192.168.10.121
+** Ping Scanning
+To perform a ping scanning or host discovery, invoke the nmap command with the -sn option:
+The -sn option tells Nmap only to discover online hosts and not to do a port scan. This is useful when you want to quickly determine which of the specified host are up and running
+** Operating System detection
+
+$ sudo nmap -O 192.168.1.1
+
+Nmap scan report for 192.168.1.1
+Host is up (0.0067s latency).
+Not shown: 997 closed ports
+PORT     STATE SERVICE
+23/tcp   open  telnet
+80/tcp   open  http
+5431/tcp open  park-agent
+MAC Address: 00:21:2C:82:08:87 (SemIndia System Private Limited)
+Device type: general purpose
+Running: Linux 2.6.X
+OS details: Linux 2.6.13 - 2.6.28
+Network Distance: 1 hop
+
+So nmap is able to detect that the operating system is Linux. It is important to note that OS fingerprint report by nmap may not be very accurate. It tries to discover the operating system by using some TCP header fields, but this technique cannot tell the exact linux distro for example. It can however in most cases give a correct indication as to whether the target is a linux or windows system.
+
+
+** Aggressive scanning
+
+The -A option can be used to perform an aggressive scan which is equal to - "enable OS detection and Version detection, Script scanning and Traceroute"
+
+$ sudo nmap -A -T4 ##########
+
+Not shown: 989 filtered ports
+PORT      STATE SERVICE       VERSION
+21/tcp    open  ftp           Microsoft ftpd
+25/tcp    open  smtp          MailEnable smptd 4.26--
+53/tcp    open  domain        ISC BIND hostmaster
+80/tcp    open  http          Microsoft IIS webserver 7.0
+|_html-title: Welcome to Homepage
+110/tcp   open  pop3          MailEnable POP3 Server
+|_pop3-capabilities: OK(K Capability list follows) USER TOP UIDL
+143/tcp   open  imap          MailEnable imapd
+|_imap-capabilities: IMAP4rev1 IMAP4 CHILDREN IDLE AUTH=LOGIN AUTH=CRAM-MD5
+2006/tcp  open  http          Microsoft IIS httpd 7.0
+| html-title: Document Moved
+|_Requested resource was http://##########/ABC
+3306/tcp  open  mysql         MySQL (unauthorized)
+3389/tcp  open  microsoft-rdp Microsoft Terminal Service
+8443/tcp  open  ssl/http      Microsoft IIS webserver 7.0
+|_sslv2: server still supports SSLv2
+|_html-title: Site doesn't have a title (text/html).
+49158/tcp open  msrpc         Microsoft Windows RPC
+Warning: OSScan results may be unreliable because we could not find at least 1 open and 1 closed port
+Device type: general purpose
+Running: Microsoft Windows 2008
+OS details: Microsoft Windows Server 2008 Beta 3
+Network Distance: 16 hops
+Service Info: Host: CL-T192-200CN.home; OS: Windows
+
+TRACEROUTE (using port 21/tcp)
+HOP RTT       ADDRESS
+1   8.13 ms   192.168.1.1
+2   44.42 ms  117.194.224.1
+3   40.74 ms  218.248.162.230
+4   70.79 ms  218.248.255.82
+5   124.74 ms 115.114.130.33.STATIC-Chennai.vsnl.net.in (115.114.130.33)
+6   148.41 ms 172.31.19.146
+7   145.28 ms ix-0-100.tcore1.MLV-Mumbai.as6453.net (180.87.38.5)
+8   366.30 ms if-2-2.tcore2.MLV-Mumbai.as6453.net (180.87.38.2)
+9   375.30 ms if-6-2.tcore1.L78-London.as6453.net (80.231.130.5)
+10  372.00 ms if-2-2.tcore2.L78-London.as6453.net (80.231.131.1)
+11  428.80 ms if-20-2.tcore2.NYY-NewYork.as6453.net (216.6.99.13)
+12  442.52 ms if-1-0-0.mcore3.MTT-Montreal.as6453.net (216.6.99.10)
+13  382.34 ms if-0-3-1-0.tcore1.MTT-Montreal.as6453.net (64.86.31.53)
+14  364.63 ms 64.86.31.42
+15  ...
+16  369.24 ms ###.###.###.###
+
+*** adjust the speed of the scan -T
+The T parameter can be used to adjust the speed of the scan. It takes values from 0-5. 0 being the slowest and 5 being the fastest. Over here we used 4.
+
+** Saving output to file
+
+Nmap can save the scan results to various kinds of file formats like normal text, xml etc. The options to use are -oN -oX -oS -oG and -oA. The oA option = oN + oX + oG.
+
+$ nmap -sP -n 192.168.1.1-255 -oA lan_scan.txt
+The above will create lan_scan.txt.gnmap ,lan_scan.txt.nmap and lan_scan.txt.xml files
+
+lan_scan.txt.nmap file looks like this
+
+# Nmap 5.21 scan initiated Thu Aug 16 15:33:45 2012 as: nmap -sP -n -oA lan_scan.txt 192.168.1.1-255
+Nmap scan report for 192.168.1.1
+Host is up (0.0073s latency).
+Nmap scan report for 192.168.1.2
+Host is up (0.0010s latency).
+Nmap scan report for 192.168.1.101
+Host is up (0.00021s latency).
+
+* [[http://www.binarytides.com/nmap-hacking-tutorial-beginners/][nmap2]]
+
+1. Faster network sweep
+find online hosts within an ip range
+By default nmap takes some time to scan the range depending on the number of hosts it needs to check for. However hackers would optimise the scanning process to scan the range very fast. Lets take a few examples
+
+- $ nmap -vv -sP 117.194.238.1-100
+
+
+1. No dns resolution 'n' - This will tell nmap not to perform dns resolution of the ip addresses, making the process faster.
+
+2. Use the 'T' switch - The T option tells nmap what speed to operate at. T1 is slowest and T5 is fastest
+
+3. max-rtt-timeout - This option specifies the maximum time to wait for the response.
+
+- $ nmap -v -n -sP --max-rtt-timeout 500ms 117.194.238.1-100 -T4
+
+Nmap done: 100 IP addresses (26 hosts up) scanned in 1.97 seconds
+
+
+This time nmap scanner 100 ips in 1.97 seconds. Thats good speed. The value of max-rtt-timout can be adjusted to further increase the speed of the scan. Lower its value, faster nmap would end the scan.
+
+1. Faster port scanning
+
+Just like we increased the speed of network sweep, similary portscans also need to be fast. Portscanning also uses the same options as shown above in the network sweep section, along with few more. Portscanning should always be done using the sS option to ensure syn scanning. The PN option can be used along with it to avoid ping detection.
+
+$ sudo nmap -sS -vv -n -p80 -PN --max-rtt-timeout 500ms 117.194.238.1-100 -T4 -oG - | grep 'open'
+Host: 117.194.238.67 () Ports: 80/open/tcp//http///
+Host: 117.194.238.95 () Ports: 80/open/tcp//http///
+The above command scanned for open port 80 on 100 hosts in about 2 seconds. And it lists out only those hosts which have the port open. This is quick and useful.
+
+4. Discover services
+
+The key idea behind port scanning is to discover services that are online or on the network (and those which can be hacked! ). So lets try discovering some online services on random ip ranges.
+
+Find FTP servers
+$ sudo nmap -sS -vv -n -PN -p21 --max-rtt-timeout 500ms 192.168.1.1/24 -T4 -oG - | grep 'open'
+The above call to nmap shall list out all the ip addresses that have port 21 open. Hackers would find out such servers then see which of them are vulnerable. For example you could try such a scan on the ip range of some website. It will scan all possible servers in that range.
+
+Find mysql servers
+Why only ftp, there are plenty of other services to look for by matching the port numbers on which they run. Mysql for instance runs on port 3306. So find out mysql servers with a similar call to nmap with just a different value for port 'p' parameter.
+
+$ sudo nmap -sS -vv -n -PN -p3306 --max-rtt-timeout 500ms 192.168.1.1/24 -T4 -oG - | grep 'open'
+More services
+There are plenty of other services to find out like telnet, http, vnc. Lots of servers out there in the public have these services open that can allow hackers to compromise their systems. So you have to find out such ones and give them a try.
+
+5. Grab daemon banner/welcome message
+
+Nmap has another option 'sV' that shall fetch the daemon banner or welcome message presented by the service upon connecting.
+
+$ sudo nmap -sS -sV -n -PN -p3306 --max-rtt-timeout 500ms 192.168.1.1/24 -T4 -oG - | grep 'open'
+Host: 192.168.1.10 () Ports: 3306/open/tcp//mysql//MySQL (unauthorized)/
+Host: 192.168.1.89 () Ports: 3306/open/tcp//mysql//MySQL (unauthorized)/
+The 'MySQL (unauthorized)' string in the output is the message given by mysql on connection. The most information piece of information in the welcome message is the version number of the service and anything additional. However here it seems like the welcome message has been modified to not reveal any version information.
+
+6. Find windows machines
+
+Just like we discovered services on remote ip addresses, its possible to find windows xp machines that are directly connected to the internet. You can for example run a nmap scan over the ip addresses allocated by your isp to its users and find out which ips are windows machines that are online. For this we just need to scan for open samba (445) ports.
+
+$ sudo nmap -n -PN -p445 --max-rtt-timeout 500ms 117.194.237.1/24 -T4 -oG - | grep 'open'
+Host: 117.194.237.7 ()  Ports: 445/open/tcp//microsoft-ds///
+Host: 117.194.237.33 () Ports: 445/open/tcp//microsoft-ds///
+Host: 117.194.237.39 () Ports: 445/open/tcp//microsoft-ds///
+Host: 117.194.237.44 () Ports: 445/open/tcp//microsoft-ds///
+........
+You might be surprised to see the number of users online.

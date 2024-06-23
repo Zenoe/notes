@@ -1,0 +1,218 @@
+* install jenkins
+start jenkins service failed when install it directly from apt
+I encountered a failure when attempting to start the Jenkins service after installing it directly from the APT package manager
+use docker to pull new versions of image has issues of signature verification failure
+so I update jenkins from inside old jenkins docker container
+* update jenkins inside docker container
+First identify your image.
+```console
+$ docker ps --format "{{.ID}}: {{.Image}} {{.Names}}"
+3d2fb2ab2ca5: jenkins-docker jenkins-docker_1
+```
+
+Then login into the image as root.
+```console
+$ docker container exec -u 0 -it jenkins-docker_1 /bin/bash
+```
+
+Now you are inside the container, download the `jenkins.war` file from the official site like.
+```console
+# docker cp jenkins.war jenkins-jenkins-1:/
+```
+
+Replace the version with the one that fits to you.
+
+The next step is to move that file and replace the oldest one.
+```console
+# mv ./jenkins.war /usr/share/jenkins/
+```
+
+Then change permissions.
+```console
+# chown jenkins:jenkins /usr/share/jenkins/jenkins.war
+```
+
+The last step is to logout from the container and restart it.
+```console
+$ docker restart jenkins-docker_1
+```
+
+You can verify that update was successful by access to you Jenkins url.
+
+* install docker-compose
+docker-compose-linux-x86_64
+
+https://github.com/docker/compose/releases
+* This Jenkins instance appears to be offline
+/var/lib/jenkins/hudson.model.UpdateCenter.xml and change url to use http instead of https
+* save container
+to create new image
+docker commit <container_id> <image_name>
+* pipeline idata
+pipeline {
+    agent any
+
+    parameters {
+        //string(name: 'SVN_URL', defaultValue: 'http://svn.ruijie.net/svn3/iData/product/RG-iData/trunk/code', description: '请输入svn路径')
+        string(name: 'SVN_URL', defaultValue: 'http://svn.ruijie.net/svn3/iData/product/RG-iData/branches/2.00(T2)/code', description: '请输入svn路径')
+
+    	//string(name: 'SVN_URL', defaultValue: 'http://svn.ruijie.net/svn3/iData/product/RG-iData/trunk/code', description: '请输入svn路径')
+    	string(name: 'iData_Ver', defaultValue: '2.00', description: '请输入要打包的版本')
+    	string(name: 'isRefresh', defaultValue: '0', description: '是否删除giant缓存（值为"1"时删除)')
+    	string(name: 'buildUI', defaultValue: '1', description: '是否编译UI')
+    	string(name: 'buildIdataSpark', defaultValue: '1', description: '是否编译idata-spark')
+    	string(name: 'buildServices', defaultValue: '1', description: '是否编译services')
+    	string(name: 'Dest_Host', defaultValue: '172.29.32.65', description: '请输入安装包要发送到主机 IP (需要事先建立ssh互信)')
+    }
+    environment {
+    	IS_RUN_TEST = "${params.RUN_TEST}"
+    	IDATA_VER = "${params.iData_Ver}"
+    	DestHost = "${params.Dest_Host}"
+    	RefreshBuild = "${params.isRefresh}"
+    	DestFolder="/home/Dev_idata_tar/${IDATA_VER}"
+    }
+    stages {
+    	stage('环境初始化') {
+            steps {
+            	echo 'svn代码检出...'
+            	// 检出svn代码
+               checkout([$class: 'SubversionSCM', additionalCredentials: [], excludedCommitMessages: '', excludedRegions: '', excludedRevprop: '', excludedUsers: '', filterChangelog: false,
+
+ignoreDirPropChanges: false, includedRegions: '', locations: [[cancelProcessOnExternalsFail: true, credentialsId: 'idata', depthOption: 'infinity', ignoreExternalsOption: true, local: '.',
+
+remote: "${params.SVN_URL}"]], quietOperation: true, workspaceUpdater: [$class: 'UpdateUpdater']])
+
+
+                echo '生成工作目录...'
+                sh "cp idata-devops/package/jenkins/*.sh ."
+                sh "cp idata-devops/package/*.sh ."
+                sh "cp idata-devops/package/*.ini ."
+                sh 'bash ./prepare2build.sh'
+
+                //sh "export PATH=$PATH:/opt/node/bin; bash ./startjenkins.sh ${env.IDATA_VER} ${env.DestHost} ${env.RefreshBuild} ${params.buildUI} ${params.buildIdataSpark} ${params.buildServices}"
+                }
+            }
+
+        stage('源码构建') {
+        	parallel {
+        		stage('compile ui') {
+        			steps {
+		         			sh "export PATH=$PATH:/opt/node/bin; bash ./buildUI.sh"
+        			}
+        		}
+        		stage('compile idata spark') {
+        			steps {
+		          			sh 'bash ./build_spark.sh'
+        			}
+        		}
+
+        		stage('compile services') {
+        			steps {
+		          			sh 'bash ./build_services.sh'
+        			}
+        		}
+
+        	}
+        }
+
+        stage('tar pkg') {
+            steps {
+                    sh 'bash ./do_tar.sh'
+            }
+        }
+    stage('Deploy') {
+        steps {
+                echo 'Deploying....'
+                sh "ssh -o StrictHostKeyChecking=no root@$Dest_Host \"rm -rf $DestFolder; mkdir -p $DestFolder\""
+                sh "scp -r -o StrictHostKeyChecking=no ./RG-iData-APP_*.tar.gz root@$Dest_Host:$DestFolder"
+                sh "ssh -o StrictHostKeyChecking=no root@$Dest_Host \"cd /opt/script && bash idatainstall.sh\""
+           }
+        }
+    }
+
+    post {
+        always {
+      		sh "rm -rf idata-package*; rm -rf RG-iData-APP_*.tar.gz"
+    	}
+
+    	aborted {
+    		echo "pipeline被中断..."
+	    }
+    	failure {
+    		echo "pipeline运行失败..."
+    		            emailext (
+                subject: "'${env.JOB_NAME} [${env.BUILD_NUMBER}]' 更新失败",
+                body: """
+                详情：
+                FAILED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'
+                状态：${env.JOB_NAME} jenkins 运行失败
+                URL ：${env.BUILD_URL}
+                项目名称 ：${env.JOB_NAME}
+                项目更新进度：${env.BUILD_NUMBER}
+                """,
+                to: "linzhengyuan@ruijie.com.cn",
+                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+                )
+    		//emailext attachLog: true, body: '', subject: 'idata fail', to: 'linzhengyuan@ruijie.com.cn'
+	    }
+    	success {
+    		echo "pipeline运行成功..."
+	    }
+    }
+}
+
+* build deploy ui
+pipeline {
+    agent any
+    parameters {
+        string(name: 'SVN_URL', defaultValue: 'http://svn.ruijie.net/svn3/iData/product/RG-iData/branches/3.11/code/idata-ui', description: '请输入svn路径')
+        string(name: 'isDeploy', defaultValue: '172.29.32.61', description: 'sssss')
+    	string(name: 'isRefresh', defaultValue: '0', description: 'rm node_modules?')
+    }
+
+    environment {
+    	DestHost = "${params.isDeploy}"
+    	DestFolder="/opt"
+    	ServiceFolder="/opt/idata/services/"
+    	//ServiceFolder="/opt/idata/services/ui"
+    	RefreshBuild = "${params.isRefresh}"
+    }
+
+    stages {
+        stage('start to build') {
+            steps {
+                echo 'svn代码检出...'
+
+			when {
+				environment name: 'RefreshBuild', value: '1'
+			}
+			steps {
+                echo 'refresh'
+			}
+                }
+            }
+    }
+
+
+
+    post {
+        aborted {
+                echo "pipeline被中断..."
+            }
+        failure {
+                echo "pipeline运行失败..."
+            }
+        success {
+                echo "pipeline运行成功..."
+                archiveArtifacts artifacts: 'ui.tar.gz'
+            }
+    }
+}
+
+     script {
+                    if (env.BRANCH_NAME == 'master') {
+                        echo 'I only execute on the master branch'
+                    } else {
+                        echo 'I execute elsewhere'
+                    }
+                }

@@ -1,0 +1,158 @@
+* .env
+To set the value of an environment variable before running your application, you have a few options depending on your development environment.
+
+1. **Using a `.env` file**: You can define environment variables in a `.env` file in the root of your project. Create a file named `.env` and specify your variable and its value, like this:
+
+   ```
+   VITE_DEV_REMOTE=my-value
+   ```
+
+2. **Command line**: Another option is to set the environment variable directly through the command line before running your application. The syntax for setting an environment variable varies depending on your operating system and shell.
+
+   - On Windows (Command Prompt):
+     ```
+     set VITE_DEV_REMOTE=my-value
+     ```
+   - On Windows (PowerShell):
+     ```
+     $env:VITE_DEV_REMOTE = "my-value"
+     ```
+   - On macOS/Linux:
+     ```
+     export VITE_DEV_REMOTE=my-value
+     ```
+
+   Again, replace `my-value` with the desired value for your `VITE_DEV_REMOTE` variable.
+
+After setting the value using either method, you can run your application and it will have access to the environment variable with the specified value.
+
+* pnpm
+pnpm add sax	Save to dependencies
+pnpm add -D sax	Save to devDependencies
+pnpm add -O sax	Save to optionalDependencies
+pnpm add -g sax	Install package globally
+pnpm add sax@next	Install from the next tag
+pnpm add sax@3.0.0	Specify version 3.0.0
+
+pnpm update eslint@8.53.0 -D
+* Ensure All Your Dependencies Are Secure
+npm audit
+
+Snyk provides a command-line tool in collaboration with Github, that can provide audit services for your applications against known open source database vulnerabilities.
+$ npm install -g snyk
+$ cd your-app
+To check your application for vulnerabilities, you can use the following command -
+$ snyk test
+You can implement the command below to open a wizard that will apply updates and patches to fix uncovered vulnerabilities as they are discovered:
+$ snyk wizard
+* npm root -g
+show  the effective installation directory of your npm packages.
+npm root
+* global
+npm install -g cross-env rimraf webpack-dev-server pnpm
+* cross-env don't need &&
+linux: export NODE_ENV=dev && node app.js
+cross-env NODE_ENV=dev node app.js
+* npm config
+npm config list
+npm config list -l //查看所有配置
+npm config get prefix
+npm设置全局安装的默认目录 npm config set prefix “directory”
+* npm proxy
+npm config set proxy null
+npm config set https-proxy null
+npm config set https-proxy http://10.110.198.52:20171
+npm config set proxy http://10.110.198.52:20171
+npm set registry=
+npm config set registry https://registry.npmjs.org/
+npm config set registry http://registry.npmjs.org/
+npm config set registry https://registry.npm.taobao.org/
+
+npm config set https-proxy http://172.28.57.108:18888
+
+* multiple ways to start a Node.js server
+https://stackabuse.com/how-to-start-a-node-server-examples-with-the-most-popular-frameworks/
+** build-in http module
+// app.js
+const http = require('http');
+const fs = require('fs');     // to help serve a local video file
+
+// Create an instance of the http server to handle HTTP requests
+let app = http.createServer((req, res) => {
+    // Set a response type of plain text for the response
+    res.writeHead(200, {'Content-Type': 'text/plain'});
+
+    // Send back a response and end the connection
+    res.end('Hello World!\n');
+
+#     // Set a response type of mp4 video for the response
+#     res.writeHead(200, {'Content-Type': 'video/mp4'});
+
+#     // Read the video into a stream
+#     let vidstream = fs.createReadStream('assets/Yngwie_Malmsteen_interview.mp4');
+
+#     // Pipe our stream into the response
+#     vidstream.pipe(res);
+});
+
+// Start the server on port 3000
+app.listen(3000, '127.0.0.1');
+console.log('Node server running on port 3000');
+In your terminal, run the command:
+
+$ node app.js
+and visit http://localhost:3000 in your browser.
+
+** using the server npm module (require node version 7.6.0 or later)
+install the module with the command npm install server --save
+// app.js
+const server = require('server');
+
+const { get, post } = server.router;
+
+// Launch server
+server({ port: 3000 }, [
+    get('/', ctx => 'Hello world!')
+]);
+Run the server with
+
+$ node app.js
+
+** zero coding server to  serve HTML and serve static files
+npm install http-server -g
+http-server ./public
+
+where public is the direcory where html files reside
+** with the help from frameworks
+run a server using code provided by the framework itself. Frameworks bring
+advantages like good default conventions and the ability to develop fast without
+writing common software routines from scratch.
+eg:
+Express
+    npm install express
+        // app.js
+        const express = require('express')
+
+        // Create Express app
+        const app = express()
+
+        // A sample route
+        app.get('/', (req, res) => res.send('Hello World!'))
+
+        // Start the Express server
+        app.listen(3000, () => console.log('Server running on port 3000!'))
+        Run the server with the command:
+
+    $ node app.js
+
+Koa
+Socket.io
+Meteor
+Loopback
+* webpack-dev-server --port 3000 --hot --host 0.0.0.0
+* npm publish
+before publishing , set the proper registry
+npm config set registry http://registry.npmjs.org/
+
+avoid package'name confict with the already published modules in the registry
+* BROWSER=none npm start

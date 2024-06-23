@@ -1,0 +1,463 @@
+* set jvm locale
+java -Duser.language=en -Duser.country=US -Duser.variant=US MainClass -jar xxx.jar
+
+* jmeter java
+²Î¿¼ http://www.cnblogs.com/linglingyuese/p/linglingyuese_sex.html
+How to include jar files with java file and compile in command prompt
+http://stackoverflow.com/questions/9395207/how-to-include-jar-files-with-java-file-and-compile-in-command-prompt
+xwrj@R05570 ~/jmeter
+$ javac -cp ".;ApacheJMeter_core.jar;ApacheJMeter_java.jar;" JmeterNetworkController.java WebTest.java
+
+$ javac -cp ".;ApacheJMeter_core.jar;ApacheJMeter_java.jar;JmeterNetworkController.java" WebTest.java
+
+jar cf RJNetworkController.jar JmeterNetworkController.class
+jar cf WebTest.jar WebTest.class
+cp RJNetworkController.jar binaries/apache-jmeter-3.0/lib
+cp WebTest.jar binaries/apache-jmeter-3.0/lib/ext
+
+WebTest ÒýÓÃÁË RJNetworkController µÄ·½·¨¡£RJNetworkController Òª·Åµ½ lib Ä¿Â¼ÏÂ
+
+* create file
+PrintWriter writer = new PrintWriter("the-file-name.txt", "UTF-8");
+writer.println("The first line");
+writer.println("The second line");
+writer.close();
+Creating a binary file (will also overwrite the file):
+
+byte data[] = ...
+FileOutputStream out = new FileOutputStream("the-file-name");
+out.write(data);
+out.close();
+Java 7+ users can use the Files class to write to files:
+
+ Creating a text file:
+
+List<String> lines = Arrays.asList("The first line", "The second line");
+Path file = Paths.get("the-file-name.txt");
+Files.write(file, lines, Charset.forName("UTF-8"));
+//Files.write(file, lines, Charset.forName("UTF-8"), StandardOpenOption.APPEND);
+Creating a binary file:
+
+byte data[] = ...
+Path file = Paths.get("the-file-name");
+Files.write(file, data);
+//Files.write(file, data, StandardOpenOption.APPEND);
+
+* java on linux
+javac -encoding ISO-8859-1 com/ruijie/monetdb/jdbc/MonetDbUtil.java com/ruijie/monetdb/jdbc/TestMonetDB.java com/ruijie/monetdb/jdbc/CommonUtils.java
+without ISO-8859-1 option would cause error: 'unmappable character for encoding UTF8'. ( TestMonetDB.java file contains Chinese character )
+
+java -cp /your/path your.package.YourClass
+java -cp ~/monetdb/src/jdbc/driver/monetdb-jdbc-2.24.jar: com.ruijie.monetdb.jdbc.TestMonetDB  On Linux, use colon : as separator , user ; on Windows
+* printf 
+Java treats all integer values as d, there is no ld. Even byte and BigInteger is a d type. It also assumes integers have no decimal places. If you want to show 10 zeros, you can convert to double first and use f
+%f works for both float and double types
+* jar
+http://blog.csdn.net/marryshi/article/details/50751764
+jar cf hello.jar hello
+利用test目录生成hello.jar包,如hello.jar存在,则覆盖
+jar xvf hello.jar   extract
+jar tvf hello.jar   查看hello.jar包的内容
+jar uf hello.jar HelloWorld.java  add file
+
+Recall that TicTacToe.jar has these contents:
+
+META-INF/MANIFEST.MF
+TicTacToe.class
+TicTacToe.class
+TicTacToe.java
+audio/
+audio/beep.au
+example1.html
+images/
+images/not.gif
+Suppose that you want to add the file images/new.gif to the JAR file. You could accomplish that by issuing this command from the parent directory of the images directory:
+
+jar uf TicTacToe.jar images/new.gif
+The revised JAR file would have this table of contents:
+
+META-INF/MANIFEST.MF
+TicTacToe.class
+TicTacToe.class
+TicTacToe.java
+audio/
+audio/beep.au
+example1.html
+images/
+images/not.gif
+images/new.gif
+
+* java -jar DataT.jar
+* var arguments
+    public static void varArgs(String... strings) {
+        for (String s : strings) {
+            System.out.println(s);
+        }
+    }
+
+    public static void main(String[] args) {
+        String[] strings = {"string1", "string2", "string3"};
+        varArgs(strings);
+        varArgs("string4", "string5", "string6");
+    }
+* log4j warnning
+No appenders could be found for logger(log4j)?
+
+First one is to just add this line to your main method:
+
+BasicConfigurator.configure();
+Second approach is to add this standard log4j.properties (taken from the above mentioned guide) file to your classpath:
+
+# Set root logger level to DEBUG and its only appender to A1.
+log4j.rootLogger=DEBUG, A1
+
+# A1 is set to be a ConsoleAppender.
+log4j.appender.A1=org.apache.log4j.ConsoleAppender
+
+# A1 uses PatternLayout.
+log4j.appender.A1.layout=org.apache.log4j.PatternLayout
+log4j.appender.A1.layout.ConversionPattern=%-4r [%t] %-5p %c %x - %m%n
+* 资源文件的路径查找
+当我们自己的程序需要处理配置文件时（比如xml文件或properties文件），通常会遇到两个问题：
+
+　　（1）我的配置文件应该放在哪里？
+
+　　（2）怎么我的配置文件找不到了？
+
+　　在了解了Java加载资源文件的机制后，以上这两个问题便迎刃而解了。
+
+对于第一个问题，答案是：请将你的资源文件放在classpath里，如果资源文件在jar中，请将该jar文件也加到classpath里面。
+
+二、依赖类的路径设置
+
+通过java -classpath参数，我们可以指定java程序去哪里寻找需要执行或依赖的类
+
+jar包需要在-classpath中指定，或者可以通过通配符来使用，class文件或者其他文件可以指定路径
+
+在执行java程序的时候，如果程序中引用了其他的class文件或者jar包，通常我们都要通过 classpath参数来指定这些需要依赖的文件，比如
+java -classpath "lib/Hutuseng.jar" my.package.TestClass
+如果不指定classpath的话，就会报错，说找不到相应的class，比如NoClassDefFoundError and java.lang.ClassNotFoundException 
+
+如果需要依赖的jar包很多的话，那么classpath就会写的很长，比如
+java -classpath .;.\lib\lucene-core-5.2.1.jar;.\lib\IKAnalyzer2012_V5.jar;.\lib\lucene-analyzers-smartcn-5.2.1.jar;.\lib\lucene-queryparser-5.2.1.jar;.\lib\mysql-connector-java-5.1.26-bin.jar com.hutuseng.IndexBuilder
+
+当然，我们可以设置CLASSPATH环境变量，只不过环境变量是系统级的，没法对不同的应用分别设置，在实际的应用中很少这么用。
+也可以一次性写个批处理文件，以后就直接执行这个文件，以前我也是一直这么干的。其实心中也一直有这个疑惑，到底能不能指定一个目录或者使用文件通配符的方式（*.jar），java程序执行的时候，自动到这个目录中搜索呢？
+
+google了一下，发现在java6以及后续的版本中，提供了对通配符的支持。
+
+如果您的jdk还是老版本，那么就没法用通配符了，就只能一个一个写了，或者如果是在unix系统中，可以用shell的功能把路径下的所有jar文件拼接起来，
+比如 java -classpath $(echo libs/*.jar | tr ' ' ':') Test
+
+那么java6以后的通配符怎么用呢？
+我们看看这个例子
+java -classpath "./libs/*" Test
+这里的*是指libs目录里的所有jar文件，不能这么写 java -classpath "./libs/*.jar" Test
+
+如果libs目录中既有jar文件又有class文件，我们都想引用，那么就需要这么写
+java -classpath "./libs/*;./libs/" Test
+注意：windows系统里的分隔符是;  Unix系统的分隔符是:
+
+另外需要注意的就是 libs/* 不包含libs目录下的子目录里的 jar文件，比如 libs/folder1/A.jar 
+如果想包含子目录，那就需要都明确指出，比如
+java -cp "./libs/*;./libs/folder1/*" Test
+
+三、maven中打包依赖的路径配置
+
+
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-jar-plugin</artifactId>
+    <version>2.6</version>
+    <configuration>
+        <excludes>
+            <exclude>*.properties</exclude>
+            <exclude>*.xml</exclude>
+            <exclude>*.sh</exclude>
+        </excludes>
+        <archive>
+            <manifest>
+                <addClasspath>true</addClasspath>
+                <classpathPrefix>lib</classpathPrefix>
+                <mainClass>com.hhht.riskcontrol.thirdparty.tongdun.LoginServer</mainClass>
+            </manifest>
+            <manifestEntries>
+                <Class-Path>conf/</Class-Path>
+            </manifestEntries>
+        </archive>
+    </configuration>
+</plugin>
+<classpathPrefix>系统会将这个路径下所有的jar包加入到classpath路径中，
+<Class-Path>系统会将这个路径加入到classpath中，主要是用于加载配置文件。
+
+* java(c) -cp
+javac -cp "/home/lzy/lib/flume/*" MySource.java  # 要加引号
+javac -cp ".:/opt/mahout-distribution-0.9/lib/*:/opt/mahout-distribution-0.9/*" Recommender.java
+java -cp ".:/opt/mahout-distribution-0.9/lib/*:/opt/mahout-distribution-0.9/*" Recommender
+
+2 important things to notice: 1) Use quotes and 2) Use * only, not *.jar
+
+This is similar to Windows, but uses : instead of ;. If you cannot use wildcards, bash allows the following syntax (where lib is the directory containing all the Java archive files):
+
+java -cp $(echo lib/*.jar | tr ' ' ':')
+
+[Don't miss the . above]
+This is because you have placed the Main.java inside the package
+* int foo = Integer.parseInt("1234")
+Back in the C++ days, we could call static methods from an instance. So people saw all the methods available on a class by looking at an instance of one. Now we have to reference the type to get the list of static methods. And thus code-self-documentation falls one step back into obscurity. – Lee Louviere May 3 '13 at 18:08
+@LeeLouviere You can do this in Java with non-primitive types, just like in C++. – Overv Dec 10 '13 at 18:21
+@LeeLouviere I don't really think that's a feature, so much as something that can hamper your first-glance understanding of the class. – davidahines Dec 22 '14 at 16:27
+then you just give it a separator in the list for static methods. – Lee Louviere Feb 26 '15 at 23:14
+This will throw NumberFormatException if input is not a valid number. – Francesco Menzani Aug 28 '15 at 16:05
+Should be: (If you have it in a StringBuffer, your code is ancient and you need to use 
+
+Integer x = Integer.valueOf(str);
+// or
+int y = Integer.parseInt(str);
+There is a slight difference between these methods:
+
+valueOf returns a new or cached instance of java.lang.Integer
+parseInt returns primitive int
+* Adding to the classpath on OSX
+
+If you want to make a certain set of JAR files (or .class files) available to every Java application on the machine, then your best bet is to add those files to /Library/Java/Extensions.
+
+Or, if you want to do it for every Java application, but only when your Mac OS X account runs them, then use ~/Library/Java/Extensions instead.
+* build hadoop
+java
+
+maven
+1.extract
+2.evn
+    export M2_HOME=/usr/local/apache-maven/apache-maven-3.3.1
+    export M2=$M2_HOME/bin
+    export MAVEN_OPTS=-Xms256m -Xmx512m
+
+protocolbuf
+configure, make, make install
+
+* build hadoop failed
+** StabilityOptions.java:[20,22] error: package com.sun.javadoc does not exist
+can not find tools.jar which resides in Library/Java/JavaVirtualMachines/1.8.0.jdk/Contents/Home/lib/ for 1.8 and /Library/Java/JavaVirtualMachines/1.7.0.jdk/Contents/Home/jre/lib/ for 1.7
+solution: copy tools.jar to /Library/Java/Extensions
+or better one
+sudo mkdir $JAVA_HOME/Classes
+sudo ln -sf $JAVA_HOME/lib/tools.jar $JAVA_HOME/Classes/classes.jar
+** InterfaceStability.java:27: error: unexpected end tag: </ul>
+[ERROR] * </ul>
+
+将JDK换成1.7版本，使用JDK1.8编译就会遇到上述问题，将</ul>行删除可以解决问题
+
+This is an error reported by javadoc. The javadoc version in Java 8 is considerably more strict than the one in earlier version. It now signals an error if it detects what it considers to be invalid markup, including the presence of an end tag where one isn't expected.
+
+To turn off this checking in javadoc, add the -Xdoclint:none flag to the javadoc command line. For information about how to do this in a maven environment, see Stephen Colebourne's blog entry on this topic. Specifically, add
+
+<additionalparam>-Xdoclint:none</additionalparam>
+to an appropriate properties or configuration file.
+
+There are a couple weird things going on, though. The current (trunk) version of this file seems to have the </ul> end tag in the right place. The history of this file indicates that the previously-missing end tag was added fairly recently, but it does appear to be in Hadoop 2.4. And this file by itself is processed successfully by JDK 8u5 javadoc, without having to suppress any errors.
+
+Has a patch been applied somewhere that added the formerly-missing </ul> end tag, which is now redundant since the end tag has been added to the original source? An extra end tag will cause javadoc to fail with this error.
+
+Alternatively to Stuarts suggestion (I had a difficult time finding out where to put the additionalparam): In order to skip javadoc generation altogether, just run
+
+mvn clean package -Pdist,native-win -DskipTests -Dtar -Dmaven.javadoc.skip=true
+
+* Spring之ClassPathResource加载资源文件
+Demo:
+
+@Test
+public void testClassPathResource() throws IOException {
+    Resource res = new ClassPathResource("resource/ApplicationContext.xml");
+    InputStream input = res.getInputStream();
+    Assert.assertNotNull(input);
+}
+ 
+再看内部源码：
+
+public ClassPathResource(String path) {
+    this(path, (ClassLoader) null);
+}
+ public ClassPathResource(String path, ClassLoader classLoader) {
+     Assert.notNull(path, "Path must not be null");
+     String pathToUse = StringUtils.cleanPath(path);
+     if (pathToUse.startsWith("/")) {
+         pathToUse = pathToUse.substring(1);
+     }
+     this.path = pathToUse;
+     this.classLoader = (classLoader != null ? classLoader : ClassUtils.getDefaultClassLoader());
+ }
+复制代码
+复制代码
+ public ClassPathResource(String path, Class<?> clazz) {
+     Assert.notNull(path, "Path must not be null");
+     this.path = StringUtils.cleanPath(path);
+     this.clazz = clazz;
+ }
+
+
+获取资源内容： 
+
+复制代码
+复制代码
+ /**
+  * This implementation opens an InputStream for the given class path resource.
+  * @see java.lang.ClassLoader#getResourceAsStream(String)
+  * @see java.lang.Class#getResourceAsStream(String)
+  */
+ @Override
+ public InputStream getInputStream() throws IOException {
+     InputStream is;
+     if (this.clazz != null) {
+         is = this.clazz.getResourceAsStream(this.path);
+     }
+     else if (this.classLoader != null) {
+         is = this.classLoader.getResourceAsStream(this.path);
+     }
+     else {
+         is = ClassLoader.getSystemResourceAsStream(this.path);
+     }
+     if (is == null) {
+         throw new FileNotFoundException(getDescription() + " cannot be opened because it does not exist");
+     }
+     return is;
+ }
+复制代码
+复制代码
+ 源码解读：
+
+该类获取资源的方式有两种：Class获取和ClassLoader获取。
+
+两种方法的区别：
+
+再看Demo:
+
+复制代码
+复制代码
+ @Test
+ public void testResouce() {
+     ClassLoader loader = Thread.currentThread().getContextClassLoader();
+     System.out.println(loader.getResource("").getPath());
+     
+     System.out.println(this.getClass().getResource("").getPath());
+     System.out.println(this.getClass().getResource("/").getPath());
+ 
+     System.out.println(System.getProperty("user.dir"));
+ }
+复制代码
+复制代码
+ 
+
+运行结果：
+/home/sunny/workspace/spring-01/target/test-classes/
+/home/sunny/workspace/spring-01/target/test-classes/com/me/spring/spring_01/
+/home/sunny/workspace/spring-01/target/test-classes/
+/home/sunny/workspace/spring-01
+Class.getResource("")获取的是相对于当前类的相对路径
+
+Class.getResource("／")获取的是classpath的根路径
+
+ClassLoader.getResource("")获取的是classpath的根路径 
+
+在创建ClassPathResource对象时，我们可以指定是按Class的相对路径获取文件还是按ClassLoader来获取。
+
+* How does autowiring work in Spring?
+https://stackoverflow.com/questions/3153546/how-does-autowiring-work-in-spring
+
+* ClassLoader.getResourceAsStream or Class.getResourceAsStream
+The main difference between the two is that the ClassLoader version always uses an "absolute" path (within the jar file or whatever) whereas the Class version is relative to the class itself, unless you prefix the path with /.
+
+So if you have a class com.company.somePackage.SomeClass and com.company.other.AnyClass (within the same classloader as the resource) you could use:
+
+SomeClass.class.getResourceAsStream("MyFile.txt")
+or
+
+AnyClass.class.getClassLoader()
+              .getResourceAsStream("com/company/somePackage/MyFile.txt");
+or
+
+AnyClass.class.getResourceAsStream("/com/company/somePackage/MyFile.txt");
+
+* Autowired static 
+ when the class loader loads the static values, the Spring context is not yet necessarly loaded. So the class loader won't properly inject the static class in the bean and will fail.
+
+* Can @Component, @Repository and @Service 
+Spring 2.5 introduces further stereotype annotations: @Component,  @Service, and @Controller. @Component is a generic stereotype for any Spring-managed component. @Repository, @Service, and @Controller are specializations of @Component for more specific use cases, for example, in the persistence, service, and presentation layers, respectively.
+
+Therefore, you can annotate your component classes with @Component, but by annotating them with @Repository, @Service, or @Controller instead, your classes are more properly suited for processing by tools or associating with aspects. For example, these stereotype annotations make ideal targets for pointcuts.
+
+Thus, if you are choosing between using @Component or @Service for your service layer, @Service is clearly the better choice. Similarly, as stated above, @Repository is already supported as a marker for automatic exception translation in your persistence layer.
+
+| Annotation | Meaning                                             |
++------------+-----------------------------------------------------+
+| @Component | generic stereotype for any Spring-managed component |
+| @Repository| stereotype for persistence layer                    |
+| @Service   | stereotype for service layer                        |
+| @Controller| stereotype for presentation layer (spring-mvc)      |
+
+annotations be used interchangeably in Spring or do they provide any particular functionality besides acting as a notation device?
+https://stackoverflow.com/questions/6827752/whats-the-difference-between-component-repository-service-annotations-in
+In Spring @Component, @Service, @Controller, and @Repository are Stereotype annotations which is used for:
+
+@Controller: where your request mapping from presentation page done i.e. Presentation layer won't go to any other file it goes directly to @Controller class and check for requested path in @RequestMapping annotation which written before method calls if necessary.
+
+@Service: All business logic is here i.e. Data related calculations and all.This annotation of business layer in which our user not directly call persistence method so it will call this methods using this annotation. It will request @Repository as per user request
+
+@Repository:This is Persistence layer(Data Access Layer) of application which used to get data from database. i.e. all the Database related operations are done by repository.
+
+@Component - Annotate your other components (for example REST resource classes) with component stereotype.
+
+@Service, @Controller, @Repository = {@Component + some more special functionality}
+
+That mean Service, The Controller and Repository are functionally the same.
+
+The three annotations are used to separate "Layers" in your application,
+
+Controllers just do stuff like dispatching, forwarding, calling service methods etc.
+Service Hold business Logic, Calculations etc.
+Repository are the DAOs (Data Access Objects), they access the database directly.
+Now you may ask why separate them: (I assume you know AOP-Aspect Oriented Programming)
+
+Let's say you want to Monitors the Activity of the DAO Layer only. You will write an Aspect (A class) class that does some logging before and after every method of your DAO is invoked, you are able to do that using AOP as you have three distinct Layers and are not mixed.
+
+So you can do logging of DAO "around", "before" or "after" the DAO methods. You could do that because you had a DAO in the first place. What you just achieved is Separation of concerns or tasks.
+
+Imagine if there were only one annotation @Controller, then this component will have dispatching, business logic and accessing database all mixed, so dirty code!
+
+Above mentioned is one very common scenario, there are many more use cases of why to use three annotations.
+
+*  @ConfigurationProperties  array
+// file application.yml
+my:
+  servers:
+    - dev.bar.com
+    - foo.bar.com
+    - jiaobuchong.com
+
+@Component      //不加这个注解的话, 使用@Autowired 就不能注入进去了
+@ConfigurationProperties(prefix = "my")  // 配置文件中的前缀
+public class MyConfig {
+    private List<String> servers = new ArrayList<String>();
+    public List<String> getServers() { return this.servers;
+    }
+}
+
+
+* jdbc example
+import java.sql.*;
+class MysqlCon{
+    public static void main(String args[]){
+        try{
+            Class.forName("com.mysql.jdbc.Driver");
+            Connection con=DriverManager.getConnection("jdbc:mysql://172.18.234.212:7706/topbi","root","ruijie_wis");
+            Statement stmt=con.createStatement();
+            ResultSet rs=stmt.executeQuery("select * from users");
+            while(rs.next())
+            System.out.println(rs.getInt(1)+"  "+rs.getString(2) );
+            con.close();
+        }catch(Exception e){ System.out.println(e);}
+    }
+}
+
+javac MysqlCon.java &&
+java -cp /opt/idata-install/services/topbi/webapps/TopBI/WEB-INF/lib/mysql-connector-java-5.1.37.jar MysqlCon

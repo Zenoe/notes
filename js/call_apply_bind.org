@@ -1,0 +1,5 @@
+#+TITLE:
+You can use call()/apply() to invoke the function immediately. bind() returns a
+bound function that, when executed later, will have the correct context ("this")
+for calling the original function. So bind() can be used when the function needs
+to be called later in certain events when it's useful.

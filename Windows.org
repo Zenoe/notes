@@ -1,0 +1,75 @@
+* windows open proxy setting panel: ms-settings:network-proxy
+* 查看端口状态
+C:\>netstat -ano
+  协议    本地地址                     外部地址               状态                   PID
+  TCP    127.0.0.1:1434         0.0.0.0:0              LISTENING       3236
+  TCP    127.0.0.1:5679         0.0.0.0:0              LISTENING       4168
+  TCP    127.0.0.1:7438         0.0.0.0:0              LISTENING       4168
+  TCP    127.0.0.1:8015         0.0.0.0:0              LISTENING       1456
+  TCP    192.168.3.230:139      0.0.0.0:0              LISTENING       4
+  TCP    192.168.3.230:1957     220.181.31.225:443     ESTABLISHED     3068
+  TCP    192.168.3.230:2020     183.62.96.189:1522     ESTABLISHED     1456
+  TCP    192.168.3.230:2927     117.79.91.18:80        ESTABLISHED     4732
+  TCP    192.168.3.230:2929     117.79.91.18:80        ESTABLISHED     4732
+  TCP    192.168.3.230:2930     117.79.91.18:80        ESTABLISHED     4732
+  TCP    192.168.3.230:2931     117.79.91.18:80        ESTABLISHED     4732
+ 
+2.查看指定端口的占用情况
+C:\>netstat -aon|findstr "9050"
+  协议    本地地址                     外部地址               状态                   PID
+  TCP    127.0.0.1:9050         0.0.0.0:0              LISTENING       2016
+P: 看到了吗，端口被进程号为2016的进程占用，继续执行下面命令： （也可以去任务管理器中查看pid对应的进程）
+3.查看PID对应的进程
+C:\>tasklist|findstr "2016"
+ 映像名称                       PID 会话名              会话#       内存使用
+ ========================= ======== ================
+  tor.exe                     2016 Console                 0     16,064 K 
+
+4.结束该进程
+C:\>taskkill /f /t /im tor.exe
+* 默认环境变量
+%appdata%
+win7 系统默认环境变量。可以直接在explorer中输入,=C:\Users\ab\AppData\Roaming
+win7 Rime的配置文件在%appdata%\rime
+winxp equals C:\Documents and Settings\xwrj\Application Data
+PUBLIC=C:\\Users\\Public 
+HOMEPATH=\\Users\\用户名  （ xp = C:\Documents and Settings\xwrj）
+* 删除可添加的输入法列表
+HKEY_LOCAL_MACHINE\SYSTEM\ControlSet001\Control\Keyboard Layouts\E0230804
+HKEY_LOCAL_MACHINE\SYSTEM\ControlSet002\Control\Keyboard Layouts\E0230804
+* Wireshark
+** Wireshark 保存Filter的删除方法
+C:\Users\ 用户名 \AppData\Roaming\Wireshark文件夹下有一个preferences文件,
+打开文件搜搜  ####### Filter Expressions ######## ,你就会看到所有保存的Filter,三行一组,自行删除就可以啦
+* 右键菜单
+** HKEY_CLASSES_ROOT\*\shell\cmd\command
+那么直接在cmd项上面右击删除即可。
+
+** 文件夹的右键
+HKEY_CLASSES_ROOT\Directory\shell
+看这项下面有没有关于cmd命令的指令。同样的方法删除。
+
+** 指定文件右键
+HKEY_CLASSES_ROOT项下面
+如果你是asp文件上面有。那以就在此项下找HKEY_CLASSES_ROOT\aspfile
+如果是txt文件，那么就找HKEY_CLASSES_ROOT\txtfile
+
+** HKEY_CLASSESS_ROOT\Folder\shell
+
+** xp快捷方式右键文件位置
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\Directory\shell\Open File Location]
+@="&Open File Location"
+
+[HKEY_CLASSES_ROOT\Directory\shell\Open File Location\command]
+@="\"explorer.exe\" /select,\"%1\""
+
+[HKEY_CLASSES_ROOT\*\shell]
+
+[HKEY_CLASSES_ROOT\*\shell\Open File Location]
+@="&Open File Location"
+
+[HKEY_CLASSES_ROOT\*\shell\Open File Location\command]
+@="\"explorer.exe\" /select,\"%1\""
+

@@ -1,0 +1,136 @@
+* x window 显示中文 (ubuntu)
+sudo apt install dbus-x11 im-config fonts-noto fcitx fcitx-pinyin fcitx-sunpinyin fitx-googlepinyin
+如果是为WSL配置中文输入法, 需要以下
+** ​~/.profile​​
+# 也可放在/etc/default/locale里面
+export LANG=zh_CN.UTF-8
+# 也可放在/etc/environment里面
+export INPUT_METHOD=fcitx # wayland输入法
+export XMODIFIERS=@im=fcitx # x11输入法
+export GTK_IM_MODULE=fcitx # gtk输入法
+-----------------------------------
+
+** 重启 WSL
+wsl --shutdown
+如果fcitx无法配置输入法或无法启动,命令行输入一次 ​​fcitx-autostart​​
+
+如果有装别的输入法比如 ibus 也都卸载掉
+* cygwin xterm emacs
+emacs 在 cygwin 中不识别 C-; C->等,在option 中把 terminal 改为 xterm.就可以
+改为xterm-color-256 可以让emac主题正常显示
+
+但是，在tmux中，打开emacs 依然无法识别 C-;, C-> 等，即使已经在.tmux.conf 设置了default terminal 为xterm-color-256.也只是使之主题正常
+https://unix.stackexchange.com/questions/161719/why-cant-emacs-running-in-a-terminal-distinguish-ctrl-from
+https://stackoverflow.com/questions/30680362/how-to-use-ctrl-semicolon-for-prefix-in-tmux
+
+** xkb 重新映射
+My workaround, for Linux, was to remap Ctrl-; to Ctrl-B at the xkb level. Xkb is the Xorg subsystem which handles keyboard layouts.
+
+I'm using the us layout, so I modified the /usr/share/X11/xkb/symbols/us at line 42:
+
+key <AC10> {     [ semicolon,    colon           ]       };
+to
+
+//  key <AC10> {     [ semicolon,    colon           ]       };
+key <AC10> {
+   type="BABEL_CONTROL_LEVEL3",
+   symbols[Group1]= [ semicolon, colon, b ]
+};
+This tells Xkb to generate for AC10 (the 10-th button in the C row) semicolon at level 1 (no modifiers), colon at level 2 (shift modifier) and b at level 3 (Ctrl modifier).
+
+Level 3 in Xkb is not activated by Ctrl generally, for this reason I created a new key type, which I called BABEL_CONTROL_LEVEL3. You need to put its definition in /usr/share/X11/xkb/types/pc:
+
+type "BABEL_CONTROL_LEVEL3" {
+    modifiers = Shift+Control;
+    map[Shift] = Level2;
+    map[Control] = Level3;
+    level_name[Level1] = "Base";
+    level_name[Level2] = "Shift";
+    level_name[Level3] = "Control";
+};
+You'll need to restart X or reboot.
+
+List of resources which helped me with this:
+
+https://unix.stackexchange.com/questions/205226/xkb-make-ctrlbackspace-behave-as-delete
+https://help.ubuntu.com/community/Custom%20keyboard%20layout%20definitions
+https://wiki.archlinux.org/index.php/X_KeyBoard_extension
+* VcXsrv as XServer
+git bash accept key bindings such as C>, C-
+but git bash cann't use xwin server. That's why I turn to VcXsrv
+
+0. add 'export DISPLAY=localhost:0.0' in  ~/.bash_profile, where ~ stands for [git bash home]
+1. start git bash
+2. export DISPLAY=localhost:00
+Point your mouse to the X icon in the status bar, and find out what port it runs on. If it is :0.0 (or :25.0), then in Git Bash: export DISPLAY=localhost:0.0 (or export DISPLAY=localhost:25.0). You may also need to use -Y instead of -X to your ssh command.
+
+3. ssh -X root@host
+
+* block curor
+add to ~/.minttyrc
+CursorType=block
+* ssh
+run cygwin as administrator
+uninstall if any old sshd
+delete LOCAL_MACHINE\SYSTEM\ControlSet001\services\sshd
+run 'sc delete sshd'
+reboot
+
+install cygwin
+chmod 755 /var
+ssh-host-config
+...
+"Create new privileged user account 'R05570\sab' (Cygwin name: 'sab')"
+
+net start ssh
+
+也可以通過控制面板中－管理工具－服務－cygwin sshd－start
+
+启动失败
+cat /var/log/sshd.log
+If the last line reads:
+/var/empty must be owned by root and not group or world-writable.
+
+then I can help you. Read on.
+
+All of the following need to run from an elevated cygwin prompt. Right click on the cygwin icon and choose "Run as Administrator..."
+First of all you need to change the permissions on /var/empty:
+
+chmod 700 /var/empty
+
+[] /var/empty is atuo-created when running ssh-host-config
+
+* Permissions 0770 for '/home/ab/.ssh/id_rsa' are too open.
+It is required that your private key files are NOT accessible by others.
+This private key will be ignored.
+Load key "/home/ab/.ssh/id_rsa": bad permissions
+solution: chmod 400 ~/.ssh/id_rsa
+
+* elevated privilege on cygwin
+cygstart --action=runas /cygdrive/c/windows/system32/cmd.exe
+* cygwin fake sudo
+create a file name it "sudo", fill it whih contents:
+#!/usr/bin/bash
+
+"$@"
+
+[attention] unix line format
+* How do I make ctrl-arrow keys move forward/backward a word at a time in Cygwin bash?
+
+C-x C-r or "bind -f ~/.inputrc"
+You can reload file .inputrc via:
+
+Add the following lines to ~/.inputrc (C:\cygwin\home\<username>\.inputrc):
+
+"\e[1;5C": forward-word   # ctrl + right
+"\e[1;5D": backward-word  # ctrl + left
+When done you can press C-x C-r to re-read the .inputrc file for the current session.
+
+Things to note if you want other similar customisations: Use 5A and 5B for up and down arrows, and 2x for shifted versions.
+
+The "official" key mappings are described in the Bash Reference Manual, but for a quick way to find a key mapping, in bash:
+
+type Ctrl+V
+type the key sequence you are interested in (e.g., Alt+→). This would print ^[[1;3C
+remove the leading ^[ and replace it with \e to make \e[1;3C
+place this value in your .inputrc file.

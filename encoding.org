@@ -1,0 +1,204 @@
+拉丁字符编码
+It does not make sense to have a string without knowing what encoding it uses.
+
+If you have a string, in memory, in a file, or in an email message, you have to
+know what encoding it is in or you cannot interpret it or display it to users
+correctly.
+
+How do we preserve this information about what encoding a string uses? Well,
+there are standard ways to do this. For an email message, you are expected to
+have a string in the header of the form
+
+Content-Type: text/plain; charset="UTF-8"
+
+* web page response with Content-Type header causing problems
+For a web page, the original idea was that the web server would return a similar
+Content-Type http header along with the web page itself -- not in the HTML
+itself, but as one of the response headers that are sent before the HTML page.
+
+** reason
+This causes problems. Suppose you have a big web server with lots of sites and
+hundreds of pages contributed by lots of people in lots of different languages
+and all using whatever encoding their copy of Microsoft FrontPage saw fit to
+generate. The web server itself wouldn't really know what encoding each file was
+written in, so it couldn't send the Content-Type header.
+
+** solution
+Luckily, almost every encoding in common use does the same thing with characters between 32 and 127
+put the Content-Type of the HTML file right in the HTML file itself, using some kind of special tag
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+meta tag really has to be the very first thing in the <head> section because as soon as the web browser sees this tag it's going to stop parsing the page and start over after reinterpreting the whole page using the encoding you specified.
+
+** What do web browsers do if they don't find any Content-Type
+ Either in the http headers or the meta tag? 
+Internet Explorer actually does something quite interesting: it tries to guess, based on the frequency in which various bytes appear in typical text in typical encodings of various languages, what language and encoding was used.
+
+没有指定编码而不发生乱码是运气好，浏览器猜中了正确编码
+
+* ascii 0xxxxxxx 表示一个字符，显示或打印字符
+可打印字符	A	01000001	0x41	65
+可打印字符	a	01100001	0x61	97
+code below 32 are calld unprintable, used for control characters
+控制字符	\r	00001101	0x0D	13
+控制字符	\n	00001010	0xA	10
+* EASCII
+  西欧地区 将美国人没有用到的第8位也用上, 共 2^8 256个
+* ISO 8859
+为解决东欧地区256个字符不够用的问题
+ISO 8859采取的不再是单个独立的编码规则，而是由一系列的字符集（共15个）所组成
+分别称为ISO 8859-n(n=1,2,3…11,13…16,没有12)。其每个字符集对应不同的语言,如ISO 8859-1对应西欧语言，ISO 8859-2对应中欧语言等
+Latin-1(Windows 1252)就是ISO 8859-1的别名,它表示整个西欧的字符集范围
+0000000(0x00)-01111111(0x7f)段与ASCII一致 与ASCII兼容
+10000000（0x80）-11111111(0xFF)段扩展用到不同的字符集。
+
+* 中文编码
+1995年的汉字扩展规范GBK1.0收录了21886个符号，它分为汉字区 和图形符号区。汉字区包括21003个字符。
+2000年的GB18030是取代GBK1.0的正式国家标准。收录了27484个汉字，同时还收录了藏文、蒙文、维吾尔文等主要的少数民族文字。
+
+现在的PC平台必须支持GB18030，对嵌入式产品暂不作要求。所以手机、MP3一般只支持 GB2312
+ASCII、GB2312、GBK到GB18030，这些编码方法是向下兼容的，在这些编码中，英文和中文可
+以统一地处理。区分中文编码的方法是高字节的最高位不为0,(GB2312、GBK到GB18030都属
+于双字节字符集 (DBCS))有的中文Windows的缺省内码还是GBK，可以通过GB18030升级包升
+级到GB18030。不过GB18030相对GBK增加的字符，普通人是很难用到的，通常我们还是用GBK 指代中文Windows内码。
+| gb2312                                  | big5                                       | gbk                                      | gb18030                |
+|-----------------------------------------+--------------------------------------------+------------------------------------------+------------------------|
+| simple ch                               | traditional chinese                        | gb2312 extended with traditional chinese | cn,ko,jp encoding      |
+|-----------------------------------------+--------------------------------------------+------------------------------------------+------------------------|
+| 1 bytes for ascii ; 2 bytes for chinese | 2 byges                                    | 2 bytes                                  | 1 ,2,4 bytes           |
+|-----------------------------------------+--------------------------------------------+------------------------------------------+------------------------|
+| 7455 char,6763 chinese char             | 21883 chars                                | 21886 chinese chars                      | 27484 chars            |
+|-----------------------------------------+--------------------------------------------+------------------------------------------+------------------------|
+| 1 byte compatible with ascii            | compatible with ascii, conflit with gb2312 | compatible with gb2312                   | compatible with gb2312 |
+
+* Unicode
+采用4个字节表示一个字符
+UTF-8: Unicode的一种实现方式
+如果一个字节的第一位为0，那么代表当前字符为单字节字符，占用一个字节的空间。0之后的所有部分（7个bit）代表在Unicode中的序号。
+如果一个字节以110开头，那么代表当前字符为双字节字符，占用2个字节的空间。110之后的所有部分（5个bit）加上后一个字节的除10外的部分（6个bit）代表在Unicode中的序号。且第二个字节以10开头
+如果一个字节以1110开头，那么代表当前字符为三字节字符，占用2个字节的空间。110之后的所有部分（5个bit）加上后两个字节的除10外的部分（12个bit）代表在Unicode中的序号。且第二、第三个字节以10开头
+如果一个字节以10开头，那么代表当前字节为多字节字符的第二个字节。10之后的所有部分（6个bit）和之前的部分一同组成在Unicode中的序号。
+| unicode (hex)                  | utf-8 (binary)                      |
+|--------------------------------+-------------------------------------|
+| 1 byte:  0000 0000-0000 007F   | 0xxxxxxx                            |
+| 2 bytes: 0000 0800 - 0000 07FF | 110xxxxx 10xxxxxx                   |
+| 3 bytes: 0000 0800 - 0000 FFFF | 1110xxxx 10xxxxxx 10xxxxxx          |
+| 4 bytes: 0001 0000 - 0010 FFFF | 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx |
+
+实际字符	在Unicode字库序号的十六进制	在Unicode字库序号的二进制	UTF-8编码后的二进制	          UTF-8编码后的十六进制
+$	      0024	        	          010 0100		        	  0010 0100	                    24
+¢	      00A2	        	          000 1010 0010		        1100 0010 1010 0010	          C2 A2
+€	      20AC	        	          0010 0000 1010 1100		  1110 0010 1000 0010 1010 1100	E2 82 AC
+* windows Notepad中的编码ANSI保存选项是 
+windows的默认的编码方式，对于英文文件是ASCII编码，对于简体中文文件是GB2312编码（只针对Windows简体中文版，如果是繁体中文版会采用Big5码）。所以，如果将一个UTF-8编码的文件，另存为ANSI的方式，对于中文部分会产生乱码。
+
+* Emoji
+Emoji就是一种在Unicode位于\u1F601-\u1F64F区段的字符。超过了目前常用的UTF-8字符集
+的编码范围\u0000-\uFFFF存入MySQL数据库的时候。一般来说MySQL数据库的默认字符集都
+会配置成UTF-8（三字节），而utf8mb4在5.5以后才被支持，也很少会有DBA主动将系统默认
+字符集改成utf8mb4。那么问题就来了，当我们把一个需要4字节UTF-8编码才能表示的字符存入数据库的时候就会报
+
+那么遇到这种情况我们如何解决呢？有两种方式：升级MySQL到5.6或更高版本，并且将表字
+符集切换至utf8mb4。第二种方法就是在把内容存入到数据库之前做一次过滤，将Emoji字符
+替换成一段特殊的文字编码，然后再存入数据库中。之后从数据库获取或者前端展示时再将
+这段特殊文字编码转换成Emoji显示。第二种方法我们假设用-*-1F601-*-来替代4字节的
+Emoji，那么具体实现python代码可以参见Stackoverflow上的回答
+http://stackoverflow.com/questions/3220031/how-to-filter-or-replace-unicode-characters-that-would-take-more-than-3-bytes
+
+* 3.为什么数据库Latin1字符集（单字节）可以存储中文呢？
+其实不管需要使用几个字节来表示一个字符，但最小的存储单位都是字节,所以，只要能保
+证传输和存储的字节顺序不会乱即可。作为数据库，只是作为存储的使用的话，只要能保证
+存储的顺序与写入的顺序一致，然后再按相同的字节顺序读出即可，翻译成语义字符的任务
+交给应用程序。比如’微’的UTF-8编码是’0xE5 0xBE 0xAE’，那数据库也存储’0xE5 0xBE
+0xAE’三个字节，其它应用按顺序从数据库读取，再按UTF-8编码进行展现。这当然是一个看
+似完美的方案，但是只要写入，存储，读取过程中岔出任何别的编码，都可能导致乱码。
+
+* db select hex convert
+mysql [localhost] {msandbox} > select hex(convert('寰堝睂' using gbk));
++-------------------------------------+
+| hex(convert('寰堝睂' using gbk))    |
++-------------------------------------+
+| E5BE88E5B18C                        |
++-------------------------------------+
+1 row in set (0.01 sec)
+
+mysql [localhost] {msandbox} ((none)) > select convert(0xE5BE88E5B18C using utf8);
++------------------------------------+
+| convert(0xE5BE88E5B18C using utf8) |
++------------------------------------+
+| 很屌                               |
++------------------------------------+
+1 row in set (0.00 sec)
+
+* Mysql数据库中多个字符集变量（其它数据库其实也类似），它们之间分别是什么关系？
+mysql> show variables like 'character_set%';
++--------------------------+-----------------------------------------------+
+| Variable_name            | Value                                         |
++--------------------------+-----------------------------------------------+
+| character_set_client     | gbk                                           |
+| character_set_connection | gbk                                           |
+| character_set_database   | latin1                                        |
+| character_set_filesystem | binary                                        |
+| character_set_results    | gbk                                           |
+| character_set_server     | latin1                                        |
+| character_set_system     | utf8                                          |
+| character_sets_dir       | d:\wamp\bin\mysql\mysql5.6.17\share\charsets\ |
++--------------------------+-----------------------------------------------+
+character_set_client：客户端来源的数据使用的字符集，用于客户端显式告诉客户端所发送的语句中的的字符编码。
+
+character_set_connection：连接层的字符编码，mysql一般用character_set_connection将客户端的字符转换为连接层表示的字符。
+
+character_set_results:查询结果从数据库读出后，将转换为character_set_results返回给前端。
+
+而我们常见的解决乱码问题的操作： mysql_query('SET NAMES GBK')
+
+其相当于将以上三个字符集统一全部设置为GBK，这三者一致时，一般就解决了乱码问题。
+
+character_set_database:当前选中数据库的默认字符集，如当create table时没有指定字符集，将默认选择该字符集。
+
+character_set_database已经character_set_system，一般用于数据库系统内部的一些字符编码，处理数据乱码问题时，我们基本可以忽略。
+
+* windows Little endian和Big endian
+notepad 新建文件,内容就是一个"严"字，依次采用ANSI，Unicode，Unicode big endian 和 UTF-8编码方式保存。
+notepad: Unicode编码指的是UCS-2编码方式，即直接用两个字节存入字符的Unicode码。这个选项用的little endian格式。
+1）ANSI：文件的编码就是两个字节"D1 CF"，这正是"严"的GB2312编码，这也暗示GB2312是采用大头方式存储的。
+2）Unicode：编码是四个字节"FF FE 25 4E"，其中"FF FE"表明是小头方式存储，真正的编码是4E25。
+3）Unicode big endian：编码是四个字节"FE FF 4E 25"，其中"FE FF"表明是大头方式存储。
+4）UTF-8：编码是六个字节"EF BB BF E4 B8 A5"，前三个字节"EF BB BF"(bom) 表示这是UTF-8编码，后三个"E4B8A5"就是"严"的具体编码，它的存储顺序与编码顺序是一致的。
+
+* 中日韩 unicode 表 http://www.chi2ko.com/tool/CJK.htm
+
+* Unicode、UCS和UTF
+历史上存在两个试图独立设计Unicode的组织，即国际标准化组织（ISO）和一个软件制造商的协会（unicode.org）。ISO开发了ISO 10646项目，Unicode协会开发了Unicode项目。
+在1991年前后，双方都认识到世界不需要两个不兼容的字符集。于是它们开始合并双方的工作成果，并为创立一个单一编码表而协同工作。从Unicode2.0开始，Unicode项目采用了与ISO 10646-1相同的字库和字码。
+
+* 参考 URL
+http://www.joelonsoftware.com/articles/Unicode.html
+http://pcedu.pconline.com.cn/empolder/gj/other/0505/616631.html
+http://blog.jobbole.com/76376/
+
+* 为什么printf可以打印中文,而wprintf却一定要setlocale才能正确打印?
+我的VC工程不论是MBCS还是Unicode，发现printf总是能正确打印char*表示的中文。
+
+而wprintf打印wchar_t*的中文，必须要先设置setlocal(LC_ALL,"chs")才行，否则打印一堆乱码。
+
+我的问题是:
+(1)为什么printf能正常打印中文，而不是按字节打印出一堆ascii字符。
+(2)wprintf既然是打印L()包裹的中文，那么它为什么不能工作？我当前就是中文系统啊，本机运行，没有更换到英文系统上。那么还要在此之前setlocale我总感觉有点多次一举啊。
+
+大侠解释一下吧 !
+
+   setlocale(LC_ALL,"chs");
+   string s="你好abc";
+   wstring ws=L"你好abc";
+   printf("%s\n",s.c_str());
+   wprintf(L"%s\n",ws.c_str());
+
+ 这个问题涉及到一个字符，他在源代码时是以什么形式（或者说编码格式）存的，在编译好的二进制文件中是以什么形式存的，以及最后输出的时候输出的是什么编码格式。
+
+如果是普通字符串，那么它在这三者中表现形式是一致的。而宽字符串，却有可能不同。
+
+以linux为例，因为linux下通常使用的字符编码都是utf8，所以源码也是以utf8保存的，对于普通字符串，在编译器编译的过程中，什么也不做，原样将这个编码放到二进制文件中。然后printf输出的时候，也是原样输出。如果接收输出的那个程序（也许是一个shell）支持utf8，那么当然就可以正常显示出来了。如果不支持，就会错乱。
+
+而对于宽字符来说，还以linux为例。源码中依然是utf8，但编译器在编译过程中，会把字符的编码转换成unicode保存在二进制文件中。而输出的形式，取决于你的locale设定了。如果shell支持的是utf8，但你设定的locale是gbk，printf的时候程序就会把unicode转成gbk编码输出，而这边shell却当成utf8编码解释，最后当然就乱码了。

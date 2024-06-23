@@ -1,0 +1,46 @@
+缺乏 CSS 相关工程化
+
+responsive mobile-first 的 CSS 相关框架的
+
+ SEO、sitemap 和网站结构
+
+代码托管
+ github 或者 bitbucket。都是大厂，而且都有免费的版本供个人 private repo 使用
+
+log 日志管理
+主要是用来采集服务器端的日志    logz  loggly
+前端自动部署
+push 到 github 之后就自动运行 unit test 和 integration test
+通过之后就会自动将已经压缩的所有前端静态资源，包括 js、css、images、fonts 等推到 CDN 网络，例如 aws 著名的 s3 storage。注意这里一般部署是采用非覆盖式发布
+
+后端自动部署
+和前端类似，只不过当跑完 test 之后代码就会被打包成镜像上传到 K8s,然后由 K8s 分发到各个不同的 cluster 上
+
+自动发布 docker 镜像
+对于比较小的项目可能不需要用到 K8s，所以用 docker 即可,官网有免费版：http://hub.docker.com
+
+AWS 为首的各种云服务
+CDN storage、database hosting 和 load balancer。
+这些基本上现在各大 cloud 厂商已经自动化了，按照教程就能上手
+
+登录集成 login integration
+,登录和权限管理是个大问题。现在很多人还在吭哧吭哧的自己实现，既不安全又不可靠
+建议使用 cloud-based identity platform 供应商,说一个我非常喜欢的 auth0，默认提供 Google 的登录链接。
+还有全球将近百种知名网站的登录可选（包括很多国内知名企业）。并且自动集成权限管理，傻瓜化操作，全平台支持，建议尝试。
+
+支付网关 payment
+全球来看 paypal 和 stripe 都是很不错的选择
+
+心跳检测 health check
+Uptime Robot 可以试试看
+如果网站出现流量下跌或者打开速度缓慢他会马上邮件、短信以及电话通知你。
+
+企业邮箱
+ qq 企业邮和 Google G Suite，但今天来看他们家免费的版本基本上要啥没啥
+。所以我推荐老牌企业邮箱厂商 Zoho，我从在国内时就开始用他家的，免费版本完全足够使用
+
+网站安全保护 DDoS
+推荐 SaaS 供应商：cloudflare。免费的 tier 基本上足够应付一般的攻击,当然对于二般的攻击可能机房就直接拔你电源了
+
+XSS：建议做好后端输入验证
+DDoS：建议开启防火墙（如上所说 cloudflare 免费的 tier 应该足够你使用

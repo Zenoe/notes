@@ -1,0 +1,314 @@
+node --inspect-brk
+Enable inspector agent
+Bind to address or hostname host (default: 127.0.0.1)
+Listen on port port (default: 9229)
+Break before user code starts
+
+node --inspect-brk=0.0.0.0:9229 extractSection.test.js
+
+* pm2 do not load env vars provide by corss-env
+"prod": "cross-env NODE_PATH=. NODE_ENV=prod pm2 start src/app.js"
+** use dotenv
+** use pm2 configuration
+If you are facing issues with PM2 not loading the `NODE_ENV` environment variable, you can try the following troubleshooting steps to ensure that the variable is set and accessible:
+
+1. **Check Environment Variable Configuration**:
+   Verify that the `NODE_ENV` environment variable is correctly set in your environment or in your `.env` file. Ensure that it is set to the desired value, such as "prod".
+
+2. **Use PM2 ecosystem file**:
+   Instead of relying on setting environment variables within the `package.json` script, you can define the environment variables in a PM2 ecosystem file (`ecosystem.config.js`). This allows for more control over the configuration.
+
+   Example `ecosystem.config.js` file:
+   ```javascript
+   module.exports = {
+     apps: [{
+       name: 'my-app',
+       script: 'src/app.js',
+       env: {
+         NODE_ENV: 'prod'
+       }
+     }]
+   };
+   ```
+
+   Start your application using the ecosystem file:
+   ```bash
+   pm2 start ecosystem.config.js
+   ```
+
+3. **Check PM2 Logs**:
+   Review the PM2 logs to see if there are any errors or warnings related to environment variables not being loaded. You can view the logs using the following command:
+
+   ```bash
+   pm2 logs
+   ```
+
+4. **Restart PM2**:
+   Sometimes restarting PM2 can help reload the environment variables and configurations. You can stop and start your application using PM2 to see if the `NODE_ENV` variable is picked up.
+
+   ```bash
+   pm2 stop all
+   pm2 start all
+   ```
+
+5. **Use `pm2 start` command**:
+   Instead of defining the `NODE_ENV` in the script, you can try setting it directly in the `pm2 start` command.
+
+   ```bash
+   pm2 start src/app.js --name my-app --env NODE_ENV=prod
+   ```
+
+By following these steps and ensuring that the environment variables are correctly set and loaded in PM2, you should be able to access the `NODE_ENV` variable within your Node.js application when started with PM2.
+
+* to eliminate dot path when requiring modules
+# NODE_PATH environmental variable
+`
+{
+  "scripts": {
+    "start": "NODE_PATH=. node app.js"
+  }
+}
+`
+
+
+#
+
+* get root path
+** require('path').resolve('./') run in app.js
+** process.env.PWD or process.cwd()
+works great on (most) unix systems
+Not reliable at all, as it's entirely dependent on what directory the process was launched from:
+
+** Try traversing upwards from __dirname until you find a package.json, and decide that's the app main root directory your current file belongs to.
+
+According to Node docs
+The package.json file is normally located at the root directory of a Node.js project.
+
+const fs = require('fs')
+const path = require('path')
+
+function getAppRootDir () {
+  let currentDir = __dirname
+  while(!fs.existsSync(path.join(currentDir, 'package.json'))) {
+    currentDir = path.join(currentDir, '..')
+  }
+  return currentDir
+}
+
+* [[https://security.stackexchange.com/questions/108662/why-is-bearer-required-before-the-token-in-authorization-header-in-a-http-re][Why is 'Bearer']] required before the token in 'Authorization' header in a HTTP request?
+The word Bearer wants to provide the authorization scheme. since there are Different Authorization Schemes like:
+
+Basic use for http-basic-Authentication
+Digest MD5 hashed http-basic-authentication (deprecated)
+Negotiate SPNEGO-based Kerberos for MS Windows Systems
+AWS4-HMAC-SHA256 used in AWS, specify credential & required service in header (signed)
+Bearer
+
+The Authorization: <type> <credentials> pattern was introduced by the W3C in HTTP 1.0, and has been reused in many places since. Many web servers support multiple methods of authorization. In those cases sending just the token isn't sufficient.
+
+Sites that use the
+Authorization : Bearer cn389ncoiwuencr
+
+format are most likely implementing OAuth 2.0 bearer tokens.The OAuth 2.0 Authorization Framework sets a number of other requirements to keep authorization secure, for instance requiring the use of HTTPS/TLS.
+
+* ndb
+Error: read ECONNRESET
+Is because Chrome cannot be run as root by default.
+A workaround is to install ndb in a directory that doesn't require elevated permissions.
+For example npm install -g --prefix=$HOME/.npm ndb
+and then add the npm bin folder to the path export PATH="$HOME/.npm/bin:$PATH".
+
+* how many params can a middleware have
+In Express.js, a middleware function can have three parameters: `req`, `res`, and `next`. These parameters represent the request object, response object, and the next function in the middleware chain, respectively.
+
+The `req` parameter contains information about the incoming HTTP request, such as request headers, request body, URL parameters, query parameters, etc. It allows you to access and manipulate the incoming request data.
+
+The `res` parameter represents the response object, which is used to send the response back to the client. It provides methods for setting response headers, setting the HTTP status code, and sending the response body.
+
+The `next` parameter is a function that is used to pass control to the next middleware function in the chain. By calling `next()`, the middleware can transfer control to the next middleware or route handler in the application's middleware stack.
+
+Here's an example of a middleware function with the three standard parameters:
+
+```javascript
+function myMiddleware(req, res, next) {
+  // Middleware logic goes here
+  // You can access req and res objects
+  // Call next() to pass control to the next middleware
+  next();
+}
+```
+
+However, it's important to note that middleware functions can have additional parameters beyond the standard three. These additional parameters can be used to pass custom data, dependencies, or configuration options to the middleware function. These additional parameters are typically passed as arguments when defining the middleware function.
+
+For example, in your previous question, the `isValidAuthToken` middleware function had four parameters, where the fourth parameter was used to pass an object containing additional dependencies or configuration options. So, while the standard middleware function has three parameters, additional parameters can be added as needed.
+* cors
+credentials: true: This option allows the server to accept requests that include credentials like cookies, authorization headers, or TLS client certificates. When this option is set to true, Access-Control-Allow-Credentials CORS header will be set to true, indicating that the actual request can include user credentials.
+
+origin: "10.1.2.2:8080": This option specifies the origin that is allowed to access the resources. In this case, only requests coming from the origin 10.1.2.2:8080 will be allowed. The origin option can also be a boolean, an array of strings, or a function, depending on your needs. Setting it to a specific origin provides an additional layer of security by ensuring that only web applications from that origin can make CORS requests to your server.
+
+* deploy
+
+#### **Server Provisioning**
+- **Choose a Hosting Provider**: AWS, Azure, Google Cloud, DigitalOcean, or a dedicated server.
+- **Select the OS**: Ubuntu is a popular choice due to its large community and extensive documentation.
+### 2. **Code Preparation**
+
+#### **Code Optimization**
+- **Minification and Compression**: Use tools like UglifyJS or Terser to minify your JavaScript files. Minification reduces the file size by removing unnecessary spaces and comments.
+- **Bundling**: Use bundlers like Webpack or Parcel to bundle your application into a few files, which can improve load times.
+- **Obfuscation**: While not always necessary, obfuscation can make your code harder to read and reverse-engineer. Tools like `javascript-obfuscator` can be used for this purpose.
+### 3. **Security Enhancements**
+
+#### **Update Dependencies**
+- Regularly update your dependencies to patch known vulnerabilities.
+- Use tools like `npm audit` to identify and fix security issues.
+#### **Set Up HTTPS**
+- Use SSL/TLS to encrypt data between the client and server.
+- Obtain SSL certificates from trusted authorities like Let's Encrypt.
+
+#### **Secure Headers**
+- Use middleware like `helmet` to set various HTTP headers for improved security.
+
+### **Logging**
+- Implement logging to monitor application behavior and errors. Libraries like `winston` or `morgan` can be useful.
+- Consider centralized logging solutions like ELK stack (Elasticsearch, Logstash, Kibana) or third-party services like Loggly or Splunk.
+
+
+### 5. **Reverse Proxy Setup**
+
+- Use a reverse proxy like Nginx or Apache to manage incoming requests.
+- Nginx configuration example:
+  ```nginx
+  server {
+      listen 80;
+      server_name your_domain.com;
+
+      location / {
+          proxy_pass http://localhost:3000;
+          proxy_http_version 1.1;
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection 'upgrade';
+          proxy_set_header Host $host;
+          proxy_cache_bypass $http_upgrade;
+      }
+  }
+  ```
+
+
+### 1. Prepare the Application
+- **Environment Variables**: Set up environment variables for production, such as `NODE_ENV=production`, database URLs, API keys, and other sensitive data.
+- **Code Quality**: Ensure your code has been thoroughly tested. This includes unit tests, integration tests, and possibly end-to-end tests.
+- **Dependencies**: Make sure all necessary dependencies are properly listed in your `package.json` and that you've installed them using `npm install --production` to avoid installing development dependencies.
+- **Security**: Run a tool like `npm audit` to check for vulnerabilities and apply updates or patches as needed.
+
+### 2. Choose a Hosting Provider
+
+- **Cloud Providers**: AWS (EC2, Elastic Beanstalk, Lambda, etc.), Google Cloud Platform (App Engine, Compute Engine, etc.), Microsoft Azure, DigitalOcean, Heroku, and others.
+- **Virtual Private Server**: You can rent a VPS from providers like Linode, DigitalOcean, Vultr, etc.
+- **Dedicated Server**: For high-performance requirements, you might consider renting or purchasing a dedicated server.
+
+### 3. Set Up a Web Server
+
+- **Reverse Proxy**: Use a web server like Nginx or Apache to serve as a reverse proxy that forwards requests to your Node.js application. This can also handle SSL termination for HTTPS.
+- **SSL Certificate**: Secure your application with an SSL certificate. Let's Encrypt offers free certificates that you can set up with Certbot.
+
+### 4. Process Management
+
+- **Process Manager**: Use a process manager like PM2, Forever, or systemd to keep your Node.js application running continuously and to restart it if it crashes.
+- **Cluster Mode**: If your server has multiple CPU cores, consider running your Node.js application in cluster mode to take full advantage of the available hardware.
+
+### 5. Continuous Integration/Continuous Deployment (CI/CD)
+
+- **CI/CD Pipeline**: Set up a CI/CD pipeline using tools like Jenkins, GitHub Actions, GitLab CI/CD, or CircleCI to automate testing and deployment.
+- **Deployment Scripts**: Write scripts to automate the deployment process, including pulling the latest code from your repository, installing dependencies, running build scripts, and restarting the application.
+
+### 6. Monitoring and Logging
+
+- **Monitoring Tools**: Implement monitoring tools like Datadog, New Relic, or Prometheus to keep an eye on your application's performance and health.
+- **Logging**: Set up logging with a tool like Winston or Bunyan and consider using a log management system like Logstash, Fluentd, or a SaaS solution like Loggly or Splunk.
+- Use auto-scaling features provided by your cloud provider to handle increased traffic loads.
+
+### 7. Database and Data Storage
+
+- **Database**: Set up a production-ready database. Ensure it is properly secured and backed up.
+- **Data Storage**: If your application requires file storage, set up a solution like Amazon S3, Google Cloud Storage, or another reliable file storage service.
+
+### 8. DNS and Domain Configuration
+
+- **Domain Name**: Register a domain name and configure the DNS settings to point to your server's IP address.
+- **Subdomain or Path**: Decide whether your Node.js application will be served from a subdomain (e.g., `api.example.com`) or a specific path on your main domain (e.g., `example.com/api`).
+
+### 9. Security Best Practices
+
+- **Firewall**: Configure a firewall to limit access to your server.
+- **Rate Limiting**: Implement rate limiting to prevent abuse of your API.
+- **Input Validation**: Ensure all user input is validated both on the client and server sides.
+
+### 10. Legal and Compliance
+
+- **Privacy Policy and Terms of Service**: Make sure you have a privacy policy and terms of service in place, especially if you handle user data.
+- **Data Protection**: Follow best practices for data protection, such as encrypting sensitive data at rest and in transit.
+
+### Example Deployment
+
+Here's a simple example of how you might deploy a Node.js application using PM2 and Nginx on an Ubuntu server:
+
+1. **Install Node.js and NPM** on the server.
+2. **Install PM2** globally using `npm install pm2 -g`.
+3. **Transfer your application** to the server (using Git, SCP, FTP, etc.).
+4. **Install your application dependencies** by running `npm install --production` in your application directory.
+5. **Start your application** using PM2, for example, `pm2 start app.js`.
+6. **Set up Nginx** as a reverse proxy to forward requests to your Node.js application.
+7. **Secure Nginx with SSL** using Let's Encrypt and Certbot.
+8. **Configure your domain's DNS** to point to your server's IP address.
+
+Remember, this is a simplified overview. Each step can involve more detailed actions and considerations depending on the specific requirements of your application and the environment you're deploying to.
+* multer #formData
+frontend post file and id to backend
+    const file = e.target.files[0]
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('id', '1234')
+
+backend:
+req.body.id, can only be visited after multer middleware correctly returns.
+req.file.buffer is missing after multer.diskStorage
+req.file.buffer get filled when using multer.memoryStorage
+
+* write file
+  // asynchronous by def
+  // fs.writeFile(filePath, uploadedFile.buffer, (err) => {
+  //   if (err) {
+  //     return res.status(500).send("Error saving file");
+  //   }
+  // });
+
+const fs = require("fs");
+const writeFileAsync = util.promisify(fs.writeFile);
+await writeFileAsync(filePath, req.file.buffer);
+
+* @ in node
+put this in package.json
+  "_moduleAliases": {
+    "@": "src"
+  },
+
+
+node/no-missing-require
+to resolve: not recognize alias
+
+1. npm install eslint-plugin-import eslint-import-resolver-alias --save-dev
+2. plugins: ["import", "node"],
+  settings: {
+    "import/resolver": {
+      alias: {
+        map: [["@", "./src"]],
+        extensions: [".js", ".jsx", ".json"],
+      },
+    },
+  },
+  rules: {
+    "import/no-unresolved": ["error", { commonjs: true }],
+    // Turned off because conflicts with the ones above and does not support aliases
+    "node/no-missing-require": "off",
+  },

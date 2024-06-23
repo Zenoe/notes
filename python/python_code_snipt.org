@@ -1,0 +1,1187 @@
+* dic iter
+For Python 3.x: for key, value in d.items():
+
+For Python 2.x: for key, value in d.iteritems():
+
+
+for key in dict.iterkeys(): ...
+
+for value in dict.itervalues(): ...
+
+for key, value in dict.iteritems(): ...
+This means that for x in dict is shorthand for for x in
+   dict.iterkeys().
+* python map filter reduce
+Reduce:
+
+ >>> from functools import reduce
+ >>> reduce( (lambda x, y: x + y), [1, 2, 3, 4]
+ 10
+Filter:
+
+>>> list( filter((lambda x: x < 0), range(-10,5)))
+[-10, -9, -8, -7, - 6, -5, -4, -3, -2, -1]
+Map:
+
+>>> list(map((lambda x: x **2), [1,2,3,4]))
+[1,4,9,16]
+
+* string
+def find_between(s, a, b):
+    return s[s.find(a)+len(a):s.rfind(b)]
+
+def find_between(s, start, end, exclude=True):
+    '''start, end got to be the only substring in s
+    if exclude is False, both start,end would be included
+    '''
+
+    ret = (s.split(start))[1].split(end)[0]
+    if exclude:
+        return ret
+    else:
+        return start+ret+end
+
+* subprocess
+>>> import subprocess
+>>> subprocess.call(['sh', './test.sh'])
+0
+
+In case you want to pass some parameters to your shell script, you can use the method shlex.split():
+
+import subprocess
+import shlex
+subprocess.call(shlex.split('./test.sh param1 param2'))
+* track
+import traceback
+traceback.print_stack()
+* replace with regex
+import re
+text_after = re.sub(regex_search_term, regex_replacement, text_before)
+* custome exception
+# define Python user-defined exceptions
+class Error(Exception):
+    """Base class for other exceptions"""
+    pass
+
+class ValueTooSmallError(Error):
+    """Raised when the input value is too small"""
+    pass
+
+
+class ValueTooLargeError(Error):
+    """Raised when the input value is too large"""
+    pass
+
+# you need to guess this number
+number = 10
+
+# user guesses a number until he/she gets it right
+while True:
+    try:
+        i_num = int(input("Enter a number: "))
+        if i_num < number:
+            raise ValueTooSmallError
+        elif i_num > number:
+            raise ValueTooLargeError
+        break
+    except ValueTooSmallError:
+        print("This value is too small, try again!")
+        print()
+    except ValueTooLargeError:
+        print("This value is too large, try again!")
+        print()
+
+print("Congratulations! You guessed it correctly.")
+
+* How to print a signed integer as hexadecimal number in two's complement with python?
+>>> format(-1 & 0xffffffff, "08X")
+'FFFFFFFF'
+>>> format(1 & 0xffffffff, "08X")
+'00000001'
+>>> format(123 & 0xffffffff, "08X")
+'0000007B'
+>>> format(-312367 & 0xffffffff, "08X")
+'FFFB3BD1'
+* class name
+        print eval(self.__class__.__name__)
+        print globals()[self.__class__.__name__]
+* remove directory
+os.remove() will remove a file.  os.unlink("/tmp/<file_name>.txt")
+os.rmdir() will remove an empty directory.
+shutil.rmtree() will delete a directory and all its contents.
+def remove(path):
+    """ param <path> could either be relative or absolute. """
+    if os.path.isfile(path):
+        os.remove(path)  # remove the file
+    elif os.path.isdir(path):
+        shutil.rmtree(path)  # remove dir and all contains
+    else:
+        raise ValueError("file {} is not a file or dir.".format(path))
+* print invisible character repr
+print ele  => '/'
+print repr(ele)  => '/\r\r', which reveals that ele != '/'
+* why the with open way of opening file is prefered:
+with open('filename.txt') as fp:
+    for line in fp:
+        print line
+
+ hypothetical implementations of Python will not necessarily close the file "quickly enough" without the with block if they use some other
+ scheme to reclaim memory.  In such an implementation, you might get a "too many files open" error from the OS if your code opens files
+ faster than the garbage collector calls finalizers on orphaned file handles. The usual workaround is to trigger the GC immediately, but
+ this is a nasty hack and it has to be done by every function that could encounter the error, including those in libraries. What a
+ nightmare.
+Or you could just use the with block.
+
+with open(fname) as f:
+    content = f.readlines()
+# you may also want to remove whitespace characters like `\n` at the end of each line
+content = [x.strip() for x in content] 
+
+with open('/your/path/file') as f:
+    my_lines = f.readlines()
+
+store all the lines in memory. In the general case, this is a very bad idea. The file could be very large, and you could run out of memory.
+
+* to iterate over the file twice:
+with open('filename.txt') as fp:
+    for line in fp:
+        ...
+    fp.seek(0)
+    for line in fp:
+        ...
+* beautifulsoup
+text and string
+    _html = '<span > <some tag> </some tag> some text</span>'
+    soup = BeautifulSoup(_html,"html.parser")
+    print(soup.text) # some text
+    print(soup.string) # none
+    _html = '<span >some text</span>'
+    print(soup.text) # some text
+    print(soup.string) # some text
+* static varibale
+** You can add attributes to a function, and use it as a static variable.
+
+def myfunc():
+  myfunc.counter += 1
+  print myfunc.counter
+
+# attribute must be initialized
+myfunc.counter = 0
+Alternatively, if you don't want to setup the variable outside the function, you can use hasattr() to avoid an AttributeError exception:
+
+def myfunc():
+  try:
+     myfunc.counter = 0  # it doesn't exist yet, so initialize it
+  except AttributeError: myfunc.counter = 1
+
+** def foo():
+    try:
+        foo.counter += 1
+    except AttributeError:
+        foo.counter = 1
+much pythonic (ask for forgiveness not permission)
+use exception (thrown only once) instead of if branch (think StopIteration exception)
+
+** def func():
+     func.counter = getattr(func, 'counter', 0) + 1
+
+** Here is a fully encapsulated version that doesn't require an external initialization call:
+def mystaticfun():
+    if "counter" not in vars(mystaticfun): mystaticfun.counter=-1
+    mystaticfun.counter+=1
+    print (mystaticfun.counter)
+In Python, object members are dynamically stored in a special __dict__ member, and in Python, functions are objects. The built-in vars() returns this __dict__.
+
+EDIT: Note, unlike the alternative try:except AttributeError answer, with this approach the variable will always be ready for the code logic following initialization. I think the try:except AttributeError alternative to the following will be less DRY and/or have awkward flow:
+
+def Fibonacci(n):
+   if n<2: return n
+   if 'memo' not in vars(Fibonacci): Fibonacci.memo={}
+   return Fibonacci.memo.setdefault(n,Fibonacci(n-1)+Fibonacci(n-2))
+
+** decorate :setattr:
+def static_vars(**kwargs):
+    def decorate(func):
+        for k in kwargs:
+            setattr(func, k, kwargs[k])
+        return func
+    return decorate
+
+@static_vars(counter=0)
+def foo():
+    foo.counter += 1
+    print "Counter is %d" % foo.counter
+* QNetworkmanager QRequest with attribute
+http://www.johanpaul.com/blog/2011/07/why-qnetworkaccessmanager-should-not-have-the-finishedqnetworkreply-signal/
+ This really helped, thank you. Using attributes makes it quite simple.
+In Python, with the details ommitted, this would be the idea:
+[…]
+self.qnam = QNetworkAccessManager(self)
+self.qnam.finished.connect(self.finished_request)
+[…]
+self.request = QNetworkRequest()
+self.request.setAttribute(1001, ‘basic’)
+self.request.setUrl(url)
+self.qnam.get(self.request)
+[…]
+self.request = QNetworkRequest()
+self.request.setAttribute(1001, ‘basic’)
+self.request.setUrl(url)
+self.qnam.get(self.request)
+[…]
+def finished_request(self, reply):
+response = reply.readAll()
+if reply.request().attribute(1001):
+# handle basic reply
+elif reply.request().attribute(1002):
+# handle detail reply
+
+* float(x) if '.' in x else int(x)
+def num(s):
+    try:
+        return int(s)
+    except ValueError:
+        return float(s)
+* timestamp :time:
+The time.time() function returns the number of seconds since the epoch as seconds in UTC.
+>>> import time
+>>> ts = int(time.time())
+>>> print(ts)
+1389177318
+>>> ts = time.time()
+>>> print ts
+1355563265.81
+>>> import datetime
+>>> st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
+>>> print st
+2012-12-15 01:21:05
+
+You can get the timestamp as a string using the .now() or .utcnow() of the datetime.datetime:
+>>> import datetime
+>>> print datetime.datetime.utcnow()
+2012-12-15 10:14:51.898000
+The now differs from utcnow as expected -- otherwise they work the same way:
+
+>>> print datetime.datetime.now()
+2012-12-15 11:15:09.205000
+You can render the timestamp to the string explicitly:
+
+>>> str(datetime.datetime.now())
+'2012-12-15 11:15:24.984000'
+Or you can be even more explicit to format the timestamp the way you like:
+
+>>> datetime.datetime.now().strftime("%A, %d. %B %Y %I:%M%p")
+'Saturday, 15. December 2012 11:19AM'
+If you want the ISO format, use the .isoformat() method of the object:
+
+>>> datetime.datetime.now().isoformat()
+'2013-11-18T08:18:31.809000'
+You can use these in variables for calculations and printing without conversions.
+
+>>> ts = datetime.datetime.now()
+>>> tf = datetime.datetime.now()
+>>> te = tf - ts
+>>> print ts
+2015-04-21 12:02:19.209915
+>>> print tf
+2015-04-21 12:02:30.449895
+>>> print te
+0:00:11.239980
+* Removing \xa0 from string :encoding:
+a='RGOS 10.4 (' contains \xa0
+repr(a) ==> "'RGOS\\xa010.4\\xa0('"
+
+There's many useful things in Python's unicodedata library. One of them is the .normalize() function.
+
+b = unicodedata.normalize("NFKD", a) # replace \xa0 in a with normal space
+Replacing NFKD with any of the other methods listed in the link above if you don't get the results you're after.
+
+\xa0 is actually non-breaking space in Latin1 (ISO 8859-1), also chr(160). You should replace it with a space.
+b = a.replace(u'\xa0', u' ')
+* lambda
+A lambda, like any function, must have a return value.
+
+lambda x: x if (x<3) does not work because it does not specify what to return if not x<3. By default functions return None, so you could do
+
+lambda x: x if (x<3) else None
+But perhaps what you are looking for is a list comprehension with an if condition. For example:
+
+In [21]: data = [1, 2, 5, 10, -1]
+
+In [22]: [x for x in data if x < 3]
+Out[22]: [1, 2, -1]
+* int 2 str hex() oct() bin()
+整数之间的进制转换:
+10进制转16进制: hex(16)  ==>  0x10
+16进制转10进制: int('0x10', 16)  ==>  16
+类似的还有oct()， bin()
+
+字符串转整数:
+10进制字符串: int('10')  ==>  10
+16进制字符串: int('10', 16)  ==>  16
+16进制字符串: int('0x10', 16)  ==>  16
+
+字节串转整数:
+转义为short型整数: struct.unpack('<hh', bytes(b'\x01\x00\x00\x00'))  ==>  (1, 0)
+转义为long型整数: struct.unpack('<L', bytes(b'\x01\x00\x00\x00'))  ==>  (1,)
+
+整数转字节串:
+转为两个字节: struct.pack('<HH', 1,2)  ==>  b'\x01\x00\x02\x00'
+转为四个字节: struct.pack('<LL', 1,2)  ==>  b'\x01\x00\x00\x00\x02\x00\x00\x00'
+
+* urllib.urlencode
+>>> urllib.urlencode({'abc':'d f', 'def': '-!2'})
+'abc=d+f&def=-%212'
+
+Just a note, be careful with urlencode as it can't handle <unicode> objects
+directly -- you have to encode them before sending them to urlencode
+(u'blá'.encode('utf-8'), or whatever).
+* sendpkg                                                              :pcap:
+# Taken from sendpack by Massimo Ciani
+from ctypes import *
+from winpcapy import *
+class sendpack:
+  def __init__(self):
+    self.fp=pcap_t
+    errbuf= create_string_buffer(PCAP_ERRBUF_SIZE)
+    packet=(c_ubyte * 100)()
+
+    ## Open the adapter (Modify it yourself, I was in hurry so hardcoded it)
+    driver = '\\Device\\NPF_{0A3541A0-C526-43CF-A56B-5A91397174CD}'
+    self.fp = pcap_open_live(driver,65536,1,1000,errbuf)
+    if not bool(self.fp):
+      print ("\nUnable to open the adapter. %s is not supported by WinPcap\n" % sys.argv[1])
+      sys.exit(2)
+
+  def send(self, buf):
+    packet=(c_ubyte * len(buf))()
+    for i in range(len(buf)):
+    packet[i] = ord(buf[i])
+    if (pcap_sendpacket(self.fp, packet, len(buf)) != 0):
+      print ("\nError sending the packet: %s\n" % pcap_geterr(self.fp))
+      sys.exit(3)
+
+  def close_socket(self):
+    pcap_close(self.fp)ng
+* try
+try:
+    doitnow()
+except (StopIteration, GeneratorExit, KeyboardInterrupt, SystemExit):
+    raise    # these stop the script
+except (KeyError, IndexError):
+    raise    # we don't want to handle these ones
+except Exception as e:
+    handleError(e)
+
+* is vs ==
+For comparing against None, is None is preferred over == None
+
+For boolean values, you shouldn't be doing comparisons at all. Instead of:
+if x == True:
+    # do something
+write:
+
+if x:
+    # do something
+
+a = 19998989890
+b = 19998989889 +1
+>>> a is b
+False
+>>> a == b
+True
+is compares for two objects in memory, == compares their values, for example you can see that small integers are cached by python:
+
+c = 1 b = 1 >>> b is c True You should use == when comparing values and is when
+comparing identities. (also from a english point of view, equals is different
+from is)
+
+datetime.date.today() == datetime.date.today() ==> True but
+datetime.date.today is datetime.date.today() ==> False because they are
+equivalent date objects, but they're still different objects.
+
+* python static variable
+** class static
+Variables declared inside the class definition, but not inside a method are class or static variables:
+
+>>> class MyClass:
+...     i = 3
+...
+>>> MyClass.i
+3 
+As @millerdev points out, this creates a class-level "i" variable, but this is distinct from any instance-level "i" variable, so you could have
+
+>>> m = MyClass()
+>>> m.i = 4
+>>> MyClass.i, m.i
+>>> (3, 4)
+
+** local static
+:
+def myfunc():
+  myfunc.counter += 1
+  print myfunc.counter
+
+# attribute must be initialized
+myfunc.counter = 0
+Alternatively, if you don't want to setup the variable outside the function, you can use hasattr() to avoid an AttributeError exception:
+
+def myfunc():
+  if not hasattr(myfunc, "counter"):
+     myfunc.counter = 0  # it doesn't exist yet, so initialize it
+  myfunc.counter += 1
+#貌似新版本的python不用判断函数attr是否存在了，直接使用，第一次使用也就添加上了该属性
+:
+def foo():
+    try:
+        foo.counter += 1
+    except AttributeError:
+        foo.counter = 1
+Notice that exception will be consider only once, there is no if statement.
+* py mssql
+pymssql – use it if you care about DB-API compliance, or if you are accustomed
+to DB-API syntax,
+
+_mssql – use it if you care about performance and ease of use (_mssql module is
+easier to use than pymssql).
+* pyinstaller
+F:\Qt\prj\detector>pyinstaller -F -w mainwindow.py
+
+使用pyinstaller打包python为exe文件
+
+最近用python的tkinter写了个windows界面的工具，用来对软件版本发布的自动化，之前发布版本是由PHP的同事完成，又是手动上传文件到ftp，又是修改数据库，php代码等这么多繁琐的步骤。所以决定用python写了个windows的应用，因为版本发布可能会交给运营的同事完成，所以用tkinter写了个界面，顺便转换成exe的文件，之前是用py2exe，觉得不好用，搜索到了pyinstaller，还不错，使用简单，且打包成exe兼容性好，下面记录方法。
+
+1、下载pyinstaller
+
+目前pyinstaller支持的python版本为2.3-2.7,可以到http://www.pyinstaller.org/官网下载。
+
+2、安装
+
+下载完成后，解压即可。
+
+3、pyinstaller使用方法
+
+使用也非常的简单，cmd下进入解压出来的目录，执行如下命令。
+
+python pyinstaller.py [opts] yourprogram.py
+主要选项包括：
+
+-F, –onefile 打包成一个exe文件。
+-D, –onedir 创建一个目录，包含exe文件，但会依赖很多文件（默认选项）。
+-c, –console, –nowindowed 使用控制台，无界面(默认)
+-w, –windowed, –noconsole 使用窗口，无控制台
+更详细的使用方法请参考下载包里的doc目录下的Manual.html文件。
+
+找不到x86_Microsoft.VC90.CRT_1fc8b3b9a1e18e3b_9.0.21022.8_x-ww_d08d0375  
+--->Microsoft Visual C++ 2008 Redistributable Package (x86)
+只有x86_Microsoft.VC90.CRT_1fc8b3b9a1e18e3b_9.0.30729.1_x-ww_6f74963e
+--->Visual C++ 2008 Service Pack 1 Redistributable Package 
+
+要去下载：https://www.microsoft.com/en-us/download/confirmation.aspx?id=29
+* zip
+>>> five_by_two = ((0, 1), (1, 2), (2, 3), (3, 4), (4, 5))
+>>> two_by_five = tuple(zip(*five_by_two))
+>>> two_by_five
+((0, 1, 2, 3, 4), (1, 2, 3, 4, 5))
+
+x = [1,2,3,4,5]
+y = [6,7,8,9,0]
+
+for a,b in zip(x,y):
+    print a, b
+1 6
+2 7
+3 8
+4 9
+5 0
+
+>>> fields = ["id", "name", "location"]
+>>> values = ["13", "bill", "redmond"]
+>>> dict(zip(fields, values))
+{'location': 'redmond', 'id': '13', 'name': 'bill'}
+
+>>> x = [ [1,2,3,4,5],[6,7,8,9,10],[11,12,13,14,15]]
+>>> zip(*x)
+[(1, 6, 11), (2, 7, 12), (3, 8, 13), (4, 9, 14), (5, 10, 15)]
+
+class Version(object):
+
+    # ... snip ...
+
+    def get_tuple(self):
+        return (self.major, self.minor, self.revision)
+
+    def compare(self, other):
+        def comp(a, b):
+            if a == '*' or b == '*':
+                return 0
+            elif a == b:
+                return 0
+            elif a < b:
+                return -1
+            else:
+                return 1
+        return tuple(comp(a, b) for a, b in zip(self.get_tuple(), Version(other).get_tuple()))
+
+    def is_compatible(self, other):
+        tup = self.compare(other)
+        return (tup[0] == 0 and tup[1] == 0)
+
+    def __eq__(self, other):
+        return all(x == 0 for x in self.compare(other))
+
+    def __ne__(self, other):
+        return any(x != 0 for x in self.compare(other))
+
+    def __lt__(self, other):
+        for x in self.compare(other):
+            if x < 0:
+                return True
+            elif x > 0:
+                return False
+        return False
+
+    def __gt__(self, other):
+        for x in self.compare(other):
+            if x > 0:
+                return True
+            elif x < 0:
+                return False
+        return False
+
+* Unable to find vcvarsall.bat
+  http://blog.csdn.net/secretx/article/details/17472107
+ 2.去下载安装VS2010（08版貌似也行，不过没必要用旧版，指不定哪个库又无法编译），给个地址
+http://pan.baidu.com/share/link?shareid=1609273194&uk=3255422755
+
+   然后注意这一步很重要：命令行下执行 SET VS90COMNTOOLS=%VS100COMNTOOLS%
+
+   如果你安装的是 2012 版 SET VS90COMNTOOLS=%VS110COMNTOOLS%
+
+   如果你安装的是 2013版 SET VS90COMNTOOLS=%VS120COMNTOOLS%
+
+   或者更暴力，直接配置系统环境变量 VS90COMNTOOLS指向 %VS你的版本COMNTOOLS%
+
+   你还可以更暴力，在“..python安装路径...\Lib\distutils目录下有个msvc9compiler.py找到243行  
+
+                  toolskey = "VS%0.f0COMNTOOLS" % version   直接改为 toolskey = "VS你的版本COMNTOOLS"(这个就是为什么要配 ”VS90COMNTOOLS“ 的原因，因为人家文件名都告诉你了是  Microsoft vc 9的compiler,   代码都写死了要vc9的comntools，就要找这个玩意儿，找不到不干活)
+
+   这么做的理由是Python2。7 扩展包是可以用08版或者更高的VS编译的，其setup.py(安装脚本)都是去windows系统寻找08版的VS,所以设置VS90的path
+
+   如果Python版本小于2.7，强烈建议使用 VS08版，用2010或者更高可能部分扩展不好使。给个例子：
+
+    http://stackoverflow.com/questions/6551724/how-do-i-point-easy-install-to-vcvarsall-bat    这个例子说明 VS2010不适合Python2.6
+
+
+    3.安装VS后该重启的重启，clean一下之前安装Python扩展失败的残留文件，然后 直接下载 pil   pillow greenlet  eventlet等源码，解压后python setup.py build发现都可以编译了。接下来就换成 python setup.py install安装吧。
+
+* crash exception
+Python 程序如何高效地调试
+http://www.zhihu.com/question/21572891/answer/26046582
+
+`crash_on_ipy.py`
+import sys
+
+class ExceptionHook:
+    instance = None
+
+    def __call__(self, *args, **kwargs):
+        if self.instance is None:
+            from IPython.core import ultratb
+            self.instance = ultratb.FormattedTB(mode='Plain',
+                 color_scheme='Linux', call_pdb=1)
+        return self.instance(*args, **kwargs)
+
+sys.excepthook = ExceptionHook()
+然后在你的项目代码某个地方 import crash_on_ipy 就可以了。
+* pyqt
+** pyqt example
+import sys
+from PyQt4 import QtGui, QtCore
+
+
+class MainWindow(QtGui.QMainWindow):
+
+    def __init__(self):
+        super(MainWindow, self).__init__()
+
+        self.do_something() #sanity check
+        self.cw = ChildWidget(self)
+        self.setCentralWidget(self.cw)
+        self.show()
+
+    def do_something(self):
+
+        print 'doing something!'
+
+
+class ChildWidget(QtGui.QWidget):
+
+    def __init__(self, parent):
+        super(ChildWidget, self).__init__(parent)
+
+        self.button1 = QtGui.QPushButton()
+        self.button1.clicked.connect(self.do_something_else)
+
+        self.button2 = QtGui.QPushButton()
+        self.button2.clicked.connect(self.parent().do_something)
+
+        self.layout = QtGui.QVBoxLayout()
+        self.layout.addWidget(self.button1)
+        self.layout.addWidget(self.button2)
+        self.setLayout(self.layout)
+        self.show()
+
+    def do_something_else(self):
+
+        print 'doing something else!'
+
+
+def main():
+    app = QtGui.QApplication(sys.argv)
+    ex = MainWindow()
+    sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()
+** pyqt
+@pyqtSignature() and @pyqtSlot() 
+Both decorators serve the same purpose, which is to explicitly mark a python method as a Qt slot and specify a C++ signature for it (most commonly in order to select a particular overload).
+前者只是backwards-compatibility
+
+@pyqtSignature() 修饰的成员函数中self.parent不同于没有修饰的成员函数
+QPixmap pixmap("image_path");
+QIcon ButtonIcon(pixmap);
+button->setIcon(ButtonIcon);
+button->setIconSize(pixmap.rect().size());
+
+You can set individual items to be uneditable by doing this when you create the QSandardItem
+
+item = QStandardItem('my_item_text')
+item.setEditable(False)
+You can disable editing for the entire treeview by calling
+
+my_treeview.setEditTriggers(QAbstractItemView.NoEditTriggers)
+
+
+注意到代码中self.lHello和self.pbHello变量，他们的名字是和我们前面界面设计的objectName是一一对应的。
+
+PyQt支持使用QtCore.pyqtSignature()装饰器来连接信号和槽，不需要通过手工连接。具体方法名为on_objectName_信号
+PYQT 中文显示问题  
+
+
+下载LOFTER客户端
+1、源文件一定要用UTF-8编码，可以用notepad++ 或者UE保存一下。
+
+2、源文件最前面加入  QTextCodec.setCodecForTr(QTextCodec.codecForName("utf8"))
+
+3、源文件中需要使用中文字符串的地方，一律用self.tr("中文字符串")，而不能直接用"中文字符串"
+
+
+int QVariant::toInt( bool* ok = 0 ); 
+
+which means there's a boolean "in/out" parameter to know wether the 
+conversion was successful. In Python Phil decided to give back a tuple 
+that contains the actual integer (in this case) and exactly that boolean 
+argument to tell you wether the conversion succeeded. 
+
+in pyqt  QVariant::toInt() returns tuple of (int, bool)
+
+Event Microsoft has supported IPPROTO_IPV6 option, the Windows version 
+of Python doesn't provide socket.IPPROTO_IPV6 for compatibility 
+
+http://msdn.microsoft.com/en-us/library/ms738574(v=vs.85).aspx 
+http://bugs.python.org/issue6926 
+
+Please check it before use it 
+
+            #httpserver.py:192 
+
+            if af == socket.AF_INET6: 
+                # On linux, ipv6 sockets accept ipv4 too by default, 
+                # but this makes it impossible to bind to both 
+                # 0.0.0.0 in ipv4 and :: in ipv6.  On other systems, 
+                # separate sockets *must* be used to listen for both 
+ipv4 
+                # and ipv6.  For consistency, always disable ipv4 on 
+our 
+                # ipv6 sockets and use a separate ipv4 socket when 
+needed. 
+
+                # TODO 
+                # if hasattr(socket, 'IPPROTO_IPV6'): 
+                sock.setsockopt(socket.IPPROTO_IPV6, 
+socket.IPV6_V6ONLY, 1) 
+* Python's file.write() line ends
+** old way
+You need to open the file in binary mode i.e. wb instead of w. If you don't, the end of line characters are auto-converted to OS specific ones.
+The default is to use text mode, which may convert '\n' characters to a platform-specific representation on writing and back on reading.
+On Windows, 'b' appended to the mode opens the file in binary mode, so there are also modes like 'rb', 'wb', and 'r+b'. Python on Windows makes a distinction between text and binary files; the end-of-line characters in text files are automatically altered slightly when data is read or written. This behind-the-scenes modification to file data is fine for ASCII text files, but it’ll corrupt binary data like that in JPEG or EXE files. Be very careful to use binary mode when reading and writing such files. On Unix, it doesn’t hurt to append a 'b' to the mode, so you can use it platform-independently for all binary files.
+** When you open a file in text mode in Python 3, it will convert all newlines to '\n' and be done with it.
+
+infile = open("filename", 'r')
+Text mode is default, so if you say nothing, it's text mode. But it's always better to be explicit:
+
+infile = open("filename", 'rt')
+If you don't want the translation of line endings to happen, open the file in binary mode:
+
+infile = open("filename", 'rb')
+In Python 2 it's different. There this conversion would only happen by default on Windows. If you wanted it to happen on other platforms, you could add the universal newline flag:
+
+infile = open("filename", 'rU')
+However, you say that you are on Python 3, and there it happens in text mode on all platforms, so adding the U flag should make no difference.
+** The modern way: use newline=''
+Use the newline= keyword parameter to io.open() to use Unix-style LF end-of-line terminators:
+import io
+f = io.open('file.txt', 'w', newline='')   # newline='' means don't convert \n
+This works in Python 2.6+. In Python 3 you could also use the builtin open() function's newline= parameter instead of io.open().
+* Common Mistake #1: Misusing expressions as defaults for function arguments
+>>> def foo(bar=[]):        # bar is optional and defaults to [] if not specified
+...    bar.append("baz")    # but this line could be problematic, as we'll see...
+...    return bar
+
+But let’s look at what actually happens when you do this:
+
+>>> foo()
+["baz"]
+>>> foo()
+["baz", "baz"]
+>>> foo()
+["baz", "baz", "baz"]
+Huh? Why did it keep appending the default value of "baz" to an existing list each time foo() was called, rather than creating a new list each time?
+
+The more advanced Python programming answer is that the default value for a function argument is only evaluated once, at the time that the function is defined. Thus, the bar argument is initialized to its default (i.e., an empty list) only when foo() is first defined, but then calls to foo() (i.e., without a bar argument specified) will continue to use the same list to which bar was originally initialized.
+
+FYI, a common workaround for this is as follows:
+
+>>> def foo(bar=None):
+...    if bar is None:		# or if not bar:
+...        bar = []
+...    bar.append("baz")
+...    return bar
+...
+>>> foo()
+["baz"]
+>>> foo()
+["baz"]
+>>> foo()
+["baz"]
+** Common Mistake #2: Using class variables incorrectly
+
+Consider the following example:
+
+>>> class A(object):
+...     x = 1
+...
+>>> class B(A):
+...     pass
+...
+>>> class C(A):
+...     pass
+...
+>>> print A.x, B.x, C.x
+1 1 1
+Makes sense.
+
+>>> B.x = 2
+>>> print A.x, B.x, C.x
+1 2 1
+Yup, again as expected.
+
+>>> A.x = 3
+>>> print A.x, B.x, C.x
+3 2 3
+What the $%#!&?? We only changed A.x. Why did C.x change too?
+
+In Python, class variables are internally handled as dictionaries and follow what is often referred to as Method Resolution Order (MRO). So in the above code, since the attribute x is not found in class C, it will be looked up in its base classes (only A in the above example, although Python supports multiple inheritance). In other words, C doesn’t have its own x property, independent of A. Thus, references to C.x are in fact references to A.x. This causes a Python problem unless it’s handled properly. Learn more aout class attributes in Python.
+
+** Common Mistake #3: Specifying parameters incorrectly for an exception block
+
+Suppose you have the following code:
+
+>>> try:
+...     l = ["a", "b"]
+...     int(l[2])
+... except ValueError, IndexError:  # To catch both exceptions, right?
+...     pass
+...
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+IndexError: list index out of range
+The problem here is that the except statement does not take a list of exceptions specified in this manner. Rather, In Python 2.x, the syntax except Exception, e is used to bind the exception to the optional second parameter specified (in this case e), in order to make it available for further inspection. As a result, in the above code, the IndexError exception is not being caught by the except statement; rather, the exception instead ends up being bound to a parameter named IndexError.
+
+The proper way to catch multiple exceptions in an except statement is to specify the first parameter as a tuple containing all exceptions to be caught. Also, for maximum portability, use the as keyword, since that syntax is supported by both Python 2 and Python 3:
+
+>>> try:
+...     l = ["a", "b"]
+...     int(l[2])
+... except (ValueError, IndexError) as e:  
+...     pass
+...
+>>>
+** Common Mistake #4: Misunderstanding Python scope rules
+
+Python scope resolution is based on what is known as the LEGB rule, which is shorthand for Local, Enclosing, Global, Built-in. Seems straightforward enough, right? Well, actually, there are some subtleties to the way this works in Python, which brings us to the common more advanced Python programming problem below. Consider the following:
+
+>>> x = 10
+>>> def foo():
+...     x += 1
+...     print x
+...
+>>> foo()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "<stdin>", line 2, in foo
+UnboundLocalError: local variable 'x' referenced before assignment
+What’s the problem?
+
+The above error occurs because, when you make an assignment to a variable in a scope, that variable is automatically considered by Python to be local to that scope and shadows any similarly named variable in any outer scope.
+
+Many are thereby surprised to get an UnboundLocalError in previously working code when it is modified by adding an assignment statement somewhere in the body of a function. (You can read more about this here.)
+
+It is particularly common for this to trip up developers when using lists. Consider the following example:
+
+>>> lst = [1, 2, 3]
+>>> def foo1():
+...     lst.append(5)   # This works ok...
+...
+>>> foo1()
+>>> lst
+[1, 2, 3, 5]
+
+>>> lst = [1, 2, 3]
+>>> def foo2():
+...     lst += [5]      # ... but this bombs!
+...
+>>> foo2()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "<stdin>", line 2, in foo
+UnboundLocalError: local variable 'lst' referenced before assignment
+Huh? Why did foo2 bomb while foo1 ran fine?
+
+The answer is the same as in the prior example problem, but is admittedly more subtle. foo1 is not making an assignment to lst, whereas foo2 is. Remembering that lst += [5] is really just shorthand for lst = lst + [5], we see that we are attempting to assign a value to lst (therefore presumed by Python to be in the local scope). However, the value we are looking to assign to lst is based on lst itself (again, now presumed to be in the local scope), which has not yet been defined. Boom.
+
+** Common Mistake #5: Modifying a list while iterating over it
+
+The problem with the following code should be fairly obvious:
+
+>>> odd = lambda x : bool(x % 2)
+>>> numbers = [n for n in range(10)]
+>>> for i in range(len(numbers)):
+...     if odd(numbers[i]):
+...         del numbers[i]  # BAD: Deleting item from a list while iterating over it
+...
+Traceback (most recent call last):
+  	  File "<stdin>", line 2, in <module>
+IndexError: list index out of range
+Deleting an item from a list or array while iterating over it is a Python problem that is well known to any experienced software developer. But while the example above may be fairly obvious, even advanced developers can be unintentionally bitten by this in code that is much more complex.
+
+Fortunately, Python incorporates a number of elegant programming paradigms which, when used properly, can result in significantly simplified and streamlined code. A side benefit of this is that simpler code is less likely to be bitten by the accidental-deletion-of-a-list-item-while-iterating-over-it bug. One such paradigm is that of list comprehensions. Moreover, list comprehensions are particularly useful for avoiding this specific problem, as shown by this alternate implementation of the above code which works perfectly:
+
+>>> odd = lambda x : bool(x % 2)
+>>> numbers = [n for n in range(10)]
+>>> numbers[:] = [n for n in numbers if not odd(n)]  # ahh, the beauty of it all
+>>> numbers
+[0, 2, 4, 6, 8]
+Like what you're reading?Get the latest updates first.
+
+Enter your email address...
+Get Exclusive Updates
+No spam. Just great engineering and design posts.
+** Common Mistake #6: Confusing how Python binds variables in closures
+
+Considering the following example:
+
+>>> def create_multipliers():
+...     return [lambda x : i * x for i in range(5)]
+>>> for multiplier in create_multipliers():
+...     print multiplier(2)
+...
+You might expect the following output:
+
+0
+2
+4
+6
+8
+But you actually get:
+
+8
+8
+8
+8
+8
+Surprise!
+
+This happens due to Python’s late binding behavior which says that the values of variables used in closures are looked up at the time the inner function is called. So in the above code, whenever any of the returned functions are called, the value of i is looked up in the surrounding scope at the time it is called (and by then, the loop has completed, so i has already been assigned its final value of 4).
+
+The solution to this common Python problem is a bit of a hack:
+
+>>> def create_multipliers():
+...     return [lambda x, i=i : i * x for i in range(5)]
+...
+>>> for multiplier in create_multipliers():
+...     print multiplier(2)
+...
+0
+2
+4
+6
+8
+Voilà! We are taking advantage of default arguments here to generate anonymous functions in order to achieve the desired behavior. Some would call this elegant. Some would call it subtle. Some hate it. But if you’re a Python developer, it’s important to understand in any case.
+
+** Common Mistake #7: Creating circular module dependencies
+
+Let’s say you have two files, a.py and b.py, each of which imports the other, as follows:
+
+In a.py:
+
+import b
+
+def f():
+    return b.x
+	
+print f()
+And in b.py:
+
+import a
+
+x = 1
+
+def g():
+    print a.f()
+First, let’s try importing a.py:
+
+>>> import a
+1
+Worked just fine. Perhaps that surprises you. After all, we do have a circular import here which presumably should be a problem, shouldn’t it?
+
+The answer is that the mere presence of a circular import is not in and of itself a problem in Python. If a module has already been imported, Python is smart enough not to try to re-import it. However, depending on the point at which each module is attempting to access functions or variables defined in the other, you may indeed run into problems.
+
+So returning to our example, when we imported a.py, it had no problem importing b.py, since b.py does not require anything from a.py to be defined at the time it is imported. The only reference in b.py to a is the call to a.f(). But that call is in g() and nothing in a.py or b.py invokes g(). So life is good.
+
+But what happens if we attempt to import b.py (without having previously imported a.py, that is):
+
+>>> import b
+Traceback (most recent call last):
+  	  File "<stdin>", line 1, in <module>
+  	  File "b.py", line 1, in <module>
+    import a
+  	  File "a.py", line 6, in <module>
+	print f()
+  	  File "a.py", line 4, in f
+	return b.x
+AttributeError: 'module' object has no attribute 'x'
+Uh-oh. That’s not good! The problem here is that, in the process of importing b.py, it attempts to import a.py, which in turn calls f(), which attempts to access b.x. But b.x has not yet been defined. Hence the AttributeError exception.
+
+At least one solution to this is quite trivial. Simply modify b.py to import a.py within g():
+
+x = 1
+
+def g():
+    import a	# This will be evaluated only when g() is called
+    print a.f()
+No when we import it, everything is fine:
+
+>>> import b
+>>> b.g()
+1	# Printed a first time since module 'a' calls 'print f()' at the end
+1	# Printed a second time, this one is our call to 'g'
+** Common Mistake #8: Name clashing with Python Standard Library modules
+
+One of the beauties of Python is the wealth of library modules that it comes with “out of the box”. But as a result, if you’re not consciously avoiding it, it’s not that difficult to run into a name clash between the name of one of your modules and a module with the same name in the standard library that ships with Python (for example, you might have a module named email.py in your code, which would be in conflict with the standard library module of the same name).
+
+This can lead to gnarly problems, such as importing another library which in turns tries to import the Python Standard Library version of a module but, since you have a module with the same name, the other package mistakenly imports your version instead of the one within the Python Standard Library. This is where bad Python errors happen.
+
+Care should therefore be exercised to avoid using the same names as those in the Python Standard Library modules. It’s way easier for you to change the name of a module within your package than it is to file a Python Enhancement Proposal (PEP) to request a name change upstream and to try and get that approved.
+
+** Common Mistake #9: Failing to address differences between Python 2 and Python 3
+
+Consider the following file foo.py:
+
+import sys
+
+def bar(i):
+    if i == 1:
+        raise KeyError(1)
+    if i == 2:
+        raise ValueError(2)
+
+def bad():
+    e = None
+    try:
+        bar(int(sys.argv[1]))
+    except KeyError as e:
+        print('key error')
+    except ValueError as e:
+        print('value error')
+    print(e)
+
+bad()
+On Python 2, this runs fine:
+
+$ python foo.py 1
+key error
+1
+$ python foo.py 2
+value error
+2
+But now let’s give it a whirl on Python 3:
+
+$ python3 foo.py 1
+key error
+Traceback (most recent call last):
+  File "foo.py", line 19, in <module>
+    bad()
+  File "foo.py", line 17, in bad
+    print(e)
+UnboundLocalError: local variable 'e' referenced before assignment
+What has just happened here? The “problem” is that, in Python 3, the exception object is not accessible beyond the scope of the except block. (The reason for this is that, otherwise, it would keep a reference cycle with the stack frame in memory until the garbage collector runs and purges the references from memory. More technical detail about this is available here).
+
+One way to avoid this issue is to maintain a reference to the exception object outside the scope of the except block so that it remains accessible. Here’s a version of the previous example that uses this technique, thereby yielding code that is both Python 2 and Python 3 friendly:
+
+import sys
+
+def bar(i):
+    if i == 1:
+        raise KeyError(1)
+    if i == 2:
+        raise ValueError(2)
+
+def good():
+    exception = None
+    try:
+        bar(int(sys.argv[1]))
+    except KeyError as e:
+        exception = e
+        print('key error')
+    except ValueError as e:
+        exception = e
+        print('value error')
+    print(exception)
+
+good()
+Running this on Py3k:
+
+$ python3 foo.py 1
+key error
+1
+$ python3 foo.py 2
+value error
+2
+Yippee!
+
+(Incidentally, our Python Hiring Guide discusses a number of other important differences to be aware of when migrating code from Python 2 to Python 3.)
+
+** Common Mistake #10: Misusing the __del__ method
+
+Let’s say you had this in a file called mod.py:
+
+import foo
+
+class Bar(object):
+   	    ...
+    def __del__(self):
+        foo.cleanup(self.myhandle)
+And you then tried to do this from another_mod.py:
+
+import mod
+mybar = mod.Bar()
+You’d get an ugly AttributeError exception.
+
+Why? Because, as reported here, when the interpreter shuts down, the module’s global variables are all set to None. As a result, in the above example, at the point that __del__ is invoked, the name foo has already been set to None.
+
+A solution to this somewhat more advanced Python programming problem would be to use atexit.register() instead. That way, when your program is finished executing (when exiting normally, that is), your registered handlers are kicked off before the interpreter is shut down.
+
+With that understanding, a fix for the above mod.py code might then look something like this:
+
+import foo
+import atexit
+
+def cleanup(handle):
+    foo.cleanup(handle)
+
+
+class Bar(object):
+    def __init__(self):
+        ...
+        atexit.register(cleanup, self.myhandle)
+This implementation provides a clean and reliable way of calling any needed cleanup functionality upon normal program termination. Obviously, it’s up to foo.cleanup to decide what to do with the object bound to the name self.myhandle, but you get the idea.
+
+Wrap-up
+
+Python is a powerful and flexible language with many mechanisms and paradigms that can greatly improve productivity. As with any software tool or language, though, having a limited understanding or appreciation of its capabilities can sometimes be more of an impediment than a benefit, leaving one in the proverbial state of “knowing enough to be dangerous”.
+
+Familiarizing oneself with the key nuances of Python, such as (but by no means limited to) the moderately advanced programming problems raised in this article, will help optimize use of the language while avoiding some of its more common errors.
+
+You might also want to check out our Insider’s Guide to Python Interviewing for suggestions on interview questions that can help identify Python experts.
+
+We hope you’ve found the pointers in this article helpful and welcome your feedback.
+
+* getopt
+import getopt, sys
+
+def main():
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "ho:v", ["help", "output="])
+    except getopt.GetoptError:
+        # print help information and exit:
+        usage()
+        sys.exit(2)
+    output = None
+    verbose = False
+    for o, a in opts:
+        if o == "-v":
+            verbose = True
+        if o in ("-h", "--help"):
+            usage()
+            sys.exit()
+        if o in ("-o", "--output"):
+            output = a
+So in a word, here is how it works.
+
+You've got two types of options. Those who are receiving arguments, and those who are just like switches.
+
+sys.argv is pretty much your char** argv in C. Like in C you skip the first element which is the name of your program and parse only the arguments : sys.argv[1:]
+
+Getopt.getopt will parse it according to the rule you give in argument.
+
+"ho:v" here describes the short arguments : -ONELETTER. The : means that -o accepts one argument.
+
+Finally ["help", "output="] describes long arguments ( --MORETHANONELETTER ). The = after output once again means that output accepts one arguments.
+
+The result is a list of couple (option,argument)
+
+If an option doesn't accept any argument (like --help here) the arg part is an empty string. You then usually want to loop on this list and test the option name as in the example.
+
+* filter dictionary
+Nowadays, in Python 2.7 and up, you can use a dict comprehension:
+{k: v for k, v in points.iteritems() if v[0] < 5 and v[1] < 5}
+
+And in Python 3:
+{k: v for k, v in points.items() if v[0] < 5 and v[1] < 5}
+
+* how do I display an updating value on one line and not scroll down the screen
+import sys
+import time
+output_stream = sys.stdout
+
+for i in xrange(10):
+    output_stream.write('Update %s\r' % i)
+    output_stream.flush()
+    time.sleep(5)
+# Optionally add a newline if you want to keep the last update.
+output_stream.write('\n')
+
+** py3
+import time
+for i in range(10):
+    print('Update %d' % i, end='\r')
+    time.sleep(5)
+* >>> [(x, y) for x in [1,2,3] for y in [3,1,4] if x != y]
+[(1, 3), (1, 4), (2, 3), (2, 1), (2, 4), (3, 1), (3, 4)]
+
+>>> a = {x for x in 'abracadabra' if x not in 'abc'}
+>>> a
+set(['r', 'd'])
