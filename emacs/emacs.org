@@ -1,3 +1,4 @@
+* press s to search a char, if the char does not exit in current line, press ; will find the first char in the lines below, press , to search reversely
 * vertico search result:
         "C-M-j" #'vertico-next-group
         "C-M-k" #'vertico-previous-group

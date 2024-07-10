@@ -1,7 +1,20 @@
 * dns
-a domain might resolve to different IP addresses on different machines
 systemd-resolve --flush-caches
 systemctl restart systemd-resolved
+
+change dns via netplan
+/etc/netplan/01-netcfg.yaml
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: yes
+      nameservers:
+        addresses:
+          - 8.8.8.8
+          - 8.8.4.4
+#netplan apply
+
 * firewalld
 a zone which accepts all traffic already exists, and it is named trusted. By default, though, nothing is in this zone. So, you don't even need to create a zone, just add the IP address to the trusted zone.
 firewall-cmd --zone=trusted --list-sources

@@ -3,7 +3,8 @@ git add -A	✔️	✔️	✔️	Stage all (new, modified, deleted) files
 git add .	✔️	✔️	✔️	Stage all (new, modified, deleted) files in current folder
 git add -u	❌	✔️	✔️	Stage modified and deleted files only
 git add --ignore-removal .	✔️	✔️	❌	Stage new and modified files only
-
+* undo commit
+git reset --soft HEAD~1
 * origin/main  remote repository/default branch name
 eg: git fetch origin main or git pull origin main
 * git line ending :carriage:return:
@@ -60,11 +61,6 @@ git config --global http.proxy ''
 git config --global https.proxy http://10.110.198.52:20171
 git config --global http.proxy http://10.110.198.52:20171
 
-windows git bash
-export http_proxy=http://10.110.198.52:20171
-export https_proxy=http://10.110.198.52:20171
-
-
 export http_proxy=
 export https_proxy=
 
@@ -78,14 +74,8 @@ netsh winhttp show proxy
 netsh winhttp set proxy "10.110.198.52:20171"
 set HTTP_PROXY=http://10.110.198.52:20171
 set HTTPS_PROXY=http://10.110.198.52:20171
-* git push Invalid username or password
-fatal: Authentication failed for 'https://github.com/Zenoe/js-toolbox/'
-solution:
-git remote set-url origin git@github.com:zenoe/js-toolbox.git
-
 * git show
 git show shows the changes made in the most recent commit. It is equivalent to git show HEAD.
-
 git show HEAD~1 takes you back one commit.
 * git checkout previous
 git checkout HEAD^ foo
@@ -102,9 +92,6 @@ Also, replace the -f argument with -n to perform a dry-run or -i for interactive
 ssh-keygen -t rsa
 cat ~/.ssh/id_rsa.pub  --> profile settings -> SSH Keys
 
-* git commit untracked files
-git add .
-git commit -am 'message'
 * * git info
 If you want only the remote URL, or referential integrity has been broken:
 
@@ -143,37 +130,6 @@ git diff HEAD > file_name.patch
 * git remote -v show url
 * only commit some hunks(add only a specific part to the staging area.)
 git add -p file
-* Is there a way to skip password typing when using https:// on GitHub?
-Since Git 1.7.9 (released in late January 2012), there is a neat mechanism in Git to avoid having to type your password all the time for HTTP / HTTPS, called credential helpers. (Thanks to dazonic for pointing out this new feature in the comments below.)
-
-With Git 1.7.9 or later, you can just use one of the following credential helpers:
-
-git config --global credential.helper cache
-... which tells Git to keep your password cached in memory for (by default) 15 minutes. You can set a longer timeout with:
-
-git config --global credential.helper "cache --timeout=3600"
-
-With any Git version (well, since version 0.99)
-
-** An alternative approach is to put your username and password in your ~/.netrc file, although, as with keeping the password in the remote URL, this means that your password will be stored on the disk in plain text and is thus less secure and not recommended. However, if you want to take this approach, add the following line to your ~/.netrc:
-
-machine <hostname> login <username> password <password>
-... replacing <hostname> with the server's hostname, and <username> and <password> with your username and password. Also remember to set restrictive file system permissions on that file:
-
-chmod 600 ~/.netrc
-Note that on Windows, this file should be called _netrc, and you may need to define the %HOME% environment variable - for more details see:
-
-You can also have Git store your credentials permanently using the following:
-
-** git config credential.helper store
-Note: While this is convenient, Git will store your credentials in clear text in a local file (.git-credentials) under your project directory (see below for the "home" directory). If you don't like this, delete this file and switch to using the cache option.
-
-If you want Git to resume to asking you for credentials every time it needs to connect to the remote repository, you can run this command:
-
-git config --unset credential.helper
-To store the passwords in .git-credentials in your %HOME% directory as opposed to the project directory: use the --global flag
-
-git config --global credential.helper store
 * delete all commit history in github
 Deleting the .git folder may cause problems in your git repository. If you want to delete all your commit history but keep the code in its current state, it is very safe to do it as in the following:
 
@@ -352,7 +308,6 @@ sudo vi /etc/apache2/mods-enabled/dav_svn.conf
 
 </Location>
 
-
 change default ports in /etc/apache2/ports.conf
 
 Save the file and restart the Apache service to apply the new configuration.
@@ -360,7 +315,6 @@ Save the file and restart the Apache service to apply the new configuration.
 sudo service apache2 restart
 ** Step 6 – Access Repository in Browser
 Use HTTP URLs to access your repository in the browser. It will prompt for authentication. Use login credentials created in Step 5. Change example.com with your system hostname, domain name or IP address.
-
  http://example.com/svn/myrepo/
 
 ** To configure Apache2 with `mod_authz_svn` for Subversion (SVN) repositories,

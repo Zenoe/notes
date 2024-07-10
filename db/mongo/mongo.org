@@ -229,3 +229,35 @@ tran.findOneAndUpdate({rfcId:"1", sectionName: "1", contentId: "1" },{$set: {rfc
 
 * find
 db.collection.find({ field: { $ne: value } });
+
+* backup
+sudo apt-get install mongodb-org-tools
+
+# ensure the user has the backup role in mongoshell
+db.grantRolesToUser("username", [{ role: "backup", db: "admin" }])
+
+#!/bin/bash
+BACKUP_DIR=/path/to/backup/directory/$(date +\%Y-\%m-\%d)
+mkdir -p $BACKUP_DIR
+mongodump --out $BACKUP_DIR --username ruijie --password ruijie
+
+chmod +x backup_mongodb.sh
+0 2 * * * /path/to/backup_mongodb.sh
+
+** restore
+# dump folder contains the all the databases needed to be restored
+mongorestore --host localhost --port 27017 --username ruijie ./dump/
+
+* drop database role
+db.createRole({
+  role: "dropDatabaseRole",
+  privileges: [
+    { resource: { db: "", collection: "" }, actions: ["dropDatabase"] }
+  ],
+  roles: []
+})
+
+db.grantRolesToUser("username", [{ role: "dropDatabaseRole", db: "admin" }])
+
+use dbTobeDroped
+db.dropDatabase()

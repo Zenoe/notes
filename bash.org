@@ -1,8 +1,3 @@
-* create new repository in github anc push
-...
->>>need to set remote url as the following form:
-git remote set-url origin https://xxxxx@github.com/zenoe/myBash
-git push --set-upstream origin main
 * compare
 = and == are for string comparisons, -eq is for numeric ones. -eq is in the same family as -lt, -le, -gt, -ge, and -ne, if that helps you remember which is which.
 
@@ -35,12 +30,6 @@ nc -zv 127.0.0.1 22 80 8080
 
 Range of ports:
 nc -zv 127.0.0.1 20-30
-* Why SSH takes a long time to Connect
-/etc/ssh/sshd_config:
-set GSSAPIAuthentication no
-UseDNS no  # works in my case
-sed -i "s/#\?UseDNS.*/UseDNS no/" /etc/ssh/sshd_config
-systemctl restart sshd
 * ssh -o StrictHostKeyChecking=no username@hostname.com
 * input   : C+V  then Enter  work both in emacs and bash terminal
 * &amp; --> &
