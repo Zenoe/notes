@@ -275,10 +275,11 @@ Use the following commands to create your first svn repository with name myrepo.
 
 sudo mkdir -p /var/lib/svn/
 
-sudo mkdir -p /var/lib/svn/nmts
-sudo svnadmin create /var/lib/svn/nmts
-sudo chown -R www-data:www-data /var/lib/svn/nmts
-sudo chmod -R 775 /var/lib/svn/nmts
+name='MBT'
+sudo mkdir -p /var/lib/svn/${name}
+sudo svnadmin create /var/lib/svn/${name}
+sudo chown -R www-data:www-data /var/lib/svn/${name}
+sudo chmod -R 775 /var/lib/svn/${name}
 
 如果后面再新建的子目录，要再执行一遍 chown, 不然会无法写入
 ** Step 4 – Create Users
@@ -317,7 +318,8 @@ sudo service apache2 restart
 Use HTTP URLs to access your repository in the browser. It will prompt for authentication. Use login credentials created in Step 5. Change example.com with your system hostname, domain name or IP address.
  http://example.com/svn/myrepo/
 
-** To configure Apache2 with `mod_authz_svn` for Subversion (SVN) repositories,
+** To configure Apache2 with `mod_authz_svn` for Subversion (SVN) repositories
+# Assign read and write access according to each project and user.
 you typically need to make changes to your Apache configuration file. Below is a basic example of how you can set up authentication and authorization for SVN using `mod_authz_svn`:
 
 1. **Enable necessary Apache modules**:
