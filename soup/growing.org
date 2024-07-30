@@ -1,3 +1,43 @@
+* My best advice about writer's block is: the reason you're having a hard time writing is because of a conflict between the GOAL of writing well and the FEAR of writing badly.
+By default, our instinct is to conquer the fear, but our feelings are much, much, less within our control than the goals we set, and since it's the conflict BETWEEN the two forces blocking you, if you simply change your goal from "writing well" to "writing badly," you will be a veritable fucking fountain of material, because guess what, man, we don't like to admit it, because we're raised to think lack of confidence is synonymous with paralysis, but, let's just be honest with ourselves and each other: we can only hope to be good writers. We can only ever hope and wish that will ever happen, that's a bird in the bush. The one in the hand is: we suck.
+
+We are terrified we suck, and that terror is oppressive and pervasive because we can VERY WELL see the possibility that we suck. We are well acquainted with it. We know how we suck like the backs of our shitty, untalented hands.
+
+We could write a fucking book on how bad a book would be if we just wrote one instead of sitting at a desk scratching our dumb heads trying to figure out how, by some miracle, the next thing we type is going to be brilliant. It isn't going to be brilliant. You stink. Prove it. It will go faster.
+
+And then, after you write something incredibly shitty in about six hours, it's no problem making it better in passes, because in addition to being absolutely untalented, you are also a mean, petty CRITIC.
+
+You know how you suck and you know how everything sucks and when you see something that sucks, you know exactly how to fix it, because you're an asshole.
+
+So that is my advice about getting unblocked. Switch from team "I will one day write something good" to team "I have no choice but to write a piece of shit" and then take off your "bad writer" hat and replace it with a "petty critic" hat and go to town on that poor hack's draft and that's your second draft.
+
+— Dan Harmon
+* The Growth Mindset.
+To briefly sum up the findings: Individuals who believe their talents can be developed (through hard work, good strategies, and input from others) have a growth mindset. They tend to achieve more than those with a more fixed mindset (those who believe their talents are innate gifts). This is because they worry less about looking smart and they put more energy into learning.
+* "Nothing is ever personal."
+The way people treat you, has nothing to do with you. They are just living out their own stories.
+* Premature optimization is the root of all evil
+* Favor interrogative-led questions over leading questions.
+A leading question attempts to get the listener to agree or disagree with a premise you feed to them.
+
+An interrogative-led question often begins with the words: who; where; what; when; why.
+
+Imagine the responses to these two questions:
+
+- "Did you like the movie?" (Leading)
+
+- "What did you think about the movie?" (Interrogative-led)
+ Here's an actionable way to apply the idea. The next time you find yourself asking a question that doesn't begin with {who, where, what, when, why}, stop yourself and rephrase it to begin with one of those words. What differences do you notice in how the conversation goes compared to similar conversations you've had in the past?
+* One thing that’s been super meaningful for me is
+the notion that if you don’t put something into words, either in speech or in your head or on paper, you don’t know anything about it, even if it’s a feeling or a belief or an intuition deep within you that you’ve held for as long as you can remember.
+The act of simply putting a thought into words makes it immediately obvious to you if you really understand it or not, and if not, where your blind spots are.
+
+If the thing you’re concerned with is an unresolved problem or a question, simply articulating the problem or the question can make the solution or the answer obvious. Just going through the process of putting it into words, one way or another, and being sure you’ve settled on the most concise and accurate description of it you can muster, will often make so many things that were hazy obvious, and can reveal to you areas of haziness in your own thinking that you may not have been aware of.
+
+Rubber duck debugging is one result of this. Rubber duck debugging is based on the observation that by the time you’ve explained your bug to someone, often times you figure out your next steps before they even respond. Just articulating your problem in the form of a question asked to someone else will sometimes reveal the answer to you.
+
+* How often do we carry around past hurts, holding onto resentments when the only person we are really hurting is ourselves.
+* quote from Lincoln, "I hate that man. I must get to know him better".
 * 思维转变
 1你想什么事都准备妥当了再去做，哪有这种好事，你还以为你在学校啊，准备一个学期再来考试，门都没有。
 谁是一开始就什么都会的，都是边做边学的，根本就没有时间给你准备，机会是不等人的。你不懂可以去问别人，你可以找人帮你，你看那谁不就到处找人帮忙吗，你闷在那里纠结是不行的。”
@@ -115,16 +155,6 @@
 旅游的时候，就尽情享受沿途的大好风景。
 做什么，专注什么就行了。
 3、赚钱的秘密。
-很多人想赚钱，但和爬山差不多，只盯着最后的结果，只想我要一年挣30万。
-但中间应该怎么做，要做哪些工作，付出多少辛苦，却完全不上心。
-抱着这样的想法，自然很难真正赚到钱。
-董明珠有次采访中说，她的想法很简单，做销售员的时候，就准备一辈子卖空调了。
-只要自己足够努力，总有一天能成为销冠。
-那时的她，根本不会想着当什么董事长，成为一家大型集团的一把手。
-前几年，和一群同事创业，大家很少去想今后能赚多少钱，只想着多学点东西，涨涨本事。
-几年下来，大家都赚了不少，也都买了不错的房子。
-手里有点钱后，有朋友找了个项目，大家一合计，想玩把大的，一人出几万，投了进去。
-最后泡都没冒个，全部打了水漂。
 有个很简单的道理，你眼里只盯着钱的时候，是很难赚到钱的。
 一心想着把事情做好，钱反而会向你靠拢。
 有人可能会说这是鸡汤，嗯，也许吧，经历过就会懂了。
@@ -132,4 +162,3 @@
 如果，我们坦然面对一切好与坏，把精力放在享受过程上，是不是会少很多痛苦？
 当你接受痛苦时，就没什么能让你痛苦。
 当你接受失去时，就没什么能让你失去。
-因为你知道，一切都是正常的！

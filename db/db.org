@@ -1,8 +1,6 @@
 sqlfiddle.com
 * How can prepared statements protect from SQL injection attacks?
 The idea is very simple - the query and the data are sent to the database server separately.
-That's all.
-
 The root of the SQL injection problem is in the mixing of the code and the data.
 * node js mysql
 Client does not support authentication protocol requested by server
@@ -275,9 +273,15 @@ In order to find the parent tasks of a given task you can query the sub_task_id 
 This structure has the added benefit of having the flexibility to add as many parent tasks to a task as your wish.
 * create user
 CREATE USER 'tom'@'localhost' IDENTIFIED BY '123456';
-CREATE USER 'tom'@'%' IDENTIFIED BY '123456';
+CREATE USER 'dev'@'%' IDENTIFIED BY '123456abc';
 CREATE USER 'tom'@'%';
 
+-allow remote
+/etc/mysql/mysql.conf.d/mysqld.cnf
+bind-address=0.0.0.0
+
+GRANT ALL PRIVILEGES ON database.* TO 'dev'@'%' WITH GRANT OPTION;
+GRANT ALL PRIVILEGES ON mbt_2024.* TO 'dev'@'%' WITH GRANT OPTION;
 GRANT SELECT, INSERT ON test.user TO 'pig'@'%';
 GRANT ALL ON *.* TO 'tom'@'%';
 三.设置与更改用户密码
@@ -292,6 +296,7 @@ SET PASSWORD FOR 'pig'@'%' = PASSWORD("123456");
 
 四. 撤销用户权限
 命令:
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'dev'@'%'; # revoke all privileges
 REVOKE privilege ON databasename.tablename FROM 'username'@'host';
 说明:
 privilege, databasename, tablename：同授权部分
