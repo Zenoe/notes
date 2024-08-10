@@ -1,3 +1,10 @@
+* Selective display:
+C-u <n> C-x $ folds all the lines starting with <n> or more spaces;
+C-x $ shows everything.
+
+(defun fold-level-2 ()
+    (interactive)
+    (set-selective-display (* 2 tab-width)))
 * press s to search a char, if the char does not exit in current line, press ; will find the first char in the lines below, press , to search reversely
 * vertico search result:
         "C-M-j" #'vertico-next-group

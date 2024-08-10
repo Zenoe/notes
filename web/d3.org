@@ -1,0 +1,90 @@
+* width and height are set to 100% to make the SVG fill its parent container.
+ viewBox: define the coordinate system of the SVG
+ preserveAspectRatio is set to xMidYMid meet to ensure the SVG scales while preserving its aspect ratio.
+
+ const Diagram = () => {
+  const svgRef = useRef();
+
+  useEffect(() => {
+    const svg = d3.select(svgRef.current)
+      .attr('width', '100%')
+      .attr('height', '100%')
+      .attr('viewBox', `0 0 ${800} ${600}`)
+      .attr('preserveAspectRatio', 'xMidYMid meet')
+      .style('background-color', '#f0f0f0');
+
+    const data = [
+      { x: 100, y: 100, r: 30 },
+      { x: 200, y: 200, r: 20 },
+      { x: 300, y: 300, r: 25 },
+      { x: 400, y: 400, r: 35 },
+    ];
+
+    svg.selectAll('circle')
+      .data(data)
+      .enter()
+      .append('circle')
+      .attr('cx', d => d.x)
+      .attr('cy', d => d.y)
+      .attr('r', d => d.r)
+      .attr('fill', 'steelblue');
+  }, []);
+
+  return (
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      <svg ref={svgRef}></svg>
+    </div>
+  );
+};
+* click event handler interfered by drag handler
+//on click here would be disturbed by drag event
+//the same failure happens with onmouseup
+//so implement it in drag-end handler
+.on('click', (event, d) => {
+        setShapes(prev =>
+        prev.map(shape =>
+        shape.id === d.id ? { ...shape, selected: !shape.selected } : shape))
+})
+
+* ctrl key press prevent drag from working
+ the Ctrl key being pressed are filtered out because—under certain circumstances—Ctrl+click should open the context menu instead. The docs on drag.filter() have you covered:
+ solve: d3.drag().filter(e => !e.button)
+
+* rect would detatch from mouse when moving quickly
+ d3.select(event.sourceEvent.target).attr('x', event.x).attr('y', event.y)
+ // event is dom event,not svg element
+
+ // here this is svg, the code has no drag-move-lagging problem
+ d3.select(this).attr('x', event.x).attr('y', event.y)
+
+ // or change data, when 'this' is empty, which is most of the cases
+const dragging = (event, d) => {
+// change data instead
+// d3.select(event.sourceEvent.target).attr('x', event.x).attr('y', event.y)
+setDatas(prev =>
+    prev.map(data =>data.id === d.id ? { ...data, x: event.x, y: event.y } : data))
+}
+
+* keydown not trigger on svg or rect
+SVG elements (like <svg>) do not naturally receive keyboard events unless they are focused or interactable. By default, only elements like input fields or buttons can receive keyboard events.
+solve: add attr:.attr('tabindex', 0)==> makes the SVG focusable and allows it to receive keyboard events.
+
+* contextMenu should put in the dependency list alongside with shapes
+such that the latest contestMenu can be read in clearSelection
+
+const clearSelection = e => {
+// can't get the latest contextMenu value if contextMenu is not in the dependency list
+    if (contextMenu.visible) {
+      setContextMenu({visible: false,})
+    }
+  }
+  const handleContextMenu = (event, d) => {
+    event.preventDefault()
+    setContextMenu({visible: true,})
+  }
+  useEffect(() => {
+    const svg = d3
+      .select(svgRef.current)
+      .on('click', clearSelection)
+
+  }, [shapes, contextMenu])

@@ -246,6 +246,8 @@ flow - other elements around it still behave as if that item were in its default
 position.
 
 * absolute position remove the element from the normal flow of the document.
+absolute div will naturally shrink to fit that content.
+
 https://learn.freecodecamp.org/responsive-web-design/applied-visual-design/lock-an-element-to-its-parent-with-absolute-positioning/
 so surrounding items ignore it. it will be locked relative to its closet
 positioned ancestor.If you forget to add a position rule to the parent item,
