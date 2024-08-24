@@ -161,3 +161,95 @@ myObject = {
     });
   }
 };
+
+* call
+In JavaScript, the `call` method is a built-in function that allows you to call a function with a specified `this` value and arguments provided individually. This method is useful when you want to invoke a function and explicitly set the `this` context for that function.
+
+### Syntax
+
+```javascript
+function.call(thisArg, arg1, arg2, ...);
+```
+
+- `thisArg`: The value to use as `this` when executing the function.
+- `arg1, arg2, ...`: Arguments to pass to the function.
+
+### Key Points
+
+1. **Setting `this` Context**: The primary use of `call` is to set the `this` context of a function. This is particularly useful when you want a function to operate on a different object.
+
+2. **Invoking Functions**: `call` immediately invokes the function with the specified `this` value and arguments.
+
+3. **Arguments as a List**: Unlike `apply`, which takes an array of arguments, `call` takes arguments individually.
+
+### Examples
+
+#### Example 1: Using `call` to Set `this` Context
+
+```javascript
+function greet() {
+  console.log(`Hello, my name is ${this.name}`);
+}
+
+const person = {
+  name: 'Alice'
+};
+
+greet.call(person); // Output: Hello, my name is Alice
+```
+
+In this example, `greet` is a standalone function. By using `call`, we set the `this` context to the `person` object, allowing the function to access `person.name`.
+
+#### Example 2: Using `call` with Arguments
+
+```javascript
+function introduce(greeting, punctuation) {
+  console.log(`${greeting}, my name is ${this.name}${punctuation}`);
+}
+
+const person = {
+  name: 'Bob'
+};
+
+introduce.call(person, 'Hi', '!'); // Output: Hi, my name is Bob!
+```
+
+Here, the `introduce` function takes two arguments: `greeting` and `punctuation`. By using `call`, we not only set the `this` context to `person` but also pass the arguments individually.
+
+#### Example 3: Borrowing Methods
+
+```javascript
+const person1 = {
+  name: 'Charlie',
+  introduce: function() {
+    console.log(`Hi, I'm ${this.name}`);
+  }
+};
+
+const person2 = {
+  name: 'Dave'
+};
+
+person1.introduce.call(person2); // Output: Hi, I'm Dave
+```
+
+In this example, `person2` does not have an `introduce` method. By using `call`, we borrow the `introduce` method from `person1` and set the `this` context to `person2`.
+
+### When to Use `call`
+
+- **Function Borrowing**: When you want to use a method from one object on another object.
+- **Explicit `this` Binding**: When you need to explicitly set the `this` context for a function.
+- **Immediate Invocation**: When you want to invoke a function immediately with a specific `this` context and arguments.
+
+### Difference Between `call` and `apply`
+
+- **`call`**: Takes arguments individually.
+- **`apply`**: Takes arguments as an array.
+
+#### Example with `apply`
+
+```javascript
+introduce.apply(person, ['Hello', '.']); // Output: Hello, my name is Bob.
+```
+
+The `call` method is a powerful tool in JavaScript for setting the `this` context and invoking functions with specific arguments. It provides flexibility in how functions are executed and can be particularly useful in scenarios involving function borrowing and explicit `this` binding.

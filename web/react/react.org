@@ -106,38 +106,16 @@ If your effect requires any cleanup, such as unsubscribing from an event or canc
 
 `useEffect` is a powerful tool that allows you to handle side effects in a declarative and concise manner within your functional components. It helps you keep your logic organized and separate from the rendering process.
 * useRef
-The `useRef` hook in React allows you to create a mutable value that persists across component re-renders. It returns a mutable ref object that can hold any value, similar to an instance variable in a class component.
+similar to an instance var in a class component
+the value in useRef persisites across component re-renders, normal variable get reset on each render
+inputRef.current is the DOM element
 
-Here's an example of using the `useRef` hook:
+the changes of `useRef` referenced DOM elements or values don't trigger re-renders
+not suitable for managing state that needs to be reflected in the UI.
 
-```javascript
-import React, { useRef } from 'react';
-
-function Example() {
-  const inputRef = useRef(null);
-
-  const handleClick = () => {
-    inputRef.current.focus();
-  };
-
-  return (
-    <div>
-      <input type="text" ref={inputRef} />
-      <button onClick={handleClick}>Focus Input</button>
-    </div>
-  );
-}
-```
-
-In this example, the `useRef` hook is used to create a ref object called `inputRef`. The `ref` attribute is then attached to the input element, allowing us to reference and manipulate it in the component.
-
-By accessing the `current` property of the ref object (`inputRef.current`), we can interact with the DOM element. In this case, the `handleClick` function uses `inputRef.current.focus()` to focus the input when the button is clicked.
-
-One of the main use cases for `useRef` is to reference DOM elements or values that don't trigger re-renders. It is important to note that changing the value of a ref does not cause a re-render of the component. Therefore, it is not suitable for managing state that needs to be reflected in the UI.
-
-`useRef` can also be used to store previous values or to persist values across different renders of a component. Since the ref object remains the same between renders, you can use it to store and access values that need to be preserved.
-
-Overall, `useRef` provides a way to work with mutable values and interact with the DOM in functional components, without triggering unnecessary re-renders.
+由于闭包的特性，普通变量在事件处理函数中可能会捕获旧的值，而不是最新的值。这会导致一些不可预期的行为。使用 useRef 可以避免这种情况，因为 useRef 的 .current 属性始终指向最新的值。
+使用 useRef 可以确保我们能够在 useEffect 的清理函数中访问到最新的定时器引用
+`useRef` can also be used to store previous values or to persist values across different renders of a component
 
 * configureStore
 In Redux, `configureStore` is a function provided by the `@reduxjs/toolkit` package that helps simplify the process of creating a Redux store with commonly used middleware and other configuration options.
@@ -1048,3 +1026,114 @@ export default Component;
 ```
 
 In summary, using a normal variable defined with `const` will cause re-renders if the variable changes, while using `useRef` allows you to store mutable values that persist between renders without triggering a re-render when the value changes.
+
+* context
+In React, a `Provider` is a component that allows you to pass down data (often referred to as "context") to all components within its tree without having to manually pass props down through every level of the component hierarchy.
+
+The `Provider` component is part of the Context API, which was introduced in React 16.3. Below,
+
+1. **Context**: This is a way to share values between components without having to explicitly pass a prop through every level of the tree.
+2. **Provider**: This component is used to wrap your component tree and make the context value available to all nested components.
+3. **Consumer**: This component or the `useContext` hook is used to access the context value within a component.
+
+### Creating a Context
+
+```jsx
+import React from 'react';
+
+const MyContext = React.createContext();
+```
+### Providing the Context
+
+Next, you use the `Provider` component to make the context value available to all components within its tree. You typically do this at a high level in your component hierarchy.
+
+```jsx
+import React, { useState } from 'react';
+import MyContext from './MyContext';
+
+const MyProvider = ({ children }) => {
+  const [value, setValue] = useState('Hello, World!');
+
+  return (
+    <MyContext.Provider value={{ value, setValue }}>
+      {children}
+    </MyContext.Provider>
+  );
+};
+
+export default MyProvider;
+```
+
+### Consuming the Context
+
+You can consume the context value in two ways: using the `Consumer` component or the `useContext` hook.
+
+#### Using the `Consumer` Component
+
+```jsx
+import React from 'react';
+import MyContext from './MyContext';
+
+const MyComponent = () => {
+  return (
+    <MyContext.Consumer>
+      {({ value, setValue }) => (
+        <div>
+          <p>{value}</p>
+          <button onClick={() => setValue('New Value')}>Change Value</button>
+        </div>
+      )}
+    </MyContext.Consumer>
+  );
+};
+
+export default MyComponent;
+```
+
+#### Using the `useContext` Hook
+
+This is a more modern and concise way to consume context values.
+
+```jsx
+import React, { useContext } from 'react';
+import MyContext from './MyContext';
+
+const MyComponent = () => {
+  const { value, setValue } = useContext(MyContext);
+
+  return (
+    <div>
+      <p>{value}</p>
+      <button onClick={() => setValue('New Value')}>Change Value</button>
+    </div>
+  );
+};
+
+export default MyComponent;
+```
+
+### Putting It All Together
+
+Here’s how you might structure your application to use the `Provider` and consume the context values:
+
+```jsx
+import React from 'react';
+import ReactDOM from 'react-dom';
+import MyProvider from './MyProvider';
+import MyComponent from './MyComponent';
+
+const App = () => (
+  <MyProvider>
+    <MyComponent />
+  </MyProvider>
+);
+
+ReactDOM.render(<App />, document.getElementById('root'));
+```
+
+### When to Use Context
+
+- **Global State**: When you have data that needs to be accessed by many components at different levels of the component tree.
+- **Theming**: Passing down theme settings (e.g., dark mode, light mode).
+- **User Authentication**: Passing down user information and authentication status.
+- **Configuration**: Application-wide settings or configurations.

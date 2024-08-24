@@ -12,7 +12,8 @@ C-x $ shows everything.
         "C-i" or tab : go to next vertico group
 * popup--display-buffer-alist
 https://github.com/emacsorphanage/popwin
-
+jump to popup window
++popup/other
 * exec-path:
 exec-path是一个Emacs内部变量 Emacs用来查找可执行文件。如M-x compile
 (setenv "PATH"): 设置Emacs进程的环境变量PATH。对于Emacs启动的子进程很重要

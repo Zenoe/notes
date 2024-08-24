@@ -88,3 +88,244 @@ const clearSelection = e => {
       .on('click', clearSelection)
 
   }, [shapes, contextMenu])
+
+* fontawesome icon do not show
+add the following CSS
+[class^="fa-"]:before, [class*=" fa-"]:before{font-family:fontawesome}
+
+The above CSS will make sure the pseudo :before content, where the FA icons actually live, gets font-family set to fontawesome. With this I can remove 'fa' class. It seems to me that class 'fa' exists only to set the font-family to fontawesome(There are many other CSS rules associated with it, but it seems to me only the font-family matters)
+
+If anyone think this may cause some potential problem, please let me know.
+
+By the way, I test it on font-awesome's official website, and surprisingly, if I remove class 'fa', the icon will reduce to an ugly rectangle. This is kind of uneasy for me, they make class 'fa' mandate for a reason, don't they?
+
+* foreignObject's html assigned by react jsx
+// 还没验证行不行
+In D3.js, when you use `foreignObject` to include HTML within an SVG, you're dealing with a standard DOM element, not the virtual DOM that React manages. React's JSX is typically rendered by React itself, which manages the DOM updates and efficiently handles changes. However, you can still use React JSX in conjunction with D3's `foreignObject`, but you'll need to render the JSX outside of the usual React rendering flow and then insert the resulting HTML into the D3-managed DOM element.
+
+### Example: Using React JSX with `foreignObject`
+
+Here’s how you can do it:
+
+1. **Create a React Component:**
+   Define the JSX that you want to render inside the `foreignObject`.
+
+   ```jsx
+   import React from 'react';
+
+   const MyComponent = () => (
+     <div style={{ color: 'red', fontSize: '14px' }}>
+       <p>This is rendered with React JSX</p>
+     </div>
+   );
+
+   export default MyComponent;
+   ```
+
+2. **Render the React Component to a String:**
+   Use ReactDOMServer to render the JSX to a string that D3 can insert into the DOM.
+
+   ```jsx
+   import React from 'react';
+   import ReactDOMServer from 'react-dom/server';
+   import * as d3 from 'd3';
+   import MyComponent from './MyComponent';
+
+   // Create your SVG container
+   const svg = d3.select('body')
+     .append('svg')
+     .attr('width', 500)
+     .attr('height', 500);
+
+   // Add a foreignObject element
+   const foreignObject = svg.append('foreignObject')
+     .attr('width', 200)
+     .attr('height', 100)
+     .attr('x', 50)
+     .attr('y', 50);
+
+   // Render the React component to a string
+   const htmlString = ReactDOMServer.renderToString(<MyComponent />);
+
+   // Append the rendered HTML to the foreignObject
+   foreignObject
+     .append('xhtml:div')
+     .html(htmlString);
+   ```
+
+### Key Points
+
+- **ReactDOMServer:** This module allows you to render a React component to a static HTML string, which you can then insert into the D3 `foreignObject`.
+
+- **SVG Namespaces:** When appending elements inside a `foreignObject`, make sure to use the `xhtml:` namespace to ensure the HTML is correctly interpreted by the browser.
+
+- **DOM Updates:** Since React isn’t managing the DOM in this part, if you need to update the content inside the `foreignObject`, you’ll need to re-render the component using `ReactDOMServer.renderToString` and update the HTML manually.
+
+### Limitations
+
+- **No React State or Lifecycle:** Since the JSX is rendered to a string and manually inserted into the DOM, it doesn’t have access to React’s state, props, or lifecycle methods.
+
+- **Manual DOM Management:** You lose some of the benefits of React's virtual DOM, such as automatic updates when state or props change.
+
+### Alternative Approach
+
+If you need React to manage the `foreignObject` content, you could create a React component that renders the entire SVG, including the `foreignObject`. This way, React would manage the `foreignObject` as part of its virtual DOM, ensuring that updates happen efficiently.
+
+Here's a simplified version:
+
+```jsx
+import React from 'react';
+
+const SvgWithForeignObject = () => (
+  <svg width="500" height="500">
+    <foreignObject x="50" y="50" width="200" height="100">
+      <div xmlns="http://www.w3.org/1999/xhtml" style={{ color: 'red', fontSize: '14px' }}>
+        <p>This is rendered with React JSX</p>
+      </div>
+    </foreignObject>
+  </svg>
+);
+
+export default SvgWithForeignObject;
+```
+
+This approach fully integrates React with the SVG and `foreignObject`, allowing you to leverage React's state and lifecycle methods.
+
+* position of edit box on node
+v1:
+    let inputX = 68 + node.y
+    let inputY = 52 + node.x
+    let inputWidth = node.data.height
+    let inputHeight = 32
+    const input = d3
+    .select('#modifyNode')
+    .style('display', 'block')
+    .style('left', `${inputX}px`) // add withd of left div and other paddings
+    .style('top', `${inputY}px`)
+    .style('height', `${inputHeight}px`)
+    .style('width', `${inputWidth}px`)
+
+    but zooming affect the position of edit box, need to consider the cofficient of zoom/pan
+v2:
+    const transformAttr = selection.attr('transform')
+    if (transformAttr) {
+      // translate(219.43347100073026,-180.4880118404618) scale(1.5157165665103984)
+      const regex = /translate\(([^,]+),\s*([^,]+)\) scale\(([^)]+)\)/
+      const match = transformAttr.match(regex)
+      if (match) {
+        translateX = parseFloat(match[1])
+        translateY = parseFloat(match[2])
+        scale = parseFloat(match[3])
+      }
+    }
+    inputX = inputX + translateY
+    inputY = inputY + translateX
+    ...
+    but the scale is hard to fixed
+
+v3:
+    // get curTransform from zoom event
+    if (curTransform) {
+      inputX = curTransform.applyX(node.y)
+      inputY = curTransform.applyY(node.x)
+      inputHeight *= curTransform.k
+      inputWidth *= curTransform.k
+    }
+    ...
+    but the y position is not right when zoom
+
+v4: get the node's position relative to viewport, no need magic offset number
+    const nodeClientRect = g.select('div.node-text').node().getBoundingClientRect()
+    const inputX = nodeClientRect.x
+    const inputY = nodeClientRect.y
+    const inputWidth = nodeClientRect.width
+    const inputHeight = nodeClientRect.height
+
+** get position relative to viewport and body
+var rect = d3.select("rect");
+
+var boundingRect = rect.node().getBoundingClientRect();
+
+var x = boundingRect.x; // x position relative to the viewport
+var y = boundingRect.y; // y position relative to the viewport
+var width = boundingRect.width;
+var height = boundingRect.height;
+
+// Get the current scroll position
+var scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+var scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+// Calculate the position relative to the body
+var bodyX = boundingRect.x + scrollLeft;
+var bodyY = boundingRect.y + scrollTop;
+
+* path
+ `diagonal` generates a string representing a path for a diagonal line in an SVG (Scalable Vector Graphics) format. Here's a breakdown of the function:
+### Function Definition
+
+```javascript
+function diagonal(s: Axis, d: Axis) {
+```
+- **Parameters**: The function takes two parameters, `s` and `d`, both of which are expected to be objects of type `Axis`. Each `Axis` object presumably has `x` and `y` properties representing coordinates.
+
+### Return Statement
+
+```javascript
+return `M ${s.y} ${s.x}
+C ${(s.y + d.y) / 2} ${s.x},
+${(s.y + d.y) / 2} ${d.x},
+${d.y} ${d.x}`;
+```
+
+- **Template Literal**: The function uses a template literal (enclosed in backticks) to construct a string that represents an SVG path.
+
+#### Path Commands
+
+1. **Move Command (`M`)**:
+   - `M ${s.y} ${s.x}`: This command moves the "pen" to the starting point of the path at coordinates `(s.y, s.x)`. In SVG, the `M` command is used to move to a specific point without drawing anything.
+
+2. **Cubic Bezier Curve Command (`C`)**:
+   - `C ${(s.y + d.y) / 2} ${s.x}, ${(s.y + d.y) / 2} ${d.x}, ${d.y} ${d.x}`:
+     - This command draws a cubic Bezier curve from the current position to the point `(d.y, d.x)`.
+     - The control points for the curve are calculated as follows:
+       - The first control point is at `((s.y + d.y) / 2, s.x)`. This point is horizontally centered between the `y` values of `s` and `d`, but vertically aligned with `s.x`.
+       - The second control point is at `((s.y + d.y) / 2, d.x)`, which is also horizontally centered between the `y` values but vertically aligned with `d.x`.
+
+### Summary
+
+- **Purpose**: The function creates an SVG path string that represents a diagonal line with a smooth curve between two points defined by the `s` and `d` objects.
+- **Use Case**: This is often used in data visualization libraries (like D3.js) to create curved lines between points in a graph or chart.
+
+If you have any specific questions about parts of the code or its application, feel free to ask!
+
+
+* pointer-events-none cursor-wait  can't coexist
+pointer-events-none disables all pointer events, including cursor changes.
+
+* add more shapes base of property of data
+    const nodeEnter = node
+      .enter()
+      .append('foreignObject')
+      .attr('class', 'mindmap-node')
+      .attr('width', node => node.data.width + 4)
+      .attr('height', node => node.data.height)
+      .attr(
+        'transform',
+        d => `translate(${source.y0}, ${source.x0 - d.data.height / 2})`
+      )
+    node
+      .enter()
+      .filter(d => d.data.state === 'new')
+      .append('rect')
+      .attr('width', d => d.data.width)
+      .attr('height', d => d.data.height)
+      .attr('x', d => d.x)
+      .attr('y', d => d.y)
+
+
+* tree layout
+d3.hierarchy converts the raw data into a hierarchical structure that D3 can work with, this structure includes both data and children properties
+the data prop and the children within it contins the original raw data, while the children are created by d3
+
+when updating data for tree, the raw part of the structure are needed to be dealt with
+* this is undefined in arrow function

@@ -200,6 +200,11 @@ When the completion candidates are shown, press <f1> to display the documentatio
 
 (add-hook 'after-init-hook 'global-company-mode)
 
+M-X comp dlg to show company info
+** company-tide
+import using relative paths by default
+  (setq-default tide-user-preferences '(:importModuleSpecifierPreference "relative" :includeCompletionsForModuleExports t :includeCompletionsWithInsertText t :allowTextChangesInNewFiles t))
+
 * flychecker
 You don't disable warning messages at the flycheck level; you disable them using the underlying checker, which in your case for latex-mode is chktex. One can find the underlying checker by running M-x flycheck-describe-checker RET.
 

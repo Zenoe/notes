@@ -1,0 +1,16 @@
+* priority of attr
+The inline-style override any other styles, followed by the
+style applied from an external CSS stylesheet. The fill attribute comes last.
+* d3.select(a,b)  select elements satisfy either a or b
+d3.select(a b)  select elements satisfy a and b
+d3.selectAll('xx').append('rect') append for each of the results return by selectAll
+* g to group bar and text, apply transform to g
+the position of each label is relative to its parent group
+* use the text-anchor attribute with a
+value of end to make the labels right-aligned. This means that the x attribute
+represents the position of the end of each label
+* Notice how the font-size of the count labels (9px) is smaller than the
+one of the technology labels (11px). We proceed this way to maintain the
+visual hierarchy between the two types of labels. The larger labels will catch
+the attention first, and the viewers will understand that the count labels are
+secondary to the technology labels.

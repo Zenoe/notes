@@ -1,3 +1,29 @@
+* prompt confirmation before page is closed
+  useEffect(() => {
+    const handleBeforeUnload = event => {
+      event.preventDefault()
+      event.returnValue = true
+      // setConfirmDialogOpen(true)
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  // }, [penddingNodes])
+  }, [])
+
+  // as long as user give one click on the page, the confirmation dlg shows when you close the page or input in address bar a new address
+  // if the page is untouch(no click anywhere on the page), there is no trouble closing the page
+  // don't ever try to open your own dialog. because in handleConfirm blocker.proceed would be undefined if the page is being closed
+
+    const handleConfirm = () => {
+    blocker.proceed()
+    setConfirmDialogOpen(false)
+  }
+
+** vs blocker from react router
+different from blocker mechnism when switch pages in the same application
+
 * the missing of antd table rowKey cause warning
 * tabItem can not receive updated state
 must update tabItem by useEffect

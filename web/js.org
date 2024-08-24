@@ -10,6 +10,38 @@ debounce: limite execution, wait for a ertain amount of time b4 running it again
 delay 时间内不停按键，停止后经过 delay 时间才触发
 throttle: control fireing frequency
 不停按键期间，每隔delay 就触发一次
+** debounce
+function debounce(func, wait, immediate) {
+  let timeout;
+
+  return function(...args) {
+    const context = this; // 这里的 context 是调用防抖函数时的上下文
+
+    const callNow = immediate && !timeout; // first time when immediate is true, timeout is null, so callNow is true, after then timeout is not null, so callNow will always be false
+
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      timeout = null;
+      if (!immediate) func.apply(context, args); // 使用防抖函数的上下文调用原始函数
+    }, wait);
+
+    if (callNow) func.apply(context, args); // 使用防抖函数的上下文调用原始函数
+  };
+}
+
+// 示例对象
+const obj = {
+  value: 42,
+  printValue: function() {
+    console.log(this.value); // 期待输出 42
+  }
+};
+
+// 创建一个防抖函数
+const debouncedPrintValue = debounce(obj.printValue, 200, true);
+
+// 绑定事件处理程序
+document.addEventListener('click', debouncedPrintValue.bind(obj));
 
 * iterate through object
 ** through entries
