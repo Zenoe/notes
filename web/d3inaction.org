@@ -14,3 +14,12 @@ one of the technology labels (11px). We proceed this way to maintain the
 visual hierarchy between the two types of labels. The larger labels will catch
 the attention first, and the viewers will understand that the count labels are
 secondary to the technology labels.
+
+* on('click.foo', ...) and on('click', ...)
+Using namespaces in event listeners (on('click.foo', ...)) provides better control, isolation, and clarity when managing multiple event listeners in D3.js. Non-namespaced listeners (on('click', ...)) are simpler but offer less control and can lead to conflicts in more complex scenarios.
+
+* on blur gets triggered prematurely when an option of an input is selected.
+because 'onblur' fires before 'onclick' of the option,so when you click an option, the input loses focus, triggering the onBlur handler.
+
+to solve it,
+onMouseDown={(e) => e.preventDefault()} // Prevent onBlur from firing before onClick

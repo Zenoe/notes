@@ -129,6 +129,15 @@ The align-items property positions the flex content along the cross axis.
 
  object-fit property and set it to cover. This will tell the image to fill the img container while maintaining aspect ratio, resulting in cropping to fit.
 
+** Applying both flex-grow and flex-shrink to a div
+control how a flex item behaves when the flex container is resized. Here’s a brief explanation:
+
+flex-grow: This property specifies how much a flex item will grow relative to the rest of the flex items inside the same container when there is extra space. If all items have flex-grow: 1, they will grow equally.
+
+flex-shrink: This property specifies how much a flex item will shrink relative to the rest of the flex items inside the same container when there is not enough space. If all items have flex-shrink: 1, they will shrink equally.
+
+By applying both properties, you are allowing the element to both grow and shrink as needed, making it flexible and responsive to the container's size. This is particularly useful in layouts where you want elements to adapt to different screen sizes or container sizes.
+
 * The header element will be used to introduce the page, as well as provide a navigation menu.
 The main element will contain the core content of your page.
    <body>

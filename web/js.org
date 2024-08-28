@@ -191,3 +191,11 @@ window.onunhandledrejection:Yes, but not until script execution has completed, y
 
 window.onerror: No.
 
+
+* contains
+contains method returns true if the specified node is a descendant of the referenced node
+const handleClickOutside = event => {
+  if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+    setIsDropdownOpen(false);
+  }
+}

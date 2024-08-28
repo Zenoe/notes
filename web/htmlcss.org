@@ -687,3 +687,8 @@ table, tr, td {
 tr:hover .delete {
   visibility: visible;
 }
+
+* ellipsis
+"flex-grow overflow-hidden text-ellipsis whitespace-nowrap text-sm"
+ensures the text will grow, handle overflow with ellipsis, and not wrap.
+dont add flex, it would prevent ellipsis working

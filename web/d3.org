@@ -329,3 +329,51 @@ the data prop and the children within it contins the original raw data, while th
 
 when updating data for tree, the raw part of the structure are needed to be dealt with
 * this is undefined in arrow function
+
+* nested append first g and then others
+const nodeGroup = svgGroup.selectAll('g.node').data(treeNodes, d => d.data._id);
+const nodeEnterG = nodeGroup.enter()
+  .append('g')
+  .attr('class', 'node');
+
+const nodeEnter = nodeEnterG
+  .append('foreignObject')
+  .attr('class', 'mindmap-node')
+  .attr('width', node => node.data.width + 4)
+  .attr('height', node => node.data.height)
+  .html(node => node.data.html);
+
+  // update selection
+nodeGroup.select('foreignObject.mindmap-node')
+  .attr('width', node => node.data.width + 4)
+  .attr('height', node => node.data.height)
+  .html(node => node.data.html);
+
+  // merge enter and update
+  const nodeUpdate = nodeEnterG.merge(nodeGroup);
+
+nodeUpdate.select('foreignObject.mindmap-node')
+  .attr('width', node => node.data.width + 4)
+  .attr('height', node => node.data.height)
+  .html(node => node.data.html);
+
+  nodeGroup.exit().remove();
+
+** why this code doesn't work (without further selection of 'foreignObject.mindmap-node'):
+  const nodeUpdate = nodeEnterG.merge(nodeGroup);
+nodeUpdate
+  .attr('width', node => node.data.width + 4)
+  .attr('height', node => node.data.height)
+  .html(node => node.data.html);
+  -->The reason the code doesn't work when you directly apply the .attr and .html methods to nodeUpdate without further selecting 'foreignObject.mindmap-node' is that nodeUpdate refers to a group (<g>) element, not the <foreignObject> within it. The methods .attr() and .html() will try to apply the attributes and HTML content to the <g> elements instead of the <foreignObject> elements.
+
+** how about this merge: const nodeUpdate = nodeEnter.merge(nodeEnterG)
+nodeEnterG: This is the selection of newly created <g> elements (the "enter" selection).
+nodeEnter: This is the selection of the newly created <foreignObject> elements that were appended to the <g> elements (nodeEnterG).
+These two selections represent different elements in the DOM hierarchy. Specifically:
+
+nodeEnterG is a selection of <g> elements.
+nodeEnter is a selection of <foreignObject> elements inside those <g> elements.
+Why nodeEnter.merge(nodeEnterG) Doesn’t Work:
+merge() is used to combine two selections of the same type of element. Both selections should be targeting the same kind of elements, such as two sets of <g> elements or two sets of <foreignObject> elements.
+In this case, nodeEnter and nodeEnterG are different types of elements (foreignObject vs. g). Merging them does not make sense, as they don’t represent the same elements or fulfill the same role in the DOM structure.
