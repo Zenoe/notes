@@ -64,9 +64,36 @@ MongoServerError[Unauthorized]: Command grantRolesToUser requires authentication
 admin> db.auth("root", "123456")
 admin> db.grantRolesToUser( "ruijie", [ { role: "readWrite", db: "rnms52backup" }] )
 
+*  Convert to a Replica Set
+Error duplicating node and its descendants: MongoServerError: Transaction numbers are only allowed on a replica set member or mongos
+sudo systemctl stop mongod
+# /etc/mongod.conf
+replication:
+  replSetName: "rs0"
+sudo systemctl start mongod
+mongosh
+        rs.initiate()
+        // Verify the replica set status:
+        rs.status()
+        // additional step
+        rs.add("new_member_hostname:port")
+        // Check the configuration to ensure all members are added correctly:
+        rs.conf()
+Additional Considerations
+Networking: Ensure that all members can communicate with each other over the network.
+Authentication: If authentication is enabled, ensure that appropriate user roles are configured for replica set operations.
+Monitoring: Use MongoDB monitoring tools to keep an eye on the health and performance of your replica set.
+
 * fail to start
 msg":"Error during global initialization
 >> chmod 777 -R /var/log/mongodb/
+
+** tail -n 100 /var/log/mongodb/mongod.log
+Failed to unlink socket file /tmp/mongodb-27017.sock
+sudo rm /tmp/mongodb-27017.sock
+may need: sudo chown mongodb:mongodb /tmp/mongodb-27017.sock
+          sudo chmod 660 /tmp/mongodb-27017.sock
+
 * start
 sudo mkdir -p /var/lib/mongo
 sudo mkdir -p /var/log/mongodb

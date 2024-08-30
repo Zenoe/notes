@@ -148,57 +148,6 @@ div { border:1px solid green;}
   line-height: 309px; /* same as height! */
 }
 
-3.
-The following example makes two (non-trivial) assumptions. If you can meet these assumptions, then this method is for you:
-
-You can put the content that you want to center inside a block and specify a fixed height for that inner content block.
-It's alright to absolutely-position this content. (Usually fine, since the parent element inside which the content is centered can still be in flow.
-If you can accept the above necessities, the solution is:
-
-Specify the parent container as position:relative or position:absolute.
-Specify a fixed height on the child container.
-Set position:absolute and top:50% on the child container to move the top down to the middle of the parent.
-Set margin-top:-yy where yy is half the height of the child container to offset the item up.
-An example of this in code:
-
-<style type="text/css">
-	#myoutercontainer { position:relative }
-	#myinnercontainer { position:absolute; top:50%; height:10em; margin-top:-5em }
-</style>
-...
-<div id="myoutercontainer">
-	<div id="myinnercontainer">
-		<p>Hey look! I'm vertically centered!</p>
-		<p>How sweet is this?!</p>
-	</div>
-</div>
-
-
-Method 1
-The following example makes two (non-trivial) assumptions. If you can meet these assumptions, then this method is for you:
-
-You can put the content that you want to center inside a block and specify a fixed height for that inner content block.
-It's alright to absolutely-position this content. (Usually fine, since the parent element inside which the content is centered can still be in flow.
-If you can accept the above necessities, the solution is:
-
-Specify the parent container as position:relative or position:absolute.
-Specify a fixed height on the child container.
-Set position:absolute and top:50% on the child container to move the top down to the middle of the parent.
-Set margin-top:-yy where yy is half the height of the child container to offset the item up.
-An example of this in code:
-
-<style type="text/css">
-	#myoutercontainer { position:relative }
-	#myinnercontainer { position:absolute; top:50%; height:10em; margin-top:-5em }
-</style>
-...
-<div id="myoutercontainer">
-	<div id="myinnercontainer">
-		<p>Hey look! I'm vertically centered!</p>
-		<p>How sweet is this?!</p>
-	</div>
-</div>
-
 * half star
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg"
     width="200" height="200">
@@ -214,25 +163,7 @@ An example of this in code:
         fill="url(#half_grad)" stroke-width="1" stroke="red"/>
 </svg>
 
-
-** small one
-<Star currentColor={boolean?'#f7bc0e':'#aeaeae'}/>
-
-
-        <svg viewBox="64 64 896 896" data-icon="star" width="1em" height="1em" fill={currentColor} aria-hidden="true">
-            <defs>
-            <linearGradient id="half_grad">
-            <stop offset="50%" stop-color={currentColor}/>
-            <stop offset="50%" stop-color="grey" stop-opacity="1" />
-            </linearGradient>
-            </defs>
-        <path d="M908.1 353.1l-253.9-36.9L540.7 86.1c-3.1-6.3-8.2-11.4-14.5-14.5-15.8-7.8-35-1.3-42.9 14.5L369.8 316.2l-253.9 36.9c-7 1-13.4 4.3-18.3 9.3a32.05 32.05 0 0 0 .6 45.3l183.7 179.1-43.4 252.9a31.95 31.95 0 0 0 46.4 33.7L512 754l227.1 119.4c6.2 3.3 13.4 4.4 20.3 3.2 17.4-3 29.1-19.5 26.1-36.9l-43.4-252.9 183.7-179.1c5-4.9 8.3-11.3 9.3-18.3 2.7-17.5-9.5-33.7-27-36.3z"
-        fill="url(#half_grad)"
-        >
-        </path>
-        </svg>
-
-* Block-level items automatically start on a new line (think headings, paragraphs, and divs) while inline items sit within surrounding content (like images or spans).
+* Block-level items automatically start on a new line  while inline items sit within surrounding content
 The default layout of elements in this way is called the normal flow of a
 document, but CSS offers the position property to override it. When the position
 of an element is set to relative, it allows you to specify how CSS should move
@@ -240,10 +171,6 @@ it relative to its current position in the normal flow of the page. It pairs
 with the CSS offset properties of left or right, and top or bottom. These say
 how many pixels, percentages, or ems to move the item away from where it is
 normally positioned.
-
-Changing an element's position to relative does not remove it from the normal
-flow - other elements around it still behave as if that item were in its default
-position.
 
 * absolute position remove the element from the normal flow of the document.
 absolute div will naturally shrink to fit that content.
@@ -336,20 +263,14 @@ are used to add something before or after the selected element
 <div class = "heart"></div>
 
 * font
-FAMILY_NAME as in the following example:
 font-family: FAMILY_NAME, GENERIC_NAME;.
-
 The GENERIC_NAME is optional, and is a fallback font in case the other specified font is not available.
 
 font degrade
 Family names are case-sensitive and need to be wrapped in quotes if there is a space in the name.
-For example, if you wanted an element to use the Helvetica font, but degrade to the sans-serif font when Helvetica wasn't available, you will specify it as follows:
-
-p {
   font-family: Helvetica, sans-serif;
-}
 There are several default fonts that are available in all browsers. These generic font families include monospace, serif and sans-serif
-Generic font family names are not case-sensitive. Also, they do not need quotes because they are CSS keywords.
+Generic font family names are not case-sensitive. they do not need quotes because they are CSS keywords.
 * border
   .thick-green-border {
     border-color: green;
@@ -444,29 +365,11 @@ having to edit the other 9.
   margin: 20px 0px 20px 0px;
 }
 <label><input type="radio" name="indoor-outdoor"> Outdoor</label><br>
-* Understand Absolute versus Relative Units
-Absolute units tie to physical units of length. For example, in and mm refer to
-inches and millimeters, respectively. Absolute length units approximate the
-actual measurement on a screen, but there are some differences depending on a
-screen's resolution.
-
-Relative units, such as em or rem, are relative to another length value. For example, em is based on the size of an element's font. If you use it to set the font-size property itself, it's relative to the parent's font-size.
-
 * override css style
- the order of the class declarations in the <style> section are what is
- important. The second declaration will always take precedence over the first.
- Because .blue-text is declared second, it overrides the attributes of
- .pink-text
- It doesn't matter which order the classes are listed in the HTML element
-
+ The second declaration will always take precedence over the first.
  id declarations override class declarations, regardless of where they are declared in your style element CSS.
  Override id with Inline Styles
-
  Override All Other Styles by using Important
- In many situations, you will use CSS libraries. These may accidentally override
- your own CSS. So when you absolutely need to be sure that an element has
- specific CSS, you can use !important
-
 
 * Use Abbreviated Hex Code red's hex code #FF0000 can be shortened to #F00
 
@@ -490,7 +393,6 @@ background: var(--penguin-skin, black);
     width:200px;
   }
 </style>
-<div class="red-box"></div>
 
 * div semi transparent
 .transparent{
@@ -536,12 +438,6 @@ That is why you need to add height: 100% on html and body, as they don't have a 
 
 Something you have to know : if you use % for vertical margin or padding, % will be calculated on the width of the parent element, not the height.
 
-** height: 100vh = 100% of the viewport height
-
-Technically, this is true, but a better way to think of it is = 100% of the available height.
-
-If you are looking to fill up a div with the available height, that's a mighty useful trick. Before I learned this, I would have to ensure every div from html down to the nested div had a height of 100% which can be tedious and error prone. Instead, I now just use height:100vh on the nested item.
-
 ** View port units = vw, vh, vmin, and vmax - are based on the size of the browser viewport. Because, their actual size changes depending on the Viewport Size, this makes them great units for responsive design
 
 Note: When dealing with widths, the % unit is more suitable but with heights, the vh unit is better.
@@ -550,32 +446,10 @@ the width of the viewport will actually be larger than the width of the html ele
 
 Viewport > html > body
 
-* right arrow
-<p>Right arrow: <i class="arrow right"></i></p>
-.right {
-  transform: rotate(-45deg);
-  -webkit-transform: rotate(-45deg);
-}
-
-i {
-  border: solid #999999;
-  border-width: 0px 3px 3px 0px;
-  display: inline-block;
-  padding: 3px;
-}
-
 * siderbar with arrow button
 <!DOCTYPE html>
 <html>
-<body>
-  <div class="sidebar">
-    <div class="arrowdiv right"></div>
-  </div>
-    <div class="sidebar2"></div>
-  <br/>
-</body>
-</html>
-
+<style>
 .sidebar{
   position: relative;
   left: 0;
@@ -614,17 +488,14 @@ i {
   transform: rotate(-45deg);
   -webkit-transform: rotate(-45deg);
 }
+</style>
+<body>
+  <div class="sidebar">
+    <div class="arrowdiv right"></div>
+  </div>
+</body>
+</html>
 
-.sidebar2{
-  position: relative;
-  left: 0;
-  top: 0;
-  height: 280px;
-  width: 80px;
-  border: 1px blue solid;
-  margin-left: 5px;
-  display:inline-block;
-}
 
 * inline vs inline-block block
 Inline elements:
@@ -692,3 +563,14 @@ tr:hover .delete {
 "flex-grow overflow-hidden text-ellipsis whitespace-nowrap text-sm"
 ensures the text will grow, handle overflow with ellipsis, and not wrap.
 dont add flex, it would prevent ellipsis working
+
+* drawer div
+className={`right-0 w-96 bg-white border-l shadow-lg transform transition-transform duration-300
+${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
+
+after when it's translated off-screen, the space is still cccupied, to fix this , add "fixed h-full"
+`h-full` is necessary, or it won't show up
+
+** transform only applies to transformations like translate, scale, rotate, skew, not on others as follows
+transition-transform duration-300 ${isOpen ? 'flex' : 'hidden'}  // not work
+transition-transform duration-300 ease-in-out ${isOpen ? 'mr-1' : 'mr-96'}  // not work

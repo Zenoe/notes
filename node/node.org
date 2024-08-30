@@ -312,3 +312,20 @@ to resolve: not recognize alias
     // Turned off because conflicts with the ones above and does not support aliases
     "node/no-missing-require": "off",
   },
+* authorize middleware
+const authorize = async (req, res, next) => {
+try {
+const user = await db.User.findByPk(req.user.sub);
+if (!user) {
+return res.status(401).json({ message: "Unauthorized" });
+}
+
+// Authorization successful
+req.user = user.get();
+next();
+} catch (error) {
+// Handle any errors that may occur
+return res.status(500).json({ message: "Internal Server Error" });
+}
+};
+// app.use(authorize)

@@ -377,3 +377,23 @@ nodeEnter is a selection of <foreignObject> elements inside those <g> elements.
 Why nodeEnter.merge(nodeEnterG) Doesn’t Work:
 merge() is used to combine two selections of the same type of element. Both selections should be targeting the same kind of elements, such as two sets of <g> elements or two sets of <foreignObject> elements.
 In this case, nodeEnter and nodeEnterG are different types of elements (foreignObject vs. g). Merging them does not make sense, as they don’t represent the same elements or fulfill the same role in the DOM structure.
+
+* custom separation for tree layout
+ ask gpt step by step
+** first ask To solve the issue of overlapping or crossing branches in a horizontal D3 tree layout,
+** new problem occur: ome nodes' links are slanting backward to connect their children
+** ask in the right way: to gpt make sure the start coordinate of each node larger than the start of its parent node plus its length
+make sure each child node starts at a coordinate larger than its parent node's end (start position + width of the node)
+* nodeSize cause the root node's coordinates (x and y) default to (0, 0)
+// recenter tree manually
+const offsetX = svgWidth / 2;
+const offsetY = svgHeight / 2;
+// Apply the dynamic translation
+root.forEach(node => {
+  node.x += offsetX;
+  node.y += offsetY;
+
+  // if horizontally place the tree
+  // node.y += offsetX;
+  // node.x += offsetY;
+});
