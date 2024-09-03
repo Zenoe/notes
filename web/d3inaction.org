@@ -23,3 +23,26 @@ because 'onblur' fires before 'onclick' of the option,so when you click an optio
 
 to solve it,
 onMouseDown={(e) => e.preventDefault()} // Prevent onBlur from firing before onClick
+
+* join
+svg
+  .selectAll("rect")
+  .data(data)
+  .join("rect")
+  .attr("class", d => {
+    console.log(d);
+    return `bar bar-${d.technology}`;
+  });
+ ===
+ const rects = svg.selectAll("rect")
+                 .data(data);
+
+const enterSelection = rects.enter().append("rect");
+
+enterSelection.merge(rects)
+              .attr("class", d => {
+                console.log(d);
+                return `bar bar-${d.technology}`;
+              });
+
+rects.exit().remove();

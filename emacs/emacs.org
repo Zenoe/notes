@@ -1,3 +1,5 @@
+* tree-sitter
+check: eval-expression (treesit-available-p)
 * Selective display:
 C-u <n> C-x $ folds all the lines starting with <n> or more spaces;
 C-x $ shows everything.

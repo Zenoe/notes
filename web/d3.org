@@ -397,3 +397,48 @@ root.forEach(node => {
   // node.y += offsetX;
   // node.x += offsetY;
 });
+
+* when dragging a node move over another node, some of them trigger mouseover, but some are not.
+pointer-events: Make sure that the dragged node does not prevent mouse events from being detected on other elements
+One way to handle this is to temporarily set pointer-events to none for the dragged node during the drag operation:
+
+  const dragStart = function (event, d) {
+    d3.select(this)
+      .select('foreignObject')
+      .classed('dragging', true)
+      .style('pointer-events', 'none')
+  }
+
+* Transformation on <g> Group: not on its child foreignObject
+Applying a transformation (like translate, rotate, or scale) to a <g> (group) element affects all of its child elements, including <foreignObject>, <rect>, <text>, etc.
+The transformation is relative to the group's own coordinate system. Any child element within the group inherits the transformation applied to the group.
+Transformation on <foreignObject>:
+    d.x0 += event.dy
+    d.y0 += event.dx
+    const node = d3.select(this)
+    node.attr('transform', `translate(${d.y0}, ${d.x0})`)
+
+Applying a transformation to a <foreignObject> element only affects that specific element, not the parent <g> or any of its siblings.
+The transformation is applied relative to the <foreignObject>'s own coordinate system, which is nested within its parent group's coordinate system.
+this is not good, on start draggin, the element flies to nowhere to be found
+
+* add a class to stop to show when dragging
+  &:hover {
+    .node-body {
+      .options {
+        display: flex;
+      }
+    }
+  }
+  &.dragging {
+    .node-body {
+      .options {
+        display: none !important;
+      }
+    }
+  }
+
+* insert instead of appen
+selection.insert(name[, before])
+name: The name of the element to be inserted (e.g., "path").
+before: A selector string that specifies the element before which the new element should be inserted. If omitted, the new element is appended to the end of the selection.
