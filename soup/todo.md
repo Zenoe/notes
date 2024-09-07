@@ -22,3 +22,5 @@ Internet OS: https://github.com/HeyPuter/puter
 
 Operational Transformation
 etherpad: https://github.com/ether/etherpad-lite
+
+ iterative deepening, bounded relaxation A*, beam search, simulated annealing

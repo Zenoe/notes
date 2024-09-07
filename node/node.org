@@ -6,6 +6,12 @@ Break before user code starts
 
 node --inspect-brk=0.0.0.0:9229 extractSection.test.js
 
+* req.query vs req.params
+Feature	req.params	req.query
+Location	In the URL path	In the query string
+Syntax	Defined with : in route	Key-value pairs after ?
+Use Case	Identifying resources (e.g., IDs)	Filtering, sorting, pagination
+Example	/api/users/:userId	/api/users?filter=active
 * pm2 do not load env vars provide by corss-env
 "prod": "cross-env NODE_PATH=. NODE_ENV=prod pm2 start src/app.js"
 ** use dotenv

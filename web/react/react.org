@@ -1,3 +1,7 @@
+* onClick={() => toggleOpen(e => !e)} vs onClick={toggleOpen(e => !e)}
+onClick={toggleOpen(e => !e)}: This is incorrect because it immediately invokes toggleOpen during the render phase rather than on the click event.
+It would result in an error unless toggleOpen returns a function that matches the expected onClick callback signature.
+
 * maintain state across page refreshing
 When you refresh the page, the state of your React application is reset, including the active menu item in Ant Design's Menu component. To maintain the active menu item state across page refreshes, you need to persist the state somewhere that is not affected by the page reloading, such as the URL or localStorage.
 
@@ -20,91 +24,10 @@ On component mount (or update), read the URL to determine which menu item should
     }
   }, [location]);
 
-* hooks
-React Hooks are a feature introduced in React 16.8 that allow you to use state and other React features in functional components without needing to write a class. Hooks provide a way to reuse stateful logic between components, making it easier to manage and share stateful logic across your application.
+* useReducer: an alternative to `useState` when you have complex state logic that involves multiple sub-values or when the next state depends on the previous state.
 
-There are several built-in hooks provided by React, including:
+* useEffect: allows you to perform side effects in your functional components. Side effects can include fetching data from an API, subscribing to events, manipulating the DOM, or any other asynchronous or non-reactive tasks.
 
-1. `useState`: This hook allows you to add state to your functional component. It returns a state value and a function to update that state value.
-
-2. `useEffect`: This hook allows you to perform side effects in your component, such as fetching data from an API or subscribing to events. It runs after every render of the component.
-
-3. `useContext`: This hook allows you to access the value of a React context within your component.
-
-4. `useReducer`: This hook is an alternative to `useState` when you have complex state logic that involves multiple sub-values or when the next state depends on the previous state.
-
-5. `useCallback` and `useMemo`: These hooks optimize the performance of your component by memoizing functions or values to prevent unnecessary re-renders.
-
-6. `useRef`: This hook allows you to create a mutable value that persists across component re-renders.
-
-These are just a few examples of the built-in hooks. React also allows you to create custom hooks to encapsulate reusable logic within your application.
-
-To use hooks in your React application, make sure you are using React version 16.8 or higher. Then, you can import the desired hook from the `react` package and use it within your functional components.
-
-Here's an example of using the `useState` hook:
-
-```javascript
-import React, { useState } from 'react';
-
-function Counter() {
-  const [count, setCount] = useState(0);
-
-  return (
-    <div>
-      <p>Count: {count}</p>
-      <button onClick={() => setCount(count + 1)}>Increment</button>
-    </div>
-  );
-}
-```
-
-In this example, the `useState` hook is used to add state to the `Counter` component. The `count` state variable and the `setCount` function for updating the count are returned by the `useState` hook.
-
-Hooks provide a more concise and flexible way to manage state and side effects in functional components, making React development more efficient and easier to understand.
-* useEffect
-The `useEffect` hook in React allows you to perform side effects in your functional components. Side effects can include fetching data from an API, subscribing to events, manipulating the DOM, or any other asynchronous or non-reactive tasks.
-
-The `useEffect` hook is called after the component has rendered and is re-invoked whenever any of its dependencies change. It takes two arguments: a callback function and an optional array of dependencies.
-
-Here's an example of using the `useEffect` hook:
-
-```javascript
-import React, { useState, useEffect } from 'react';
-
-function Example() {
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    // Perform side effect here (e.g., data fetching)
-    fetch('https://api.example.com/data')
-      .then(response => response.json())
-      .then(data => setData(data));
-
-    // Clean up any resources or subscriptions if needed
-    return () => {
-      // Clean up code here
-    }
-  }, []); // Empty dependency array means the effect runs only once (on mount)
-
-  return (
-    <div>
-      {data ? (
-        <p>Data: {data}</p>
-      ) : (
-        <p>Loading...</p>
-      )}
-    </div>
-  );
-}
-```
-
-In this example, the `useEffect` hook is used to fetch data from an API endpoint when the component mounts. The effect is triggered only once because the dependency array is empty (`[]`). If you want the effect to run whenever a specific dependency changes, you can include it in the dependency array.
-
-The callback function within `useEffect` is where you place your side effect logic. It can contain async/await code, use external libraries, or manipulate the component's state.
-
-If your effect requires any cleanup, such as unsubscribing from an event or cancelling a request, you can return a cleanup function from the effect. React will execute this cleanup function before unmounting the component or re-running the effect.
-
-`useEffect` is a powerful tool that allows you to handle side effects in a declarative and concise manner within your functional components. It helps you keep your logic organized and separate from the rendering process.
 * useRef
 similar to an instance var in a class component
 the value in useRef persisites across component re-renders, normal variable get reset on each render
@@ -117,50 +40,6 @@ not suitable for managing state that needs to be reflected in the UI.
 使用 useRef 可以确保我们能够在 useEffect 的清理函数中访问到最新的定时器引用
 `useRef` can also be used to store previous values or to persist values across different renders of a component
 
-* configureStore
-In Redux, `configureStore` is a function provided by the `@reduxjs/toolkit` package that helps simplify the process of creating a Redux store with commonly used middleware and other configuration options.
-
-Here's an example of how to use `configureStore` to create a Redux store:
-
-```javascript
-import { configureStore } from '@reduxjs/toolkit';
-import rootReducer from './reducers';
-
-const store = configureStore({
-  reducer: rootReducer,
-  // other configuration options
-});
-
-export default store;
-```
-
-In the example above, we import `configureStore` from `@reduxjs/toolkit` and define our root reducer in `rootReducer`.
-
-You can also pass additional configuration options to `configureStore` as needed. Some commonly used options include:
-
-- `middleware`: An array of middleware functions to apply to the store. For example, you can include `redux-thunk` or other middleware for handling asynchronous actions.
-
-- `devTools`: A boolean value indicating whether to enable Redux DevTools integration. By default, this is enabled in development mode.
-
-- `preloadedState`: An initial state object to be used when creating the store.
-
-```javascript
-import React from 'react';
-import { Provider } from 'react-redux';
-import store from './store';
-import App from './App';
-
-ReactDOM.render(
-  <Provider store={store}>
-    <App />
-  </Provider>,
-  document.getElementById('root')
-);
-```
-
-In your application's entry point, you can wrap your root component with the `Provider` component from `react-redux` and pass the `store` as a prop. This allows all components in your application to access the store using React Redux's `connect` or `useSelector` hooks.
-
-Keep in mind that `configureStore` is part of the `@reduxjs/toolkit` package, which provides additional utilities and conventions to simplify Redux development.
 * useSelector vs connect
 Whether to use `connect` or `useSelector` depends on whether you are using class components or functional components with hooks.
 
@@ -280,66 +159,6 @@ export default store;
 In this example, we define a root reducer using `combineReducers`, which combines multiple slice reducers, including `mySliceReducer`. We then pass the root reducer to the `configureStore` function to create the Redux store.
 
 Note that `createSlice` is part of the `@reduxjs/toolkit` package, which provides additional utilities and conventions to simplify Redux development.
-
-* action and reducer
-In the context of Redux, a reducer is a function that determines how the application's state should change in response to dispatched actions. It takes in the current state and an action object as arguments and returns a new state object.
-
-Here's an example of a reducer function:
-
-```javascript
-const initialState = {
-  count: 0,
-};
-
-function counterReducer(state = initialState, action) {
-  switch (action.type) {
-    case 'INCREMENT':
-      return {
-        ...state,
-        count: state.count + 1,
-      };
-    case 'DECREMENT':
-      return {
-        ...state,
-        count: state.count - 1,
-      };
-    default:
-      return state;
-  }
-}
-```
-
-In the example above, `counterReducer` is a reducer function that handles state updates for a counter feature. The initial state is defined as an object with a `count` property set to 0.
-
-Inside the reducer function, a `switch` statement is used to handle different action types. The `action.type` property is used to determine which action is being dispatched.
-
-For example, when the action type is `'INCREMENT'`, the reducer returns a new state object by spreading the existing state and modifying the `count` property by incrementing it.
-
-Similarly, when the action type is `'DECREMENT'`, the reducer returns a new state object by spreading the existing state and modifying the `count` property by decrementing it.
-
-If the action type does not match any of the cases in the `switch` statement, the reducer returns the current state unchanged.
-
-An action is a plain JavaScript object that describes an intention to change the state. It typically has a `type` property that specifies the type of action being dispatched, along with any additional data that is necessary to perform the state update.
-
-Here's an example of an action object:
-
-```javascript
-const incrementAction = {
-  type: 'INCREMENT',
-};
-```
-
-In this example, `incrementAction` is an action object with a `type` property set to `'INCREMENT'`. This action can be dispatched to trigger the corresponding logic inside the reducer.
-
-Actions are typically dispatched using the `dispatch` function provided by Redux. For example:
-
-```javascript
-dispatch(incrementAction);
-```
-
-When an action is dispatched, Redux handles the process of calling the reducer function with the current state and the action object. The reducer then determines how the state should be updated based on the action type and returns a new state object.
-
-Reducers and actions are fundamental concepts in Redux as they allow for managing and updating the application state in a predictable and centralized manner.
 
 * why reducers in createSlice do not return a new state object
 In Redux Toolkit's `createSlice` function, the reducers defined within the slice do not need to return a new state object explicitly. Instead, they use a concept called "mutating" the state.
@@ -487,12 +306,14 @@ Additionally, `configureStore` automatically sets up some default behavior for t
 In summary, while `createStore` is the basic function to create a Redux store, `configureStore` is a more opinionated and convenient function provided by Redux Toolkit that includes additional configurations and defaults. It simplifies the process of setting up a Redux store with common configurations and middleware, making it easier to work with Redux.
 
 * thunk
-Thunk is a middleware for Redux that allows you to write asynchronous logic and side effects in your Redux applications. It provides a way to dispatch functions as actions, instead of plain objects, which enables handling of asynchronous operations like API calls, delays, and more.
+using configureStore from Redux Toolkit, do not need to separately install or configure Redux Thunk middleware. configureStore automatically includes Redux Thunk as part of its default middleware setup.
+You can directly dispatch actions that are asynchronous functions
 
-To use Redux Thunk, you need to install it as a dependency and apply it as middleware when creating your Redux store.
+By using Redux Thunk and the `fetchPosts` action, this component can handle the asynchronous API request and display the appropriate UI based on the loading and error states. It abstracts away the implementation details of the async logic, making the component more focused on rendering the UI based on the data in the Redux store.
 
-Here's an example of how to use Redux Thunk:
+Remember to connect the component to the Redux store using the `connect` function or wrap it with a `Provider` component to make the Redux store available to the component and its child components.
 
+** createStore way
 1. npm install redux-thunk
 
 2. Apply Redux Thunk middleware to your Redux store:
@@ -506,15 +327,9 @@ const store = createStore(rootReducer, applyMiddleware(thunk));
 
 In this example, we import `thunk` from the `redux-thunk` package and apply it as middleware using `applyMiddleware` when creating the Redux store.
 
-With Redux Thunk middleware in place, you can now dispatch functions as actions. These functions, commonly referred to as thunk actions, can perform asynchronous operations and dispatch regular actions as needed.
-
-Here's an example of a thunk action using Redux Thunk:
-
-```javascript
 const fetchUser = (userId) => {
   return (dispatch) => {
     dispatch({ type: 'FETCH_USER_REQUEST' });
-
     // Simulated asynchronous operation
     setTimeout(() => {
       const user = { id: userId, name: 'John Doe' };
@@ -522,67 +337,9 @@ const fetchUser = (userId) => {
     }, 2000);
   };
 };
-```
-
-In this example, `fetchUser` is a thunk action that dispatches multiple actions to handle an asynchronous operation. It first dispatches a "FETCH_USER_REQUEST" action to indicate the start of the operation. Then, it simulates an asynchronous delay using `setTimeout` and dispatches a "FETCH_USER_SUCCESS" action with the fetched user data.
-
-By using Redux Thunk, you can write these asynchronous thunk actions that can perform side effects, such as API calls, and dispatch regular actions to update the Redux store based on the results.
-
-Thunk actions can be dispatched like any other action using the `dispatch` function provided by Redux. The Redux Thunk middleware intercepts these thunk actions, executes the async logic, and allows you to perform side effects before dispatching regular actions.
-
-Overall, Redux Thunk provides a convenient way to handle asynchronous operations and side effects in your Redux applications, making it easier to manage asynchronous data flow and integrate with external APIs.
-
-** examples
-**Example 1: API Request**
-```javascript
-const fetchPosts = () => {
-  return async (dispatch) => {
-    dispatch({ type: 'FETCH_POSTS_REQUEST' });
-
-    try {
-      const response = await api.get('/posts');
-      dispatch({ type: 'FETCH_POSTS_SUCCESS', payload: response.data });
-    } catch (error) {
-      dispatch({ type: 'FETCH_POSTS_FAILURE', payload: error.message });
-    }
-  };
-};
-```
-In this example, the `fetchPosts` thunk action dispatches a request action, performs an API GET request using an external API library (e.g., Axios), and dispatches success or failure actions based on the API response. This is a common pattern for handling API requests in Redux applications, and Redux Thunk makes it easy to handle asynchronous operations and dispatch multiple actions as needed.
 
 **Example 2: Delayed Dispatch**
-```javascript
-const incrementAsync = () => {
-  return (dispatch) => {
-    dispatch({ type: 'INCREMENT_REQUEST' });
-
-    setTimeout(() => {
-      dispatch({ type: 'INCREMENT_SUCCESS' });
-    }, 1000);
-  };
-};
-```
-In this example, the `incrementAsync` thunk action dispatches a request action, introduces a delay using `setTimeout`, and then dispatches a success action after the delay. This can be useful for scenarios where you want to delay a state update or trigger an action after a specific time interval.
-
 **Example 3: Conditional Dispatch**
-```javascript
-const loginUser = (credentials) => {
-  return (dispatch) => {
-    dispatch({ type: 'LOGIN_REQUEST' });
-
-    if (credentials.username === 'admin' && credentials.password === 'password') {
-      dispatch({ type: 'LOGIN_SUCCESS' });
-    } else {
-      dispatch({ type: 'LOGIN_FAILURE', payload: 'Invalid credentials' });
-    }
-  };
-};
-```
-In this example, the `loginUser` thunk action dispatches a request action and conditionally dispatches success or failure actions based on the provided credentials. This can be useful for scenarios where you need to perform authentication or validation logic before updating the state.
-
-**Why is Redux Thunk Convenient?**
-
-Redux Thunk provides convenience in handling asynchronous operations and side effects in Redux applications for a few reasons:
 
 1. **Simplifies Asynchronous Logic**: Redux Thunk allows you to write asynchronous logic in a more straightforward manner compared to manually managing promises or callbacks. It abstracts away the complexity of handling async operations and provides a clear structure for dispatching actions at different stages.
 
@@ -592,146 +349,17 @@ Redux Thunk provides convenience in handling asynchronous operations and side ef
 
 4. **Flexibility**: Redux Thunk allows you to perform any kind of async operation within a thunk action, such as API requests, delays, or conditional logic. It provides the flexibility to handle a wide range of async scenarios without being tied to a specific approach or library.
 
-Overall, Redux Thunk simplifies the process of handling async operations and side effects in Redux applications, providing a convenient and standardized way to manage async logic and integrate with external systems.
-
-* thunk
-if you are using configureStore from Redux Toolkit, you do not need to separately install or configure Redux Thunk middleware. configureStore automatically includes Redux Thunk as part of its default middleware setup.
-You can directly dispatch actions that are asynchronous functions
-
-Here's an example of a component that can use the `fetchPosts` action implemented with Redux Thunk:
-
-```javascript
-import React, { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchPosts } from './actions';
-
-const PostList = () => {
-  const dispatch = useDispatch();
-  const posts = useSelector(state => state.posts);
-  const loading = useSelector(state => state.loading);
-  const error = useSelector(state => state.error);
-
-  useEffect(() => {
-    dispatch(fetchPosts());
-  }, [dispatch]);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
-
-  return (
-    <div>
-      <h1>Posts</h1>
-      {posts && posts.map(post => (
-        <div key={post.id}>
-          <h2>{post.title}</h2>
-          <p>{post.body}</p>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-export default PostList;
-```
-
-In this example, the `PostList` component is using the `useDispatch` and `useSelector` hooks from `react-redux` to dispatch the `fetchPosts` action and retrieve the relevant data from the Redux store.
-
-Inside the `useEffect` hook, the `fetchPosts` action is dispatched when the component mounts. This triggers the asynchronous API request and updates the Redux store with the fetched posts.
-
-The component renders different UI states based on the `loading` and `error` variables. If `loading` is true, it displays a loading message. If `error` has a value, it displays an error message. Otherwise, it renders the list of posts retrieved from the Redux store.
-
-By using Redux Thunk and the `fetchPosts` action, this component can handle the asynchronous API request and display the appropriate UI based on the loading and error states. It abstracts away the implementation details of the async logic, making the component more focused on rendering the UI based on the data in the Redux store.
-
-Remember to connect the component to the Redux store using the `connect` function or wrap it with a `Provider` component to make the Redux store available to the component and its child components.
-
-* no thunk
-If the `fetchPosts` action is not implemented using Redux Thunk or any middleware, you would need to handle the asynchronous logic directly within the component. Here's an example of how the `PostList` component would look without using any middleware:
-
-```javascript
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-
-const PostList = () => {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const fetchPosts = async () => {
-      setLoading(true);
-
-      try {
-        const response = await axios.get('/posts');
-        setPosts(response.data);
-        setLoading(false);
-      } catch (error) {
-        setError(error.message);
-        setLoading(false);
-      }
-    };
-
-    fetchPosts();
-  }, []);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
-
-  return (
-    <div>
-      <h1>Posts</h1>
-      {posts.map(post => (
-        <div key={post.id}>
-          <h2>{post.title}</h2>
-          <p>{post.body}</p>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-export default PostList;
-```
-
-In this implementation, the `PostList` component uses the `useState` and `useEffect` hooks from React to handle the asynchronous API request and manage the component's state.
-
-Inside the `useEffect` hook, the `fetchPosts` function is defined. It performs the API request using `axios.get('/posts')` and updates the component state accordingly.
-
-The component renders different UI states based on the `loading` and `error` variables. If `loading` is true, it displays a loading message. If `error` has a value, it displays an error message. Otherwise, it renders the list of posts stored in the `posts` state variable.
-
-While this approach allows you to handle the asynchronous logic directly within the component, it may lead to more complex code and can make it harder to separate concerns. Middleware like Redux Thunk provides a more convenient and standardized way to handle asynchronous operations in Redux applications, allowing you to separate async logic from the UI components and maintain a clear separation of concerns.
-
 * useMemo
-Certainly! The `useMemo` hook is used to memoize a value so that it is only recomputed when its dependencies change. It is useful when you have a costly computation or a complex data transformation that you want to compute once and cache the result for subsequent renders.
-
-Here's an example of how you can use `useMemo` to memoize a computed value:
-
-```javascript
-import React, { useEffect, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { fetchPosts } from './actions';
-
+when extracting value from props involve a lot of caculation
+When it comes to modifying props or derived values based on props, it's typically done directly in the component function body(not in useEffect)
+used to memoize a value so that it is only recomputed when its dependencies change. It is useful when you have a costly computation or a complex data transformation that you want to compute once and cache the result for subsequent renders.
 const PostList = () => {
   const dispatch = useDispatch();
   const posts = useSelector(state => state.posts);
   const loading = useSelector(state => state.loading);
   const error = useSelector(state => state.error);
-
-  useEffect(() => {
-    dispatch(fetchPosts());
-  }, [dispatch]);
 
   const formattedPosts = useMemo(() => {
-    // Perform some computation or data transformation on the posts
     return posts.map(post => ({
       id: post.id,
       title: post.title.toUpperCase(),
@@ -747,27 +375,8 @@ const PostList = () => {
     return <div>Error: {error}</div>;
   }
 
-  return (
-    <div>
-      <h1>Posts</h1>
-      {formattedPosts.map(post => (
-        <div key={post.id}>
-          <h2>{post.title}</h2>
-          <p>{post.body}</p>
-        </div>
-      ))}
-    </div>
-  );
+  return (<div>... </div>);
 };
-
-export default PostList;
-```
-
-In this example, the `formattedPosts` variable is computed using the `useMemo` hook. It takes a function as its first argument, which performs the desired computation or data transformation on the `posts` array. The dependencies array `[posts]` specifies that the `formattedPosts` value should be re-computed whenever the `posts` array changes.
-
-By memoizing the `formattedPosts` value, the computation will only be performed if the `posts` array actually changes. If the `posts` array remains the same between renders, the memoized value will be returned, avoiding unnecessary re-computation.
-
-Note that `useMemo` should be used when the computation is expensive or the data transformation is complex enough that you want to avoid recomputing it on every render. If the computation is simple and lightweight, using `useMemo` may not provide significant performance benefits.
 
 * css modules
 if css is compiled with css-loader's moduel set true(which appears in webpack config), we can't not ref the class in the way in className='xxx'
@@ -810,40 +419,13 @@ const Component = () => (
 See the documentation: https://github.com/webpack-contrib/css-loader and https://github.com/css-modules/css-modules
 
 * create selector
-The code you provided defines a selector function called `selectListItems`. This selector uses the `createSelector` function from the `reselect` library to derive a specific value from the Redux state.
-
-Here's a breakdown of the code:
-
-```javascript
 export const selectListItems = createSelector([selectCrud], (crud) => crud.list);
-```
-
-- `createSelector`: This is a function from the `reselect` library that creates a memoized selector. It takes an array of input selectors as the first argument, and a transformation function as the second argument.
-
-- `[selectCrud]`: This is an array containing a single input selector function called `selectCrud`. This input selector is used to select the `crud` slice of the Redux state.
-
-- `(crud) => crud.list`: This is the transformation function that receives the values selected by the input selectors as arguments. In this case, it receives the `crud` slice of the state. The transformation function simply returns the `crud.list` property, which is the desired value derived from the state.
-
-By using `createSelector`, the `selectListItems` selector will only recompute its value if the input selector (`selectCrud`) result changes. This helps optimize performance by avoiding unnecessary recalculations when the state doesn't change.
-
-You can then use the `selectListItems` selector in your components to access the `crud.list` value from the Redux state. For example:
-
-```javascript
-import { useSelector } from 'react-redux';
-import { selectListItems } from './selectors';
-
-const MyComponent = () => {
-  const listItems = useSelector(selectListItems);
-
-  // ...
-};
-```
-
-In this example, the `useSelector` hook is used to retrieve the value of `crud.list` from the Redux state using the `selectListItems` selector.
+- `[selectCrud]`: an array containing a single input selector, is used to select the `crud` slice of the Redux state.
+- `(crud) => crud.list`: the transformation function that receives the values selected by the input selectors as arguments. In this case, it receives the `crud` slice of the state. The transformation function simply returns the `crud.list` property, which is the desired value derived from the state.
+By using `createSelector`, the `selectListItems` selector will only recompute its value if the input selector (`selectCrud`) result changes
 
 * navigate vs Link
 0. use Link can avoid making onClick function
-
   const handleMenuClick = e => {
     if (e.key === 'logout') {
       navigate('/logout')
@@ -860,16 +442,10 @@ In this example, the `useSelector` hook is used to retrieve the value of `crud.l
     </Menu>
   )
 
-Sure! In React Router, `Link` and `useNavigate` are two commonly used utilities for navigation.
-
 1. `Link` component:
-The `Link` component is used to create links in your application that navigate to different routes. It is similar to the `<a>` tag in HTML, but it integrates with React Router to provide client-side navigation without refreshing the page.
+It is similar to the `<a>` tag in HTML, but it integrates with React Router to provide client-side navigation without refreshing the page.
 
-Here's an example of how to use the `Link` component:
-
-```jsx
 import { Link } from 'react-router-dom';
-
 const Navigation = () => {
   return (
     <nav>
@@ -884,37 +460,11 @@ const Navigation = () => {
     </nav>
   );
 };
-```
 
-In this example, the `Link` component is used to create navigation links. The `to` prop specifies the target route that the link should navigate to. When the link is clicked, React Router handles the navigation and updates the URL without refreshing the page.
+When the link is clicked, React Router handles the navigation and updates the URL without refreshing the page.
 
 2. `useNavigate` hook:
 The `useNavigate` hook is used to programmatically navigate to different routes in a React component. It provides a function that you can call to navigate without using a `Link` component.
-
-Here's an example of how to use the `useNavigate` hook:
-
-```jsx
-import { useNavigate } from 'react-router-dom';
-
-const MyComponent = () => {
-  const navigate = useNavigate();
-
-  const handleButtonClick = () => {
-    navigate('/about');
-  };
-
-  return (
-    <div>
-      <h1>My Component</h1>
-      <button onClick={handleButtonClick}>Go to About Page</button>
-    </div>
-  );
-};
-```
-
-* useEffect
-The useEffect hook is primarily used for side effects like data fetching, subscriptions, or manually changing the DOM in response to component updates.
-When it comes to modifying props or derived values based on props, it's typically done directly in the component function body. If you need to update a value based on props changes, you can use the useState hook to manage the state within the component.
 
 * local vs state
 Defining modifiedObject in the function body is suitable for simple scenarios where the derived value is recalculated on each render.
@@ -987,45 +537,14 @@ In this revised example, `handleClick` is memoized using `useCallback`. The empt
 Use `useCallback` when you need to pass functions as dependencies to child components or when optimizing performance by preventing unnecessary re-renders caused by function recreation.
 
 * useRef vs normal const
-In React components, there is a key difference between using a normal variable defined with `const` and using `useRef` to create a reference.
+1. normal
+    scoped to the component function and will be recreated every time the component re-renders, the value is not preserved between re-render
+    If the variable changes, it will trigger a re-render of the component.
 
-1. **Normal Variable defined with `const`:**
-   - When you define a variable with `const` inside a functional component, that variable will be scoped to the component function and will be recreated every time the component re-renders.
-   - If the variable changes, it will trigger a re-render of the component.
-   - The value of a `const` variable is not preserved between re-renders, meaning it will be reinitialized to its initial value on each render.
+2. useRef
+   the value of the `useRef` object persists between re-renders. changing vlaue does not trigger a re-render
+   useRef is commonly used to store mutable values that need to persist across renders without causing a re-render.
 
-2. **`useRef` Hook:**
-   - When you use `useRef` to create a reference inside a functional component, the value of the `useRef` object persists between re-renders.
-   - Changing the `current` property of a `useRef` object does not trigger a re-render of the component.
-   - `useRef` is commonly used to store mutable values that need to persist across renders without causing a re-render.
-
-Here is an example to illustrate the difference:
-
-```jsx
-import React, { useRef } from 'react';
-
-function Component() {
-  const normalVariable = 'I am a normal variable';
-  const refVariable = useRef('I am a ref variable');
-
-  // Changing normalVariable will trigger a re-render
-  // normalVariable = 'Updated value'; // This will trigger a re-render
-
-  // Changing refVariable.current will not trigger a re-render
-  // refVariable.current = 'Updated value'; // This will not trigger a re-render
-
-  return (
-    <div>
-      <p>{normalVariable}</p>
-      <p>{refVariable.current}</p>
-    </div>
-  );
-}
-
-export default Component;
-```
-
-In summary, using a normal variable defined with `const` will cause re-renders if the variable changes, while using `useRef` allows you to store mutable values that persist between renders without triggering a re-render when the value changes.
 
 * context
 In React, a `Provider` is a component that allows you to pass down data (often referred to as "context") to all components within its tree without having to manually pass props down through every level of the component hierarchy.
@@ -1038,16 +557,12 @@ The `Provider` component is part of the Context API, which was introduced in Rea
 
 ### Creating a Context
 
-```jsx
 import React from 'react';
-
 const MyContext = React.createContext();
-```
 ### Providing the Context
 
 Next, you use the `Provider` component to make the context value available to all components within its tree. You typically do this at a high level in your component hierarchy.
 
-```jsx
 import React, { useState } from 'react';
 import MyContext from './MyContext';
 
@@ -1062,7 +577,6 @@ const MyProvider = ({ children }) => {
 };
 
 export default MyProvider;
-```
 
 ### Consuming the Context
 
@@ -1109,31 +623,13 @@ const MyComponent = () => {
   );
 };
 
-export default MyComponent;
-```
-
-### Putting It All Together
-
-Here’s how you might structure your application to use the `Provider` and consume the context values:
-
-```jsx
-import React from 'react';
-import ReactDOM from 'react-dom';
-import MyProvider from './MyProvider';
-import MyComponent from './MyComponent';
-
-const App = () => (
-  <MyProvider>
-    <MyComponent />
-  </MyProvider>
-);
-
-ReactDOM.render(<App />, document.getElementById('root'));
-```
-
 ### When to Use Context
 
 - **Global State**: When you have data that needs to be accessed by many components at different levels of the component tree.
 - **Theming**: Passing down theme settings (e.g., dark mode, light mode).
 - **User Authentication**: Passing down user information and authentication status.
 - **Configuration**: Application-wide settings or configurations.
+* closure in react, d3 in react
+local var updated in useEffect, can not reflect in other member functions or any d3 event handlers. need to be defined as state of ref to be used in d3 handlers
+local var update in d3 event handler1 can be reflect in another d3 event handlers. the character of closure. the function captures init values when they are defined(the time they are created)
+JavaScript Closures and Event Listeners: When an event listener is called, it captures the environment (scope) of the function at the time of the event, not necessarily at the time of the function definition. This means that if the variable is modified in the same scope, the callback will reference the updated variable's value.

@@ -49,3 +49,24 @@ margin-right: 30px;
 div.test > th says any <th> which is a **direct** child of <div class="test">, which means it will match <div class="test"><th>this</th></div> but won't match <div class="test"><table><th>this</th></table></div>
 (use-package evil-collection
   )
+
+* selector control hover style
+.mindmap-node {
+  .node-text {
+    display: flex;
+    &:hover {
+      background-color: #8FC3CF;
+    }
+  }
+
+  .knot {
+    display: none; /* Hidden by default */
+  }
+
+  /* Show .knot when .node-text is hovered */
+  .node-text:hover + .knot, /* If .knot is a sibling of .node-text */
+  .node-text:hover > .knot, /* If .knot is a child of .node-text */
+  .mindmap-node:hover > .knot { /* If .knot is a child of .mindmap-node */
+    display: block;
+  }
+}

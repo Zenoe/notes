@@ -442,3 +442,100 @@ this is not good, on start draggin, the element flies to nowhere to be found
 selection.insert(name[, before])
 name: The name of the element to be inserted (e.g., "path").
 before: A selector string that specifies the element before which the new element should be inserted. If omitted, the new element is appended to the end of the selection.
+
+* select inside foreignObject
+const foreignObj = nodeUpdate
+  .select('foreignObject.mindmap-node')
+  .html(node => node.data.html)
+  .select('.node-body .node-text') // select the .node-text element inside .node-body.
+  .on('click', (e, clickedNode) => {
+  });
+
+** <foreignObject class="mindmap-node">
+  <div class="node-body">
+    <div class="options">
+      <div class="option remove-item"><i class="fas fa-trash-alt"></i></div>
+    </div>
+    <div class="node-text" style="border: none;">fd</div>
+  </div></foreignObject>
+
+* mouseout --> mouseleave
+registering listening mouseout on the parent of foreignObject and circle, the group, when I move mouse from foreighObject to circle, mouseout event fired
+
+ by default, the mouseout event does not differentiate between moving out of a parent element (group) versus moving between its child elements (foreignObject and circle). When you move from foreignObject to circle, the mouse is technically leaving the child foreignObject, causing the mouseout event to fire on the parent group.
+
+ 1. Use mouseleave Instead of mouseout
+    mouseleave event is similar to mouseout but does not trigger when moving between child elements. It only triggers when the mouse leaves the target element itself.
+ 2. Use mouseout with Additional Logic
+    d3.select('your-group-selector')
+  .on('mouseout', function (event) {
+    const e = event.toElement || event.relatedTarget;
+
+    // Check if the new target is still within the parent group
+    if (this.contains(e)) {
+      // Mouse is still within the group, ignore the event
+      return;
+    }
+
+    // Mouse truly left the group, handle the event
+  });
+* append extra class to existing selection
+1. Overwriting Existing Classes when applying attr('class',...)
+2. .classed for adding/removing classes
+function selectNode(event, node) {
+  d3.select(event.target).classed('selected', true)
+  // equivalent to
+  d3.select(event.target).attr('class', 'node-text selected')
+}
+* selectAll
+d3.selectAll('.node-body .node-text, .node-body .node-text.selected')
+  .each(function() {
+    const element = d3.select(this);
+    if (element.classed('selected')) {
+      // Apply styles for elements with the 'selected' class
+      element.style('background-color', '#4D8B7A')
+             .style('border', '1px solid #444')
+             .style('color', '#FFFFFF');
+    } else {
+      // Apply styles for elements without the 'selected' class
+      element.style('background-color', '#FFFFFF')
+             .style('color', 'black');
+    }
+  });
+
+d3.select(): Only selects the first element in the DOM that matches the given selector
+d3.selectAll(): Selects all elements in the DOM that match any of the provided selectors. It can handle multiple selectors separated by a comma.
+selectAll by itself selects elements based on a CSS selector and does not know about any associated data. If the elements selected do not have data bound to them (via data()), d will be undefined.
+
+* focus and select not work
+const inputDom = sslectContainer.select('input').node()
+inputDom.focus()
+inputDom.select()
+// It's not that .select() failed; rather, a subsequent action(setInputValue invoke by react effect) destroyed the selection state.
+// it's not that .select() failed, it's that the afterwards action destroy the select state
+
+* d3 in react, react in d3, dynamically mount react comp in d3'app
+nodeOptions is fetched from backend. but SearchableSelect can't get the updated value as soon as
+data arrived from backend. only by navigating to and back, can the data be updated in SearchableSelect
+    const sslectContainer = d3
+      .select(svgRef.current.parentElement)
+      .append('div')
+      .style...
+      .node()
+
+    if (!sslectRoot) sslectRoot = ReactDOM.createRoot(sslectContainer)
+    sslectRoot.render(
+      <SearchableSelect
+        options={nodeOptions}
+        onSelect={value => sslectModifyNodeListener(value, node, selection)}
+      />
+    )
+
+function sslectModifyNodeListener(value, node, selection) {
+    if (!node) return
+    sslectRoot.unmount()
+    sslectRoot = null
+    d3.select('#sslectContainer').remove()
+
+* d3 draging event, event.x y vs d3.pointer(event, svg).x, y
+relate to container vs relate to browser viewport
