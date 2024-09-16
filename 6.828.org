@@ -1,6 +1,3 @@
-#+title:
-
-
 * install python 2.7.18  (ubuntu 22.04)
 pyenv install 2.7.18
 pyenv virtualenv 2.7.18 qemu

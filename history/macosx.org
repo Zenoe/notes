@@ -1,5 +1,3 @@
-* xcode                                                            :shortcut:
-In the XCode 4 main editor, press Ctrl+6,t hen type something and you will see it. If you want to search files like that, Ctrl+5.
 * kextload requested architecture/executable not found :kext:32bit:
 On a recent Macbook Pro (i7, Macbook Pro 8.1) post Feb 2011 I did not have much love from a kernel driver. Oddly google was not that helpful.
 /var/log/system.log system log complained along the lines of:
@@ -33,31 +31,6 @@ type the start of some text that is either on the screen or you have copy-pasted
 recently and press cmd-;. A popup window appears and you can choose from there.
 Autocorrect works best for a single word, though.
 
-* cocoa
-** osx ÉÏµÄTextEditÇÃ²»³öÓ¢ÎÄ×´Ì¬ÏÂµÄdouble quote[Å­]
-** textfield enter action
-Execute an Action when the Enter-Key is pressed in a NSTextField?
-You can do this by setting the text field's action. In IB, wire the text field's selector to your controller or whatever object presents the IBAction you want to use.
-
-To set it in code, send the NSTextField a setTarget: message and a setAction: message. For example, if you're setting this on your controller object in code, and your textField outlet is called myTextField:
-
-- (void)someAction:(id)sender
-{
-  // do something interesting when the user hits <enter> in the text field
-}
-
-// ...
-
-[myTextField setTarget:self];
-[myTextField setAction:@selector(someAction:)];
-
-* SIP
-For anyone else having this problem you need to reboot your mac and press ⌘+R when booting up. Then go into Utilities > Terminal and type the following commands:
-csrutil disable
-reboot 
-
-Correct solution is to copy or install to /usr/local/bin not /usr/bin.This is due to System Integrity Protection (SIP). SIP makes /usr/bin read-only but leaves /usr/local as read-write.
-SIP should not be disabled as stated in the answer above because it adds another layer of protection against malware gaining root access. Here is a complete explanation of what SIP does and why it is useful.
 * brew cask install google-chrome
 Homebrew-Cask extends Homebrew and brings its elegance, simplicity, and speed to macOS applications and large binaries alike.
 
@@ -75,7 +48,6 @@ brew tap caskroom/cask
 ~/Library/LaunchAgents/org.virtualbox.vboxwebsrv.plist
 
 ~/Library/Saved Application State/org.VirtualBox.app.VirtualBox.SavedState
-
 
 * brew
  For a software to be "keg-only" means it is installed in
