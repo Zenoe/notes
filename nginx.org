@@ -1,12 +1,8 @@
-#+TITLE:
 * 文件索引
 location / {
   autoindex on;
   root /usr/shart/nginx/html
 }
-* 打开页面空白
-react路由问题,没有在最后加tools, http://10.110.198.52/tools/
-    <BrowserRouter basename="/tools">
 * enable your configuration by linking it into /etc/nginx/sites-enabled/:
 sudo ln -s /etc/nginx/sites-available/matomo.conf /etc/nginx/sites-enabled/
 Use nginx -t to verify that the configuration file syntax is correct:
@@ -16,24 +12,6 @@ Use nginx -t to verify that the configuration file syntax is correct:
 * proxy from https to http
         location ^~ /map {
            proxy_pass http://map.dlut.edu.cn;
-           proxy_set_header Host $host;
-           proxy_set_header X-Real-IP $remote_addr;
-           proxy_set_header X-Forwarded-For $remote_addr;
-           proxy_http_version 1.1;
-           proxy_set_header Connection "";
-        }
-
-        location ^~ /openmap {
-           proxy_pass http://map.dlut.edu.cn;
-           proxy_set_header Host $host;
-           proxy_set_header X-Real-IP $remote_addr;
-           proxy_set_header X-Forwarded-For $remote_addr;
-           proxy_http_version 1.1;
-           proxy_set_header Connection "";
-        }
-
-        location ^~ /dlutmap {
-           proxy_pass http://map.dlut.edu.cn/openmap/config/demo/;
            proxy_set_header Host $host;
            proxy_set_header X-Real-IP $remote_addr;
            proxy_set_header X-Forwarded-For $remote_addr;

@@ -45,7 +45,7 @@ modify: /etc/ssh/sshd_config, then restart sshd
 X11UseLocalHost no
 
 * more info about xserver
-For security purposes, X servers won’t generally accept direct TCP connections from other hosts. Otherwise people could connect keyloggers to your X server, and your keystrokes would pass over the network unencrypted, allowing people to record passwords just by being on the same LAN.
+X servers won’t generally accept direct TCP connections from other hosts. Otherwise people could connect keyloggers to your X server, and your keystrokes would pass over the network unencrypted, allowing people to record passwords just by being on the same LAN.
 
 But SSH provides a secure way to forward X11 traffic over your SSH session, using the -X or -Y options.
 
@@ -103,8 +103,7 @@ localhost:10.0
 实际上，SSH在A机器上打开了一个监听端口6010，并且在登录会话开始时为会话设置了DISPLAY变量为localhost:10.0。随后此会话中的图形程序运行时，X11 client库会将X请求发送到SSH监听6010端口中，然后A机器上的SSH将X请求转发到B机器，B机器的SSH客户端收到X请求后交给B机器上的X Server显示。
 
 * How to use Cygwin X server for local and remote
-Install Cygwin/X
-Install Cygwin, if you do not already have it.
+Install Cygwin
 Use the Cygwin setup program and install the xorg-server and xinit packages.
 The first one is the X server and the second installs a lot of scripts and programs that enable you to start the server and use it.
 Install the xeyes package. This is a small X application that we will use for testing X.
@@ -139,59 +138,6 @@ If DISPLAY is empty, then either you did not set DISPLAY locally, did not cleanl
 
 Run the xeyes program from the remote computer. It should display in a window on your local machine. Your Cygwin/X server is working! You can now run GUI/X apps from the remote computer and display them locally. Beware that they will be slow to display and refresh.
 
-* x11 – 如何指定显示
-为了使客户端与用户交互，它需要知道如何查找服务器。有很多方法可以做到这一点。许多客户端允许-display或–displayoption指定它：
-
-xeyes -display paxbox1.paxco.com:0.0
-如果没有特别给出显示，许多人将使用DISPLAY环境变量。您可以像任何其他设置此变量：
-
-DISPLAY=paxbox1.paxco.com:0.0; export DISPLAY # in .profile
-export DISPLAY=paxbox1.paxco.com:0.0 # in your shell
-DISPLAY=paxbox1.paxco.com:0.0 firefox & # for that command (shell permitting)
-DISPLAY变量的第一部分只是显示服务器计算机的地址。它遵循与任何其他IP地址相同的规则;它可以是可解析的DNS名称(包括localhost)或特定的IP地址(如192.168.10.55)。
-
-第二部分是X特异性的。它给出了X“显示”(X服务器)号码和屏幕号码。第一(显示器编号)通常是指包含一个或多个屏幕但具有单个键盘和鼠标(即，一个输入流)的一组设备。屏幕编号通常给出该组内的特定屏幕。
-
-一个例子是：
-
-+----------------------------------------+
-|paxbox1.paxco.com|                      |
-+-----------------+                      |
-|                                        |
-|  +----------+----+  +----------+----+  |
-|  |Display :0|    |  |Display :1|    |  |
-|  +----------+    |  +----------+    |  |
-|  |               |  |               |  |
-|  | +-----------+ |  |               |  |
-|  | |Screen :0.0| |  |               |  |
-|  | +-----------+ |  |               |  |
-|  | +-----------+ |  |               |  |
-|  | |Screen :0.1| |  |               |  |
-|  | +-----------+ |  |               |  |
-|  | +-----------+ |  | +-----------+ |  |
-|  | |Screen :0.2| |  | |Screen :1.0| |  |
-|  | +-----------+ |  | +-----------+ |  |
-|  | +-----------+ |  | +-----------+ |  |
-|  | |Screen :0.3| |  | |Screen :1.1| |  |
-|  | +-----------+ |  | +-----------+ |  |
-|  | +-----------+ |  | +-----------+ |  |
-|  | | Keyboard  | |  | |  Keyboard | |  |
-|  | +-----------+ |  | +-----------+ |  |
-|  | +-----------+ |  | +-----------+ |  |
-|  | |   Mouse   | |  | |   Mouse   | |  |
-|  | +-----------+ |  | +-----------+ |  |
-|  +---------------+  +---------------+  |
-|                                        |
-+----------------------------------------+
-这里有一台单机(paxbox1.paxco.com)，有两台显示服务器。第一个有四个屏幕，第二个有两个。可能性是：
-
-DISPLAY=paxbox1.paxco.com:0.0
-DISPLAY=paxbox1.paxco.com:0.1
-DISPLAY=paxbox1.paxco.com:0.2
-DISPLAY=paxbox1.paxco.com:0.3
-DISPLAY=paxbox1.paxco.com:1.0
-DISPLAY=paxbox1.paxco.com:1.1
-
 * Set X11Forwarding yes
 /etc/ssh/sshd_config
 ** X11 forwarding request failed on channel 0:
@@ -209,13 +155,11 @@ export DISPLAY=172.30.93.19:10
 ssh -X root@host
 ** xclip Error: Can't open display: (null)
 
-The clipboard is provided by the X server. It doesn't matter whether the server is headless or not, what matters is that your local graphical session is available to programs running on the remote machine. Thanks to X's network-transparent design, this is possible.
+The clipboard is provided by the X server. It doesn't matter whether the server is headless or not, what matters is that your local graphical session is available to programs running on the remote machine
 
 I assume that you're connecting to the remote server with SSH from a machine running Linux. Make sure that X11 forwarding is enabled both in the client configuration and in the server configuration. In the client configuration, you need to have the line ForwardX11 yes in ~/.ssh/config to have it on by default, or pass the option -X to the ssh command just for that session. In the server configuration, you need to have the line X11Forwarding yes in /etc/ssh/sshd_config (it is present by default on Ubuntu).
 
 To check whether X11 forwarding is enabled, look at the value of the DISPLAY environment variable: echo $DISPLAY. You should see a value like localhost:10 (applications running on the remote machine are told to connect to a display running on the same machine, but that display connection is in fact forwarded by SSH to your client-side display). Note that if DISPLAY isn't set, it's no use setting it manually: the environment variable is always set correctly if the forwarding is in place. If you need to diagnose SSH connection issues, pass the option -vvv to ssh to get a detailed trace of what's happening.
-
-If you're connecting through some other means, you may or may not be able to achieve X11 forwarding. If your client is running Windows, PuTTY supports X11 forwarding; you'll have to run an X server on the Windows machine such as Xming.
 
 * emacs 在x window gui上无法输入中文
 ** 在centos上安装中文输入法

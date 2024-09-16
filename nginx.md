@@ -119,5 +119,3 @@ The 404 error indicates that the requested resource was not found on the server.
 6. **Access URL**:
    Ensure you are accessing the correct URL in your browser. It should be something like `http://your_ip:34444/video/`. Make sure there are files or subdirectories under `/var/www/html/cbbvideo` that can be listed or accessed.
 
-If you follow these steps and everything is configured correctly, you should be able to access the directory and its contents without getting a 404 error. If the problem persists, please provide additional details from the error logs or any other configuration settings that might be relevant.
-

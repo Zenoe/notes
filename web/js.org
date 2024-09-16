@@ -1,3 +1,9 @@
+* Prevent onBlur from firing before onClick
+onMouseDown={e => e.preventDefault()}
+
+* input can't get focus, because click is processed by its parents
+<input onChange={(e) => setName(e.target.value)}
+       onClick={(e) => e.stopPropagation()}  // prevent
 * public directory can be directly accessed
 http://10.110.198.52:3009/images/mbt.png
 where mbt.png is placed in frontend project root/public/images

@@ -1,7 +1,0 @@
-- name: Modify js file (cdh.vip)
-  replace:
-    path: "{{ item }}"
-    regexp: 'cdh.vip'
-    replace: '{{ cdh_vip }}'
-  with_fileglob:
-    - "{{idata_home}}/services/nginx/ui/static/js/main.*.js"

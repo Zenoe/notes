@@ -84,6 +84,16 @@ Networking: Ensure that all members can communicate with each other over the net
 Authentication: If authentication is enabled, ensure that appropriate user roles are configured for replica set operations.
 Monitoring: Use MongoDB monitoring tools to keep an eye on the health and performance of your replica set.
 
+** no privillege fro rs
+test> rs.initiate() MongoServerError[Unauthorized]: Command replSetInitiate requires authentication
+use admin
+db.updateUser("ruijie", {
+  roles: [{ role: "clusterAdmin", db: "admin" }]
+})
+mongo -u "ruijie" -p "ruijie" --authenticationDatabase "admin"
+rs.initiate()
+
+comment security in mongod.conf for simplcity temply
 * fail to start
 msg":"Error during global initialization
 >> chmod 777 -R /var/log/mongodb/

@@ -633,3 +633,7 @@ const MyComponent = () => {
 local var updated in useEffect, can not reflect in other member functions or any d3 event handlers. need to be defined as state of ref to be used in d3 handlers
 local var update in d3 event handler1 can be reflect in another d3 event handlers. the character of closure. the function captures init values when they are defined(the time they are created)
 JavaScript Closures and Event Listeners: When an event listener is called, it captures the environment (scope) of the function at the time of the event, not necessarily at the time of the function definition. This means that if the variable is modified in the same scope, the callback will reference the updated variable's value.
+* pass states btw comps do not create copies of the vars
+Single Reference in Memory: When you pass a state variable a as a prop to multiple sub-components, each sub-component receives a reference to the same value stored in memory, not a separate copy. JavaScript objects (and in many cases, primitives) are passed by reference, meaning the memory used to store a is shared among all sub-components.
+
+Efficient Rendering: React is designed to efficiently handle such scenarios. Even when state is passed deeply through a component tree, React uses techniques like memoization, and virtual DOM diffing to ensure that only the components that need to re-render do so. Therefore, additional memory usage is minimal.

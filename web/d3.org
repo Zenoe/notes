@@ -539,3 +539,66 @@ function sslectModifyNodeListener(value, node, selection) {
 
 * d3 draging event, event.x y vs d3.pointer(event, svg).x, y
 relate to container vs relate to browser viewport
+
+* the last appended svg elements stays on the top
+Changing the order of the code that appends elements to the DOM does not always guarantee the desired stacking order in D3.js. In SVG, elements are rendered in the order they appear in the DOM
+To ensure that the circles appear above the paths, you need to explicitly manipulate the DOM order.
+
+Use selection.raise() or selection.lower() to change the stacking order of elements after they have been appended to the DOM
+circles.merge(circleEnterG).raise()
+
+* update, exit in each
+To ensure the each function is applied to both new and existing elements, you should use it after merging the enter and update selections. This way, the each function will iterate over all the <g> elements, not just the newly entered ones.
+tempRectsMerged.each(function (d) {
+  const group = d3.select(this);
+  Object.values(rectHandles(group, d)).forEach(handle =>
+    handle.style('display', 'block')
+  );
+});
+
+const tempRectsExit = tempRects.exit();
+// Remove the exiting elements
+tempRectsExit.each(function () {
+  const group = d3.select(this);
+  group.selectAll('.handle').remove()
+  // Apply any additional cleanup if necessary
+})
+  .remove();
+
+* d3 v6, not v3, after register drag , the mouseup cann't be invoked
+handle mouseup in drag.end
+* drag event coordinate
+drag start event on ellipse, the x,y is (40,0). 这个是正确的
+    <g>
+      <g class="rect-node" stroke-width="1" transform="translate(429, 364)">
+        <rect fill="transparent" stroke="gray" width="80" height="40"></rect>
+        <g class="mouseoverG">
+          <ellipse
+            cx="40"
+            cy="0"
+            rx="8"
+            ry="8"
+          ></ellipse>
+        </g>
+      </g>
+    </g>
+
+
+function dragStart(event, d) {
+  const startPoint = { x: event.x, y: event.y }
+  // event.x,y = d.x,y
+  // 选错了祖先，导致d.line 添加到了意外的位置, 误以为是event.x,y 的问题
+  // const svgGDom = this.parentNode.parentNode.parentNode
+  const svgGDom = this.parentNode.parentNode
+  d.selection = d3.select(svgGDom)
+
+  d.line = d.selection
+    .append('path')
+    .attr(
+      'd',
+      `M ${startPoint.x},${startPoint.y} L ${startPoint.x},${startPoint.y}`
+    )
+    .attr('stroke', 'black')
+    .attr('fill', 'none')
+    .attr('marker-end', 'url(#arrow)')
+}

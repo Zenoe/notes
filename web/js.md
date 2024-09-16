@@ -54,3 +54,19 @@ Here’s an example to illustrate the difference:
 - Use `parentNode` when you want to be agnostic about the type of the parent node.
 - Use `parentElement` when you specifically want to ensure the parent is an element and handle it accordingly.
 
+## reduce
+      const closestPoint = targetPoints.reduce((prev, curr) =>
+        Math.hypot(curr.x - endPoint.x, curr.y - endPoint.y) <
+        Math.hypot(prev.x - endPoint.x, prev.y - endPoint.y)
+          ? curr
+          : prev
+      )
+
+      if (
+        Math.hypot(closestPoint.x - endPoint.x, closestPoint.y - endPoint.y) <
+        10
+      ) {
+        const pathData = calculateOrthogonalPath(d.startPoint, closestPoint)
+        d.line.attr('d', pathData)
+        endPoint.connected = true
+      }

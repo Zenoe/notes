@@ -7,13 +7,8 @@ https://jsbin.com/nopopobito/edit?html,css,output
 
 https://css-tricks.com/multiple-class-id-selectors/
 
-There are differences between #header .callout and #header.callout in css.
-
-Here is the "plain English" of #header .callout:
-Select all elements with the class name callout that are descendants of the element with an ID of header.
-
-And #header.callout means:
-Select the element which has an ID of header and also a class name of callout.
+#header .callout: Select all elements with the class name callout that are descendants of the element with an ID of header.
+#header.callout: Select the element which has an ID of header and also a class name of callout.
 * How to make a div take the remaining height
 ** flex
 #html
@@ -148,21 +143,6 @@ div { border:1px solid green;}
   line-height: 309px; /* same as height! */
 }
 
-* half star
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg"
-    width="200" height="200">
-    <defs>
-        <linearGradient id="half_grad">
-            <stop offset="50%" stop-color="yellow"/>
-            <stop offset="50%" stop-color="grey" stop-opacity="1" />
-        </linearGradient>
-    </defs>
-    <path d="M20.388,10.918L32,12.118l-8.735,7.749L25.914,
-             31.4l-9.893-6.088L6.127,31.4l2.695-11.533L0,
-             12.118l11.547-1.2L16.026,0.6L20.388,10.918z"
-        fill="url(#half_grad)" stroke-width="1" stroke="red"/>
-</svg>
-
 * Block-level items automatically start on a new line  while inline items sit within surrounding content
 The default layout of elements in this way is called the normal flow of a
 document, but CSS offers the position property to override it. When the position
@@ -199,68 +179,8 @@ p:hover {
   transform: scale(2.1);
 }
 
-* crescent moon shape
-<style>
-.moon
-{
-  position: absolute;
-  margin: auto;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  width: 100px;
-  height: 100px;
-
-  background-color: transparent;
-  border-radius: 50px;
-  box-shadow: 25px 10px 0px 0px green;
-}
-div:hover{
-  box-shadow: 25px 10px 10px 10px green;
-}
-</style>
-<div class="moon"></div>
-
 * ::before and ::after pseudo-elements
 are used to add something before or after the selected element
-
-* heart
-<style>
-.heart {
-  position: absolute;
-  margin: auto;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  background-color: pink;
-  height: 50px;
-  width: 50px;
-  transform: rotate(-45deg);
-}
-.heart::after {
-  background-color: red;
-  content: "" ;
-  border-radius: 50%;
-  position: absolute;
-  width: 50px;
-  height: 50px;
-  top: 0px;
-  left: 25px;
-}
-.heart::before {
-  content: "";
-  background-color: blue;
-  border-radius: 50%;
-  position: absolute;
-  width: 50px;
-  height: 50px;
-  top: -25px;
-  left: 0px;
-}
-</style>
-<div class = "heart"></div>
 
 * font
 font-family: FAMILY_NAME, GENERIC_NAME;.
@@ -432,19 +352,9 @@ bit like how rem units are always relative to the root.
 1vmin = 1vw or 1vh, whichever is smaller
 1vmax = 1vw or 1vh, whichever is larger
 
-height: 100% = 100% of the parent's element height
-
-That is why you need to add height: 100% on html and body, as they don't have a size by default
+need to add height: 100% on html and body, as they don't have a size by default
 
 Something you have to know : if you use % for vertical margin or padding, % will be calculated on the width of the parent element, not the height.
-
-** View port units = vw, vh, vmin, and vmax - are based on the size of the browser viewport. Because, their actual size changes depending on the Viewport Size, this makes them great units for responsive design
-
-Note: When dealing with widths, the % unit is more suitable but with heights, the vh unit is better.
-
-the width of the viewport will actually be larger than the width of the html element.
-
-Viewport > html > body
 
 * siderbar with arrow button
 <!DOCTYPE html>
@@ -511,53 +421,7 @@ acquires full-width if width not defined
 
 Inline-block elements:
 allow other elements to sit to their left and right
-respect top & bottom margins and padding
-respect height and width
-
-* warn info error
-.isa_info, .isa_success, .isa_warning, .isa_error {
-    margin: 10px 0px;
-    padding:12px;
-
-}
-.isa_info {
-    color: #00529B;
-    background-color: #BDE5F8;
-}
-.isa_success {
-    color: #4F8A10;
-    background-color: #DFF2BF;
-}
-.isa_warning {
-    color: #9F6000;
-    background-color: #FEEFB3;
-}
-.isa_error {
-    color: #D8000C;
-    background-color: #FFD2D2;
-}
-
-* show btn when tr hover
-  <table>
-    <tr>
-      <td>A</td>
-      <td>B</td>
-      <td>C</td>
-      <td>D <button class="delete">Delete</delete></td>
-    </tr>
-  </table>
-
-table, tr, td {
-  border: 1px solid #ddd;
-}
-
-.delete {
-  visibility: hidden;
-}
-
-tr:hover .delete {
-  visibility: visible;
-}
+respect top & bottom, height & width
 
 * ellipsis
 "flex-grow overflow-hidden text-ellipsis whitespace-nowrap text-sm"
@@ -623,3 +487,9 @@ By placing the <aside> after the overlay <div>, you ensure that the aside is ren
 }
 The first rule ensures that the ghostNode inside the .container is hidden.
 The second rule ensures that the ghostNode inside the .activeDrag is hidden, even if there are other styles that might make it visible during the drag operation.
+
+* base64-encoded GIF image as a background image in CSS
+background-image: url("data:image/gif;base64,R0lG...
+reduce the number of HTTP requests, which can improve page load performance.
+Performance: Base64 encoding is efficient for small images but can increase the size of your CSS files if used excessively.
+Maintainability: It can be harder to manage and update images directly embedded in CSS, compared to linking to external image files.
