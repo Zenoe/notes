@@ -567,18 +567,15 @@ tempRectsExit.each(function () {
 
 * d3 v6, not v3, after register drag , the mouseup cann't be invoked
 handle mouseup in drag.end
-* drag event coordinate
+* coordinate
+** drag event coordinate
 drag start event on ellipse, the x,y is (40,0). 这个是正确的
     <g>
       <g class="rect-node" stroke-width="1" transform="translate(429, 364)">
         <rect fill="transparent" stroke="gray" width="80" height="40"></rect>
         <g class="mouseoverG">
-          <ellipse
-            cx="40"
-            cy="0"
-            rx="8"
-            ry="8"
-          ></ellipse>
+          <ellipse cx="40" cy="0" rx="8" ry="8"></ellipse>
+          <ellipse cx="40" cy="80" rx="8" ry="8"></ellipse>
         </g>
       </g>
     </g>
@@ -598,7 +595,155 @@ function dragStart(event, d) {
       'd',
       `M ${startPoint.x},${startPoint.y} L ${startPoint.x},${startPoint.y}`
     )
-    .attr('stroke', 'black')
-    .attr('fill', 'none')
     .attr('marker-end', 'url(#arrow)')
 }
+** drag start event.x,y
+// 直接添加mouseoverG,  相当于和rect-node group 绑定同一个数据, drag start event.x,y 等同于rect-node group 的坐标，也就是translate的429，364
+    g.append('ellipse')
+      .attr('cx', 80).attr('cy', 20).attr('rx', 8).attr('ry', 8).attr('fill', '#00ff00')
+      .call(d3 .drag()
+          .on('start', dragConnectionStart))
+// 如果为其绑定独立的数据，那么drag start event.x,y 是局部坐标(40,0),或者(40,80)
+    const dj = g.selectAll('connection-point').data(points)
+    const enter = dj
+      .enter()
+      .append('ellipse')
+      .attr('class', 'connection-point')
+      .attr('cx', d => d.x).attr('cy', d => d.y).attr('rx', 8).attr('ry', 8)
+      .attr('fill', '#00ff00')
+      .style('cursor', d => {
+        if (!dragStartNode) return 'default'
+        else return 'crosshair'
+      })
+      .call(d3.drag().on('start', dragConnectionStart))
+
+** coordinate in circle in g
+g.append('circle').translate(x,x)
+the coordiante of the center of the circle is (x,y), local is (0,0)
+* not smooth ellipse'edge
+1. **Ensure the `viewBox` is set appropriately**: If the viewBox is too small or not set, it can cause rendering issues. Ensure your SVG has a proper `viewBox` that accommodates the ellipse fully.
+
+   ```html
+   <svg viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg">
+     <ellipse cx="32" cy="20" rx="32" ry="20" fill="none" stroke="gray" strokeWidth="1" />
+   </svg>
+   ```
+
+2. **Use `shape-rendering="geometricPrecision"`**: This SVG property makes the rendering engine prioritize precision over performance, making edges and curves smoother.
+
+   ```html
+   <ellipse
+     cx="32"
+     cy="20"
+     rx="32"
+     ry="20"
+     fill="none"
+     stroke="gray"
+     strokeWidth="1"
+     shape-rendering="geometricPrecision"
+   />
+   ```
+
+3. **Increase resolution or adjust scale**: If your ellipse appears jagged due to low resolution, increasing the size of the `viewBox` or rendering at a larger scale could help.
+
+* selectAll('.connection-point') 选择类要加点
+    const dj = g.selectAll('.connection-point')
+                 .data(points, d => d.id)
+    const enter = dj
+      .enter()
+      .append('ellipse')
+      .attr('class', 'connection-point')
+      .attr('cx', d => d.x)
+      .attr('cy', d => d.y)
+      .attr('rx', 8)
+      .attr('ry', 8)
+      .attr('stroke', '#00ff00')
+      .call(
+        d3.drag()
+          .on('start', dragConnectionStart)
+          .on('drag', draggingConnection)
+          .on('end', dragConnectionEnd)
+      )
+    // update
+    dj.attr('cx', d => d.x).attr('cy', d => d.y)
+    dj.exit().remove()
+
+* dragging a path line over another rect, the rect's on mousemove won't be triggered
+but mouseenter of other rect can be trigger
+so how to calculate the closest point to the dragging line's head
+to do the calculation in dragging function
+  function draggingConnection(event, d) {
+    const pathData = calculateOrthogonalPath(
+      d.selection,
+      d.ref,
+      {
+        x: event.x + d.ref.x,
+        y: event.y + d.ref.y,
+        width: 0,
+        height: 0,
+      },
+      d.pos
+    )
+    dragStartedEllipse.ex = event.x
+    dragStartedEllipse.ey = event.y
+    d.line.attr('d', pathData).classed('diagram-link', true)
+    debounceFn(
+      appendClosestSnapEllipse(mouseEnterNode, dragStartedEllipse),
+      100
+    )
+  }
+
+* g.selectAll('circle').remove() vs gEnter.selectAll('circle').remove()
+  const updateTempRect = (flag = false) => {
+    const tempRects = svgG.current
+      .selectAll('g.temp-rect')
+      .data(tempRectShape, d => d.id)
+    const tempRectsEnterG = tempRects
+      .enter()
+      .append('g')
+      .attr('class', 'temp-rect')
+    tempRectsEnterG.append('rect')
+    const resizeG = tempRectsEnterG
+      .append('g')
+      .selectAll('circle')
+      .data([{ref: tempRectShape[0],}])
+      .enter()   // move here
+    resizeG
+      // .enter() // moved
+      .append('circle')
+      .attr('cx', 0)
+      .attr('cy', d => d.ref.height / 2)
+      .attr('r', 5)
+      .call(
+        d3.drag().on('drag', function (event, d) {
+          resizeG.selectAll('circle').remove() // not work, here resizeG is just data join, must change to enter selection by calling enter()
+          const rect = d.ref.ref
+          rect.x += event.x
+          rect.width -= event.x
+          rect.width = Math.max(rect.width, 10)
+          //
+          d.ref.x = rect.x
+          d.ref.width = rect.width
+          updateGraph()
+        })
+      )
+
+    const tempRectsMerged = tempRectsEnterG.merge(tempRects)
+
+    tempRectsMerged
+      .attr('transform', d => `translate(${d.x}, ${d.y})`)
+      .select('rect')
+      .attr('width', d => d.width)
+      .attr('height', d => d.height)
+
+     tempRects.exit().remove()
+  }
+
+* pointer-events property and set it to stroke. This will make only the stroke clickable (not the fill).
+fill="transparent". This way, even the gaps between the dashes will register as clickable.
+
+* select class a b
+d3.selectAll(".a.b") // a and b
+d3.selectAll(".a, .b") // a or b
+
+* define and append edgeG and then shapeG to keep shapes stay above edges

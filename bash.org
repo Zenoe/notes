@@ -200,9 +200,7 @@ firewall-cmd --add-services=ntp
 For this service to be permanently open we use the following command.
 
 firewall-cmd —-add-service=ntp --permanent
-To add a port, use the following command
 
-firewall-cmd --add-port=132/tcp  --permanent
 To run the firewall must be reloaded using the following command.
 
 I'd accomplish this by adding sources to a zone. First checkout which sources there are for your zone:
