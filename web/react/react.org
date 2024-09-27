@@ -1,3 +1,15 @@
+* infinite loop caused by setting empty array to a state
+options 为空时 setFilteredOptions 设置react 状态为 [],这个又进一步导致rerender
+  useEffect(() => {
+    if (options.length === 0) return // important
+    setFilteredOptions(
+      options.filter(option =>
+        option.name.toLowerCase().includes(debouncedInputValue.toLowerCase())
+      )
+    )
+  }, [debouncedInputValue, options])
+  even though two empty arrays ([] and []) look the same, they are not strictly equal. Each empty array in memory is a different object,
+
 * onClick={() => toggleOpen(e => !e)} vs onClick={toggleOpen(e => !e)}
 onClick={toggleOpen(e => !e)}: This is incorrect because it immediately invokes toggleOpen during the render phase rather than on the click event.
 It would result in an error unless toggleOpen returns a function that matches the expected onClick callback signature.

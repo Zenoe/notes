@@ -747,3 +747,27 @@ d3.selectAll(".a.b") // a and b
 d3.selectAll(".a, .b") // a or b
 
 * define and append edgeG and then shapeG to keep shapes stay above edges
+
+* click event coordinate
+When clicking on the `rect` inside your structure, the values of `event.x` and `event.y` in D3.js relate to the mouse coordinates relative to the **viewport**, not directly to the SVG elements or their transformations.
+
+1. The `div` contains the `svg`.
+2. The `svg` contains a group (`g`) with a `translate(0,0)`.
+3. Inside this group (`g`), there's another group (`shapeG`) without translation.
+4. Inside `shapeG`, there's another `g` that is translated by `(100, 100)`.
+5. Inside this translated `g`, you have a `rect`.
+
+Now, when clicking the `rect`:
+- `event.x` and `event.y` give the mouse coordinates relative to the **viewport** or **document** (typically the top-left corner of the browser window).
+
+To get the coordinates relative to the SVG elements (considering all the transformations):
+- You need to account for all transformations (`g` with `translate(100,100)`, parent `g` translations, etc.).
+- You can use D3’s `d3.pointer` or `getScreenCTM` (Coordinate Transformation Matrix) to convert the global `event.x` and `event.y` to coordinates relative to a specific element.
+
+For example:
+```js
+const [x, y] = d3.pointer(event, svg.node());
+```
+This gives you the coordinates of the click relative to the SVG, considering all transformations in the hierarchy.
+
+Let me know if you'd like further details on handling these transformations!
