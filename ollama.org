@@ -1,0 +1,23 @@
+* To allow listening on all local interfaces, you can follow these steps:
+
+If you’re running Ollama directly from the command line, use the
+OLLAMA_HOST=0.0.0.0 ollama serve command to specify that it should listen on all local interfaces
+Or
+
+Edit the service file: Open /etc/systemd/system/ollama.service and add the following line inside the [Service] section:
+Environment="OLLAMA_HOST=0.0.0.0"
+
+Once you’ve made your changes, reload the daemons using the command
+sudo systemctl daemon-reload ,
+and then restart the service with
+sudo systemctl restart ollama.
+
+For a Docker container, add the following to your docker-compose.yml file:
+
+yaml
+
+
+extra_hosts:
+  - "host.docker.internal:host-gateway"
+This will allow the Ollama instance to be accessible on any of the host’s networks interfaces. Once your container is running, you can check if it’s accessible from other containers or the host machine using the command:
+curl http://host.docker.internal:11434 .

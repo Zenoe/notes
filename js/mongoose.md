@@ -338,3 +338,90 @@ This approach ensures that `bugCount` reflects the size of `uniqueBugSet` after 
     },
 
 ```
+
+## console.log( { ...result }, result);   got
+mongoose founded result is not ordinary js object
+{
+  '$__': InternalCache {
+    activePaths: StateMachine { paths: [Object], states: [Object] },
+    skipId: true,
+    populated: { children: [Object] }
+  },
+  '$isNew': false,
+  _doc: {
+    _id: 'Do1YQVwtA5AFM2ZbEnlRV',
+    name: 'dafasdf',
+    children: [ [Object] ],
+    __v: 0
+  },
+  businessId: 141,
+  visibility: 'private'
+}
+
+ {
+  _id: 'Do1YQVwtA5AFM2ZbEnlRV',
+  name: 'dafasdf',
+  children: [
+    {...
+    },
+  ],
+  __v: 0
+}
+It seems like the `result` object you're logging contains additional Mongoose-related metadata (`$__`, `$isNew`, etc.) along with the actual document data under `_doc`. This happens because `result` is still a Mongoose document object, and Mongoose attaches its internal state to it.
+
+To get a clean version of the document data without Mongoose's metadata, you can either convert the Mongoose document to a plain JavaScript object using `.toObject()` or `.lean()` in the query. Here's how you can modify the code:
+
+### Option 1: Use `.toObject()`
+```javascript
+if (result) {
+  // Safely assign businessId and visibility if searchResult[0] exists
+  if (searchResult.length > 0) {
+    result.businessId = searchResult[0].businessId;
+    result.visibility = searchResult[0].visibility;
+  } else {
+    console.log("No metadata found for this tree.");
+  }
+
+  // Convert Mongoose document to a plain JavaScript object
+  const plainResult = result.toObject();
+
+  console.log("result.visibility = ", result.visibility, plainResult);
+
+  return res.status(200).json({
+    success: true,
+    result: plainResult,
+    message: "Document found with id: " + req.params.id,
+  });
+}
+```
+
+### Option 2: Use `.lean()` in the Query
+If you don't need Mongoose's document methods (like `.save()` or `.validate()`), you can use `.lean()` to get plain JavaScript objects directly from the query:
+
+```javascript
+const result = await getTreeWithDepth(Model, req.params.id).lean();
+
+if (result) {
+  // Safely assign businessId and visibility if searchResult[0] exists
+  if (searchResult.length > 0) {
+    result.businessId = searchResult[0].businessId;
+    result.visibility = searchResult[0].visibility;
+  } else {
+    console.log("No metadata found for this tree.");
+  }
+
+  console.log("result.visibility = ", result.visibility, result);
+
+  return res.status(200).json({
+    success: true,
+    result,
+    message: "Document found with id: " + req.params.id,
+  });
+}
+```
+
+### Summary
+- **`toObject()`**: Converts a Mongoose document to a plain JavaScript object.
+- **`lean()`**: Directly returns a plain JavaScript object from the query without any Mongoose document metadata. 
+
+In both cases, you'll get a clean object in `result` without the Mongoose internal properties like `"$__"`, `"isNew"`, etc.
