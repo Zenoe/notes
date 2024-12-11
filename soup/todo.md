@@ -1,3 +1,5 @@
+## war3 伤害统计
+## godot
 ## Mindfulness meditation
 emacs leverage treesitter to edit
 filter out something like import xxx from goto defition list
@@ -24,3 +26,5 @@ Operational Transformation
 etherpad: https://github.com/ether/etherpad-lite
 
  iterative deepening, bounded relaxation A*, beam search, simulated annealing
+
+云南怒江。云南贡山县丙中洛乡，曾经的麻风村就在这风景绝佳的岛上，几十年过去，随着那些麻风病人的离去，这里只剩支离的传说。如今这里被称作“怒江第一湾”，过往的人们只会赞叹眼前的壮美，而完全不会知道谷底那些被禁锢者的命运。怒江在他们脚下拐了个U型的大弯，他们的命运却等不来触底反弹的拐点。

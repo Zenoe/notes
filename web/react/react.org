@@ -559,23 +559,17 @@ Use `useCallback` when you need to pass functions as dependencies to child compo
 
 
 * context
-In React, a `Provider` is a component that allows you to pass down data (often referred to as "context") to all components within its tree without having to manually pass props down through every level of the component hierarchy.
+`Provider` is a component that allows you to pass down data (often referred to as "context") to all components within its tree
+`Provider` component is part of the Context API, which was introduced in React 16.3. Below,
 
-The `Provider` component is part of the Context API, which was introduced in React 16.3. Below,
-
-1. **Context**: This is a way to share values between components without having to explicitly pass a prop through every level of the tree.
+1. **Context**: This is a way to share values between components
 2. **Provider**: This component is used to wrap your component tree and make the context value available to all nested components.
 3. **Consumer**: This component or the `useContext` hook is used to access the context value within a component.
 
 ### Creating a Context
-
-import React from 'react';
 const MyContext = React.createContext();
+
 ### Providing the Context
-
-Next, you use the `Provider` component to make the context value available to all components within its tree. You typically do this at a high level in your component hierarchy.
-
-import React, { useState } from 'react';
 import MyContext from './MyContext';
 
 const MyProvider = ({ children }) => {
@@ -588,14 +582,26 @@ const MyProvider = ({ children }) => {
   );
 };
 
-export default MyProvider;
+### Consuming the Context in two ways: using the `Consumer` component or the `useContext` hook.
 
-### Consuming the Context
+#### Using the `useContext` Hook  a more modern and concise way to consume context values.
 
-You can consume the context value in two ways: using the `Consumer` component or the `useContext` hook.
+```jsx
+import React, { useContext } from 'react';
+import MyContext from './MyContext';
+
+const MyComponent = () => {
+  const { value, setValue } = useContext(MyContext);
+
+  return (
+    <div>
+      <p>{value}</p>
+      <button onClick={() => setValue('New Value')}>Change Value</button>
+    </div>
+  );
+};
 
 #### Using the `Consumer` Component
-
 ```jsx
 import React from 'react';
 import MyContext from './MyContext';
@@ -613,34 +619,8 @@ const MyComponent = () => {
   );
 };
 
-export default MyComponent;
 ```
-
-#### Using the `useContext` Hook
-
-This is a more modern and concise way to consume context values.
-
-```jsx
-import React, { useContext } from 'react';
-import MyContext from './MyContext';
-
-const MyComponent = () => {
-  const { value, setValue } = useContext(MyContext);
-
-  return (
-    <div>
-      <p>{value}</p>
-      <button onClick={() => setValue('New Value')}>Change Value</button>
-    </div>
-  );
-};
-
-### When to Use Context
-
-- **Global State**: When you have data that needs to be accessed by many components at different levels of the component tree.
-- **Theming**: Passing down theme settings (e.g., dark mode, light mode).
-- **User Authentication**: Passing down user information and authentication status.
-- **Configuration**: Application-wide settings or configurations.
+### When to Use Context : **Theming**: - **User Authentication**: - **Configuration**:
 * closure in react, d3 in react
 local var updated in useEffect, can not reflect in other member functions or any d3 event handlers. need to be defined as state of ref to be used in d3 handlers
 local var update in d3 event handler1 can be reflect in another d3 event handlers. the character of closure. the function captures init values when they are defined(the time they are created)

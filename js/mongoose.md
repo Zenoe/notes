@@ -1,7 +1,7 @@
 ## const result = await MyModel.find().select('field1 field2 -field3');
 ## YourModel.find({ a: 1, b: { $ne: 2 } })
 ## `findOne vs findOne .exec()`
-using `.exec()` allows you to chain additional query methods to modify the query before execution. It provides more flexibility in building complex queries.
+using `.exec()` allows you to chain additional query methods to modify the query before execution.
 
    ```javascript
    const resultPromise = MyModel.findOne({ name: 'John' });
@@ -15,8 +15,6 @@ using `.exec()` allows you to chain additional query methods to modify the query
 
    In this case, `resultPromise` is a promise object that represents the asynchronous operation of finding a document. You can use `.then()` to handle the successful case and `.catch()` to handle any errors that occur during the query.
 
-2. `findOne({xxx}).exec()`: This syntax is similar to the previous one, but it explicitly calls the `exec()` function to execute the query. It returns a promise as well, but it allows you to chain additional query methods to modify the query before executing it
-
    ```javascript
    const resultPromise = MyModel.findOne({ name: 'John' }).select('name').exec();
    resultPromise.then((doc) => {
@@ -26,14 +24,10 @@ using `.exec()` allows you to chain additional query methods to modify the query
    });
    ```
 
-
 ## `autopopulate`
 The line `schema.plugin(require('mongoose-autopopulate'));` is using the `mongoose-autopopulate` plugin in a Mongoose schema.
-
 automatically populates referenced fields in a MongoDB document when querying or retrieving data. 
-
 To use the `mongoose-autopopulate` plugin, you need to have the `mongoose` package installed. Once you have it installed, you can require the plugin and apply it to your Mongoose schema using the `schema.plugin()` method.
-
 Here's an example of how you can use `mongoose-autopopulate` in a Mongoose schema:
 
 ```javascript
@@ -425,3 +419,31 @@ if (result) {
 - **`lean()`**: Directly returns a plain JavaScript object from the query without any Mongoose document metadata. 
 
 In both cases, you'll get a clean object in `result` without the Mongoose internal properties like `"$__"`, `"isNew"`, etc.
+
+
+### Nmts
+db.getCollection("atsprojects").getIndexes()
+db.getCollection("atsprojects").dropIndex("projectName_1")
+
+> db.fixedtestbeds.createIndex({testBedName: 1}, {unique:true})
+{
+        "ok" : 0,
+        "errmsg" : "Index with name: testBedName_1 already exists with different options",
+        "code" : 85,
+        "codeName" : "IndexOptionsConflict"
+}
+> db.fixedtestbeds.dropIndex("testBedName_1")
+{ "nIndexesWas" : 2, "ok" : 1 }
+> db.fixedtestbeds.createIndex({testBedName: 1}, {unique:true})
+{
+        "createdCollectionAutomatically" : false,
+        "numIndexesBefore" : 1,
+        "numIndexesAfter" : 2,
+        "ok" : 1
+}
+
+db.getCollection("atsprojects").createIndex({ projectName: 1, projectPhase: 1 }, { unique: true });
+
+db.treemetadatas.insertMany([
+    { rootId: "GqPnT0_lpIVwZhrmG1mgm", creator: "linzhengyuan@ruijie.com.cn", visibility: "private", created: new Date() }
+]);

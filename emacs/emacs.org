@@ -1,3 +1,4 @@
+* M-x list-faces-display shows you all faces WYSIWYG, and gives you links to their doc and to customizing them.
 * copilot
 Ensure your Emacs version is at least 27, the dependency package editorconfig (melpa) and jsonrpc (elpa, >= 1.0.14) are both installed.
 

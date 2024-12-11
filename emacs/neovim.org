@@ -1,3 +1,4 @@
+
 Vim tabs just provide another viewport to alternatively organise splits (windows).
 
 source $MYVIMRC | PackerSync
@@ -5,6 +6,24 @@ source $MYVIMRC | PackerSync
 :set runtimepath?
 
 On a terminal, Alt+char is normally the same as Esc char. (It's possible to configure some terminals differently.)
+* apply changes
+To apply changes to your Neovim configuration without exiting Vim, you can use the following command:
+
+1. **Reload the Configuration**:
+   - If you're using a Lua-based configuration (like `init.lua`), run:
+     ```vim
+     :luafile %
+     ```
+   - If you're using a Vimscript-based configuration (like `init.vim`), run:
+     ```vim
+     :source $MYVIMRC
+     ```
+
+2. **For Plugin Changes**:
+   - If you've added or modified plugins, you can use:
+     ```vim
+     :Lazy sync
+     ```
 * only source one plugin (netrw)
 vim --clean or gvim --clean
 :source $VIMRUNTIME/plugin/netrwPlugin.vim

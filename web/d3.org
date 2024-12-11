@@ -301,7 +301,9 @@ If you have any specific questions about parts of the code or its application, f
 
 * pointer-events-none cursor-wait  can't coexist
 pointer-events-none disables all pointer events, including cursor changes.
-
+* svg {
+  user-select: none; /*disable text selection inside the SVG, preventing the browser from selecting text on double-click*/
+}
 * add more shapes base of property of data
     const nodeEnter = node
       .enter()

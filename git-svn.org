@@ -3,27 +3,10 @@ git add -A	✔️	✔️	✔️	Stage all (new, modified, deleted) files
 git add .	✔️	✔️	✔️	Stage all (new, modified, deleted) files in current folder
 git add -u	❌	✔️	✔️	Stage modified and deleted files only
 git add --ignore-removal .	✔️	✔️	❌	Stage new and modified files only
-* undo commit
-git reset --soft HEAD~1
-* origin/main  remote repository/default branch name
-eg: git fetch origin main or git pull origin main
 * git line ending :carriage:return:
 Make 'git diff' ignore ^M
 GitHub suggests that you should make sure to only use \n as a newline character in git-handled repos. There's an option to auto-convert:
 git config --global core.autocrlf true
-* git patch
-If you haven't yet commited the changes, then:
-
-git diff > mypatch.patch
-But sometimes it happens that part of the stuff you're doing are new files that are untracked and won't be in your git diff output. So, one way to do a patch is to stage everything for a new commit (git add each file, or just git add .) but don't do the commit, and then:
-
-git diff --cached > mypatch.patch
-Add the 'binary' option if you want to add binary files to the patch (e.g. mp3 files):
-
-git diff --cached --binary > mypatch.patch
-You can later apply the patch:
-
-git apply mypatch.patch
 * git checkout -b BRANCH_NAME creates a new branch and checks out the new branch while git branch BRANCH_NAME creates a new branch but leaves you on the same branch.
 
 In other words git checkout -b BRANCH_NAME does the following for you.
@@ -36,27 +19,11 @@ From 2021-08-13, GitHub is no longer accepting account passwords when authentica
 [[https://stackoverflow.com/questions/68775869/message-support-for-password-authentication-was-removed-please-use-a-personal][Create Personal Access Token on GitHub]]
 From your GitHub account, go to Settings → Developer Settings → Personal Access Token → Generate New Token (Give your password) → Fillup the form → click Generate token → Copy the generated Token, it will be something like ghp_sFhFsSHhTzMDreGRLjmks4Tzuzgthdvfsrta
 
-* github push
-You can't push to git://github.com/user/repo.git   Use     https://github.com/user/repo.git
-that is URL like git://github.com/user/repo.git is read-only, SSH URL like git@github.com:user/repo.git and HTTPS URL like https://github.com/user/repo.git are writeable.
-https://docs.github.com/en/get-started/using-git/pushing-commits-to-a-remote-repository#what-can-i-push-to
-
-git remote add origin https://github.com/Zenoe/zenoe1
-git push origin master==>error: not supported
-
-git remote -v
-
-git remote remove origin
-
-git remote add origin git@github.com:zenoe/zenoe1.git
-
-git config --global http.proxy http://proxyuser:proxypwd@proxy.server.com:8080
-
+* proxy
 git config --global --unset http.proxy
 git config --global --get http.proxy
 
 git config --global https.proxy ''
-git config --global http.proxy ''
 
 git config --global https.proxy http://10.110.198.52:20171
 git config --global http.proxy http://10.110.198.52:20171
@@ -67,7 +34,6 @@ export https_proxy=
 set http_proxy=10.110.198.50:7890
 set https_proxy=10.110.198.50:7890
 git push origin master
-
 
 windows:
 netsh winhttp show proxy
@@ -88,17 +54,6 @@ git clean -d -x -f
 This removes untracked files, including directories (-d) and files ignored by git (-x).
 
 Also, replace the -f argument with -n to perform a dry-run or -i for interactive mode and it will tell you what will be removed.
-* github ssh key
-ssh-keygen -t rsa
-cat ~/.ssh/id_rsa.pub  --> profile settings -> SSH Keys
-
-* * git info
-If you want only the remote URL, or referential integrity has been broken:
-
-git config --get remote.origin.url
-If you require full output or referential integrity is intact:
-
-git remote show origin
 * revert commit
 To restore everything back to the way it was prior to the last commit, we need to reset to the commit before HEAD:
 git reset --soft HEAD^     # use --soft if you want to keep your changes
@@ -205,64 +160,25 @@ Reverted 'ic-snail@2x.png'
 * git push can push all branches or a single one dependent on this configuration:
 
 Push all branches
-
 git config --global push.default matching
-It will push all the branches to the remote branch and would merge them. If you don't want to push all branches, you can push the current branch only.
+It will push all the branches to the remote branch and would merge them
 
 Push only the current branch
-
 git config --global push.default simple
-So, it's better, in my opinion, to use this option and push your code branch by branch. It's better to push branches manually and individually.
 
-* [[https://stackoverflow.com/questions/6565357/git-push-requires-username-and-password][Git push requires username and password]]
-A common cause is cloning using the default (HTTPS) instead of SSH. You can
-correct this by going to your repository, clicking "Clone or download", then
-clicking the "Use SSH" button above the URL field and updating the URL of your
-origin remote like this:
-
-copy ~/.ssh/id_rsa.pub to serve as the pub key for github account
-git remote set-url origin git@github.com:username/repo.git
-
-* vc-push through M-X ==> [[https://stackoverflow.com/questions/22147574/fatal-could-not-read-username-for-https-github-com-no-such-file-or-directo][fatal: could not read Username for 'https://github.com': No such file or directory]]
-git remote add origin https://{username}:{password}@github.com/{username}/project.git
-
-instead of deleting and re-adding origin you also can just change the URL using git remote set-url origin https://{username}:{password}@github.com/...
-solution works but it stores the user's github account password and let it be read by just typing git remote -v
-or git remote show origin
-
-If you want only the remote URL, or if your are not connected to a network that can reach the remote repo:
-git config --get remote.origin.url
-
-* install latest git
-yum install http://opensource.wandisco.com/centos/7/git/x86_64/wandisco-git-release-7-2.noarch.rpm
-yum install git -y
 * svn commit all except one
-1.
-svn diff file4 > tmp.patch
+1. svn diff file4 > tmp.patch
 svn revert file4
 svn ci -m "Commit 1"
 svn patch tmp.patch
 
-2.
-svn ci -m "Commit 1" `svn st | awk '{print $NF}' | grep -v file4`
-
-3.
-svn changelist my-list -R .
-svn changelist --remove file4
-svn ci -m "Commit 1" --changelist my-list
-svn ci -m "Commit 2" file4
-
-remove changelist:
-svn changelist --remove --recursive .
+2. svn ci -m "Commit 1" `svn st | awk '{print $NF}' | grep -v file4`
 
 * install svn server
 ** Step 1 – Install Apache
-First of all, you need to install the Apache webserver to access the svn server using HTTP URLs. Skip this step if you already have Apache web server on your system.
-
-sudo apt-get update
 sudo apt-get install apache2
 ** Step 2 – Install SVN Server
-Use the following command to install subversion packages and their dependencies. Also, install svn module for Apache libapache2-mod-svn packages on your system.
+Also, install svn module for Apache libapache2-mod-svn packages on your system.
 
 sudo apt install subversion libapache2-mod-svn libapache2-svn libsvn-dev
 sudo apt install subversion libapache2-mod-svn libsvn-dev
@@ -275,7 +191,7 @@ Use the following commands to create your first svn repository with name myrepo.
 
 sudo mkdir -p /var/lib/svn/
 
-name='MBT'
+name='mystatistic'
 sudo mkdir -p /var/lib/svn/${name}
 sudo svnadmin create /var/lib/svn/${name}
 sudo chown -R www-data:www-data /var/lib/svn/${name}
@@ -293,9 +209,7 @@ create additional users
 sudo htpasswd -m /etc/apache2/dav_svn.passwd lzy
 pass: lzy0
 
-
 ** Step 5 – Configure Apache with Subversion
-
 sudo vi /etc/apache2/mods-enabled/dav_svn.conf
 <Location /svn>
 
@@ -385,3 +299,15 @@ sally = r
 [calc:/branches/calc/bug-142/secret]
 harry =
 在这个例子里, Harry 对整个 bug-142 目录具有 读写权限, 但却无法访问其中的子目录 secret.
+
+* svn:global-ignore 属性
+如果您希望在整个仓库中设置全局忽略规则，可以使用 svn:global-ignore 属性。这个属性通常在 SVN 客户端的配置文件中设置，但也可以在仓库中设置。
+
+设置 svn:global-ignore
+打开 SVN 客户端配置文件（通常位于 ~/.subversion/config）：
+
+nano ~/.subversion/config
+找到 [miscellany] 部分，并添加您希望忽略的模式，例如：
+
+[miscellany]
+global-ignores = *.log temp

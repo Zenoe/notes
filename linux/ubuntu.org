@@ -27,6 +27,9 @@ firewall-cmd --zone=trusted --add-source=172.28.36.0/24 --permanent
 // open a port to be accessed by any host, must be in the publich zone
 firewall-cmd --permanent --add-port=3009/tcp --zone=public
 firewall-cmd --permanent --add-port=34444/tcp --zone=public
+firewall-cmd --permanent --add-port=18083/tcp --zone=public
+firewall-cmd --permanent --add-port=11435/tcp --zone=public
+firewall-cmd --reload
 
 firewall-cmd --list-ports
 firewall-cmd --reload

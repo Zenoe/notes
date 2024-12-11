@@ -1,5 +1,24 @@
 * keys pattern
+* list all keys
+keys *
+
 * get value
+127.0.0.1:6379> keys *
+1) "sess:zFrejHfvcW0qO5ehIz_alzHm8iqBgXmW"
+2) "resource_anvl"
+3) "sess:8zLpn2-iPD1QBne3KfsVTjwWBvOs_Phz"
+4) "queue_anvl"
+127.0.0.1:6379> get resource_anvl
+"1"
+127.0.0.1:6379> get queue_anvl
+(error) WRONGTYPE Operation against a key holding the wrong kind of value
+127.0.0.1:6379> type queue_anvl
+list
+127.0.0.1:6379> lrange queue_anvl 0 -1
+1) "60b0b96f8345c8597b000003"
+2) "60b0b96f8345c8597b000003"
+127.0.0.1:6379>
+
 TYPE xxx: get the type of xxx
 String: get xxx
 List: If the type is list, use list commands such as LRANGE to view elements:

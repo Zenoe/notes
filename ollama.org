@@ -1,5 +1,6 @@
-* To allow listening on all local interfaces, you can follow these steps:
+source /opt/LLaMA-Factory/llama-env/bin/activate
 
+* To allow listening on all local interfaces, you can follow these steps:
 If you’re running Ollama directly from the command line, use the
 OLLAMA_HOST=0.0.0.0 ollama serve command to specify that it should listen on all local interfaces
 Or
@@ -16,8 +17,58 @@ For a Docker container, add the following to your docker-compose.yml file:
 
 yaml
 
-
 extra_hosts:
   - "host.docker.internal:host-gateway"
 This will allow the Ollama instance to be accessible on any of the host’s networks interfaces. Once your container is running, you can check if it’s accessible from other containers or the host machine using the command:
 curl http://host.docker.internal:11434 .
+
+curl http://localhost:11434/api/chat -d '{
+  "model": "llama3.1",
+  "messages": [
+    { "role": "user", "content": "why is the sky blue?" }
+  ]
+}'
+
+* LLaMA “预训练”（pretrained）和“微调”（fine-tuned）模型开发中的两个关键阶段：
+### 1. **预训练（Pretrained）**
+   - **定义**：预训练阶段是模型的初始训练阶段，通常在一个巨大的通用数据集上进行，不依赖于特定任务。目的是让模型学习语言的基本结构和广泛的词汇、语法、语义知识。
+   - **方法**：LLaMA 等大模型会使用海量的未标注文本（例如百科全书、书籍、网页等）进行自监督学习。通过预测下一个词（或填充空白等方式），模型学习到词汇、句法和语义层面的广泛模式。
+   - **优点**：预训练模型对很多任务都有初步理解，但它通常缺少特定领域或任务的细节知识。
+
+### 2. **微调（Fine-tuned）**
+   - **定义**：微调是基于预训练模型进行的第二阶段训练，使用小规模、特定领域的数据集进行定向训练，使模型在特定任务上表现更佳。例如，可以将 LLaMA 模型微调为问答系统、对话助手等。
+   - **方法**：微调时使用有标签的、特定任务的数据集（如对话数据、问答数据等），模型会更新权重，以便更精准地执行目标任务。这一过程通常使用迁移学习（transfer learning）技术，在不破坏预训练所学知识的前提下进行定向优化。
+   - **优点**：微调后的模型在特定任务上精度更高，表现更好。比如，LLaMA 的指令微调版本（如 LLaMA3_8b_instruct2.0）经过指令数据集的微调，更擅长解答问题、提供建议等。
+
+   - **预训练模型**适用于广泛的任务，但在特定任务上表现可能不够优化。
+   - **微调模型**专注于特定任务，表现通常更好。
+
+* where do ollama pull models to
+/usr/share/ollama/.ollama if installed by root instead of in ~/.ollama
+Storing models in /usr/share/ollama/.ollama allows for centralized management of models and resources. This can simplify updates and maintenance, as changes only need to be made once for all users on the system.
+
+* label
+General Explanation of Labels
+Labels depend on the type of machine learning task:
+
+1. Supervised Learning:
+Labels are the correct answers provided in the training data.
+Examples:
+Image classification: Label = "cat" for an image of a cat.
+Spam detection: Label = "spam" or "not spam" for an email.
+Language modeling (your example): Label = the next word/token in the sequence.
+2. Unsupervised Learning:
+No labels are provided; the model discovers patterns or clusters in the data.
+3. Reinforcement Learning:
+Labels are indirectly represented as rewards or penalties that guide the model.
+
+Labels act as the "teacher" during training. The model learns to minimize the error between its predictions and the labels by adjusting its internal parameters. This process, called supervised learning, allows the model to generalize and make accurate predictions on new, unseen data.
+
+* Pre-training:
+This is the first phase in training the GPT model, where the model learns a general understanding of language by predicting the next word in a sentence (unsupervised learning).
+The model is trained on a large corpus of unlabelled text data (e.g., books, websites) to capture grammar, syntax, and semantic relationships.
+* Fine-tuning:
+After pre-training, the model undergoes a second training phase (supervised learning) using labelled datasets specific to the task of interest.
+For example:
+A sentiment analysis dataset might label sentences as "positive" or "negative."
+Fine-tuning allows the pre-trained model to specialize in this task while leveraging its pre-learned language knowledge.
