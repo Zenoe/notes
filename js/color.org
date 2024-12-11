@@ -1,0 +1,45 @@
+* 有机颜料无机颜料
+可透明，不透明
+* color wheel
+
+对角的两个颜色具有最高的对比度
+red yellow blue 不能合成
+
+** To lower the brightness or intensity of a color, add a little of its complementary color.
+** When next to each other, complementary colors appear brighter and more intense.
+** The shadow color of an object often contains the object’s complementary color; for
+example, the shadow of a green apple contains some red.
+** Complements are often used in a painting’s color scheme; one complement serves as
+the dominant color, and the other serves as a secondary or focal point color.
+
+* saturation
+高饱和度的多种颜色会彼此cancel out,
+低饱和颜色可以衬托高饱和颜色
+Be aware that if you place a saturated color next to a duller color, the saturated color will appear even more brilliant.
+This is a very easy way to intensify your colors—simply surround them with neutral, grayer hues.
+
+* tint, shades, and tones
+We need to know how to make a
+color lighter or darker without changing its hue, as well as how to desaturate a color while
+maintaining its value. This leads us to tint, shades, and tones.
+
+A tint is a color plus white;
+A shade is a color that has been darkened with black paint.
+A tone is a color that has been mixed with black and white (or gray).
+
+Most colors we see in nature are tones; very few are full-intensity hues.
+
+* value
+light, dark, gray
+Variations in value tell us what is in shadow and what is in light, giving form to objects as well as depth to scenes.
+value is the true workhorse of the painting. as long as all the correct values are in place, you can use whatever colors you wish (so long as they work harmoniously with one another).
+If you make you light- Struck areas darker (or as dark as) your shadows, the painting will lack proper depth and dimension.
+
+* Color Temperature
+Artists often call colors “warm” or “cool.” This refers to whether a color lies on the red/orange/yellow half of the color wheel or the blue/green/purple half.
+Warm colors appear to come forward in a painting, and cool colors appear to recede.
+
+How do you make a color appear warmer? Place a cooler color adjacent to it.
+How do you make a color lighter? Place a darker color adjacent to it.  value
+How do you make a color appear brighter? Place a duller color adjacent to it. saturation
+* Color Schemes
