@@ -44,27 +44,28 @@ The opposite action is also possible with Docker CLI options. Let’s say you wa
 docker logs --since 2019-03-02 <container ID>
 The accepted format here is YYYY-MM-DDTHH:MM:SS. This means you can specify a very accurate timestamp from which you want to display logs, or a less specific timestamp, as shown in the example above.
 * docker run
-docker images
-
 You will get a list of all local Docker images with the tags specified.
 
 $ docker run image_name:tag_name
 
 If you didn't specify tag_name it will automatically run an image with the 'latest' tag.
 
-Instead of image_name, you can also specify an image ID (no tag_name).
+Instead of image_name, you can also specify an image ID
 
 $ docker run -i -t ubuntu:12.04 /bin/bash
 Without a name, just using the ID:
 
 $ docker run -i -t 8dbd9e392a96 /bin/bash
 * create new image from running container
-You can create a new image from that container using the docker commit command:
-
 docker commit c5a24953e383 newimagename
-And then start a new container from that image:
 
-docker run [...same arguments as the other one...] newimagename
+install git in the container
+docker commit -m "centos with git" -a "qixianhu" 72f1a8a0e394 xianhu/centos:git
+m指定说明信息；-a指定用户信息；72f1a8a0e394代表容器的id；xianhu/centos:git指定目标镜像的用户名、仓库名和 tag 信息。注意这里的用户名xianhu，后边会用到。
+此时Docker引擎中就有了我们新建的镜像xianhu/centos:git，此镜像和原有的CentOS镜像区别在于多了个Git
+
+And then start a new container from that image:
+docker run -it xianhu/centos:git /bin/bash
 * proxy
 docker这个程序只是一个控制台程序，用于attach，真正操作docker的是运行在后台的docker daemon，也就是我们需要通过systemctl start docker来启动docker daemon。所以说即使我们设置了环境变量http_proxy，那么也只是针对前台docker console使用，而真正访问pull镜像的确是后台的daemon，因此，需要设置daemon访问proxy。
 
@@ -74,9 +75,17 @@ vi /etc/systemd/system/docker.service.d/http-proxy.conf
 [Service]
 Environment="HTTP_PROXY=http://USER:PASSWD@SERVER:PORT/"
 Environment="HTTPS_PROXY=http://USER:PASSWD@SERVER:PORT/"
+Environment="NO_PROXY=localhost,127.0.0.1,example.com"
 
 systemctl daemon-reload
 systemctl restart docker
+
+// check proxy
+systemctl show --property=Environment docker
+/etc/docker/daemon.json
+{
+    "registry-mirrors": ["http://mirror.ruijie.com.cn:8090"]
+}
 * device busy
 grep docker /proc/*/mountinfo | grep 05e1d
 /proc/15543/mountinfo:163 153 0:46 / /var/lib/docker/overlay/05e1d1e99099f8b69fe5cc92e18139e86502e90e20cba06ee08ae67cfb02a8f2/merged rw,relatime shared:113 - overlay overlay rw,lowerdir=/var/lib/docker/overlay/9ef8e525cd64111ed994c112eaf0278c3aa88c5099f91173fe6367ad0ae183c8/root,upperdir=/var/lib/docker/overlay/05e1d1e99099f8b69fe5cc92e18139e86502e90e20cba06ee08ae67cfb02a8f2/upper,workdir=/var/lib/docker/overlay/05e1d1e99099f8b69fe5cc92e18139e86502e90e20cba06ee08ae67cfb02a8f2/work
@@ -96,108 +105,28 @@ grubby --remove-args="user_namespace.enable=1" --update-kernel="$(grubby --defau
 * docker top [container id] to find process running in docker container
 * basic
 docker search centos    # 查看centos镜像是否存在
-docker pull centos    # 利用pull命令获取镜像
-docker images    # 查看当前系统中的images信息
-docker run -it centos:latest /bin/bash    # 启动一个容器
-
 docker image ls
 commands to verify that the cryptographic IDs of the shared layers are the same.
 docker history [image id]
 
-install git in the container
-这里将容器转化为一个镜像，即执行commit操作，完成后可使用docker images查看：
-
-docker commit -m "centos with git" -a "qixianhu" 72f1a8a0e394 xianhu/centos:git
-
-其中，-m指定说明信息；-a指定用户信息；72f1a8a0e394代表容器的id；xianhu/centos:git指定目标镜像的用户名、仓库名和 tag 信息。注意这里的用户名xianhu，后边会用到。
-
-此时Docker引擎中就有了我们新建的镜像xianhu/centos:git，此镜像和原有的CentOS镜像区别在于多了个Git工具。此时我们利用新镜像创建的容器，本身就自带git了。
-docker run -it xianhu/centos:git /bin/bash
 * docker run -it centos:latest /bin/bash
-* added the following to /etc/sysctl.conf: net.ipv4.ip_forward=1
 -i和-t。前者表示打开并保持stdout，后者表示分配一个终端（pseudo-tty）。此时如果使用exit退出，则容器的状态处于Exit，而不是后台运行。如果想让容器一直运行，而不是停止，可以使用快捷键 ctrl+p ctrl+q 退出，此时容器的状态为Up。
-* macosx 安装
-以前用 boot2docker, 如今在 Mac OS X 下用 Docker Toolbox, 而且命令也由 boot2docker 换成了 docker-machine.
-当然由于是非 Linux 系统, 所以 Mac OS X 仍然需要借助于 VirtualBox 中的 Linux 虚拟机作为桥梁,
-Docker Toolbox 创建的虚拟机名是 default (boot2docker 创建的虚拟机名是 boot2docker-vm) 就是这一桥梁, 我们称之为
-DOCKER_HOST. 文中的 default 虚拟机指的就是这个 DOCKER_HOST.
-
-首先安装 VirtualBox：
-
-brew tap caskroom/cask
-brew install brew-cask
-brew cask install virtualbox
-
-brew install virtualbox  # not work
-
-brew install docker
-brew install docker-machine
-
-初始化 Virtual Box 的 default 虚拟机
-docker-machine create --driver virtualbox default
-
-docker-machine env default
-Error checking TLS connection: Host is not running
-R05570 ➜ docker-machine start
-
-docker-machine env
-Error checking TLS connection: Error checking and/or regenerating the certs: There was an error validating certificates for host "192.168.99.100:2376": x509: certificate signed by unknown authority
-You can attempt to regenerate them using 'docker-machine regenerate-certs [name]'.
-Be advised that this will trigger a Docker daemon restart which might stop running containers.
-
-R05570 ➜ docker-machine regenerate-certs default
-
-docker-machine env default    显示宿主机需要为 default 虚拟机设置的环境变量的指令
-eval (docker-machine env default)  将在宿主机中设置相应的环境变量 -- 我的机器的 shell 是 fish, 如果 bash 将是 eval $(docker-machine env default)
-
-R05570 ➜  spring-docker  docker-machine ls
-NAME      ACTIVE   DRIVER       STATE     URL                         SWARM   DOCKER        ERRORS
-default   *        virtualbox   Running   tcp://192.168.99.100:2376           v18.02.0-ce
-
-env 显示宿主机的环境变量
-
-不设置好环境变量将无法使用 docker 命令, 比如执行 docker images 时会看到 Cannot connect to the Docker daemon. Is the docker daemon running on this host? 错误, 因为 docker 无法与 default 虚拟机连接起来. 为了每次都有效还必须把 eval (docker-machine env default) 加到 ~/.config/fish/config.fish 文件中. 使用 bash 则加一行 eval $(docker-machine env default) 到 ~/.bash_profile 中.
-
+* added the following to /etc/sysctl.conf: net.ipv4.ip_forward=1
 * docker ps -a | awk {'print $1'} | xargs docker rm
 * local image save / load
 docker pull nginx:latest
 docker save nginx > ./nginx.tar
-docker save tomcat > ./tomcat.tar
 docker load < nginx.tar
-* relocate aufs location
-There's an easy way to get the docker daemon to handle this for you.
-
-stop docker
-
-$ service docker stop
-add this line to /etc/default/docker
-
-# Use DOCKER_OPTS to modify the daemon startup options.
-DOCKER_OPTS="-g /<new destination>/docker/"
-start docker
-
-$ service docker start
-verify the docker files and folders are created in the new destination
-
-remove /var/lib/docker
-
-/var/lib$ sudo rm -rf docker
-
 * 镜像和容器 导出和导入的区别
-镜像导入和容器导入的区别：
 1）容器导入 是将当前容器 变成一个新的镜像  export/import
 2）镜像导入 是复制的过程 save/load
 save 和 export区别：
 1）save 保存镜像所有的信息-包含历史
 2）export 只导出当前的信息
 
-* Setting up MySQL and importing dump within Dockerfile
+* Setting up MySQL and importing data within Dockerfile
 https://stackoverflow.com/questions/25920029/setting-up-mysql-and-importing-dump-within-dockerfile
-Each RUN instruction in a Dockerfile is executed in a different layer (as explained in the documentation of RUN).
-
-In your Dockerfile, you have three RUN instructions. The problem is that MySQL server is only started in the first. In the others, no MySQL are running, that is why you get your connection error with mysql client.
-
-To solve this problem you have 2 solutions.
+Each RUN instruction in a Dockerfile is executed in a different layer
 
 Solution 1: use a one-line RUN
 RUN /bin/bash -c "/usr/bin/mysqld_safe --skip-grant-tables &" && \
@@ -207,6 +136,7 @@ RUN /bin/bash -c "/usr/bin/mysqld_safe --skip-grant-tables &" && \
 
   mysql -u root -e "CREATE DATABASE mydb" && \
   mysql -u root main < /tmp/dump.sql
+
 Solution 2: use a script
 Create an executable script init_db.sh:
 
@@ -227,32 +157,24 @@ but /etc/timezone 不存在
 solution:
 ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/timezone
 
-* docker run -it --name tomcattest -d ruijie/tomcat-jcr /bin/bash
- docker exec -it tomcattest bash
-* docker build -t ruijie/tomcat-jcr .
 * a Tutorial on How to use the NGINX Official Docker Image
 https://blog.docker.com/2015/04/tips-for-deploying-nginx-official-image-with-docker/
-To create an instance of NGINX in a Docker container, search for and pull the NGINX official image from Docker Hub.  Use the following command to launch an instance of NGINX running in a container and using the default configuration.
-
  # docker run --name mynginx1 -P -d nginx
 
-fcd1fb01b14557c7c9d991238f2558ae2704d129cf9fb97bb4fadf673a58580d
-This command creates a container named mynginx1 based on the NGINX image and runs it in detached mode, meaning the container is started and stays running until stopped but does not listen to the command line. We will discuss later how to interact with the container.
+This command creates a container named mynginx1 based on the NGINX image and runs it in detached mode
 
-The NGINX image exposes ports 80 and 443 in the container and the -P option tells Docker to map those ports to ports on the Docker host that are randomly selected from the range between 49153 and 65535. We do this because if we create multiple NGINX containers on the same Docker host, we create a conflict on ports 80 and 443. The port mappings are dynamic and are set each time the container is started or restarted. If you want the port mappings to be static, set them manually with the -p option. The long form of the Container Id will be returned.
+The NGINX image exposes ports 80 and 443 in the container and the -P option tells Docker to map those ports to ports on the Docker host that are randomly selected from the range between 49153 and 65535. We do this because if we create multiple NGINX containers on the same Docker host, we create a conflict on ports 80 and 443. The port mappings are dynamic and are set each time the container is started or restarted. If you want the port mappings to be static, set them manually with the -p option.
 
 We can run docker ps to verify that the container was created and is running, and to see the port mappings:
-
  # docker ps
 
-CONTAINER ID  IMAGE         COMMAND               CREATED         STATUS
-
-PORTS                                         NAMES
+CONTAINER ID  IMAGE         COMMAND               CREATED         STATUS PORTS                                         NAMES
 
 fcd1fb01b145  nginx:latest  "nginx -g 'daemon of  16 seconds ago  Up 15 seconds
 
 0.0.0.0:49166->443/tcp, 0.0.0.0:49167->80/tcp mynginx1
-We can also verify that NGINX is running by making an HTTP request to port 49167 (reported in the output from the preceding command as the port on the Docker host that is mapped to port 80 in the container); the default NGINX welcome page appears:
+
+We can also verify that NGINX is running by making an HTTP request to port 49167
 
  # curl http://localhost:49167
 
@@ -260,9 +182,7 @@ We can also verify that NGINX is running by making an HTTP request to port 49167
 <html>
 ...
 
-Working with the NGINX Docker Container
-
-Now that we have a working NGINX Docker container, how do we manage the content and the NGINX configuration?  And what about logging?  It is common to have SSH access to NGINX instances, but Docker containers are generally intended to be for a single purpose (in this case running NGINX) so the NGINX image does not have OpenSSH installed and for normal operations there is no need to get shell access directly to the NGINX container. We will use other methods supported by Docker. For a detailed discussion of alternatives to SSH access, see Why you don’t need to run SSHd in your Docker Containers.
+It is common to have SSH access to NGINX instances, but Docker containers are generally intended to be for a single purpose (in this case running NGINX) so the NGINX image does not have OpenSSH installed and for normal operations there is no need to get shell access directly to the NGINX container. We will use other methods supported by Docker. For a detailed discussion of alternatives to SSH access, see Why you don’t need to run SSHd in your Docker Containers.
 
 Managing Content and Configuration Files
 
@@ -270,13 +190,12 @@ There are multiple ways you can manage the NGINX content and configuration files
 
 Maintain the Content and Configuration on the Docker Host
 
-When the container is created we can tell Docker to mount a local directory on the Docker host to a directory in the container. The NGINX image uses the default NGINX configuration, so the root directory for the container is/usr/share/nginx/html and the configuration files are in /etc/nginx. If the content on the Docker host is in the local directory /var/www and the configuration files are in /var/nginx/conf, we run the command:
+mount a local directory on the Docker host to a directory in the container. If the content on the Docker host is in the local directory /var/www and the configuration files are in /var/nginx/conf, we run the command:
 
 # docker run --name mynginx2 -v /var/www:/usr/share/nginx/html:ro \
-
 -v /var/nginx/conf:/etc/nginx:ro -P -d nginx
-Now any change made to the files in the local directories /var/www and /var/nginx/conf on the Docker host are reflected in the directories /usr/share/nginx/html and /etc/nginx in the container. The :ro option causes these directors to be read only inside the container.
 
+Now any change made to the files in the local directories /var/www and /var/nginx/conf on the Docker host are reflected in the directories /usr/share/nginx/html and /etc/nginx in the container. The :ro option causes these directors to be read only inside the container.
 
 
 Copy the Files from the Docker Host

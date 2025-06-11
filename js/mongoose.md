@@ -1,21 +1,16 @@
-## const result = await MyModel.find().select('field1 field2 -field3');
-## YourModel.find({ a: 1, b: { $ne: 2 } })
+## const result = await MyModel.find({ a: 1, b: { $ne: 2 } }).select('field1 field2 -field3');
 ## `findOne vs findOne .exec()`
 using `.exec()` allows you to chain additional query methods to modify the query before execution.
 
-   ```javascript
    const resultPromise = MyModel.findOne({ name: 'John' });
-   
    resultPromise.then((doc) => {
      console.log(doc);
    }).catch((error) => {
      console.error(error);
    });
    ```
-
    In this case, `resultPromise` is a promise object that represents the asynchronous operation of finding a document. You can use `.then()` to handle the successful case and `.catch()` to handle any errors that occur during the query.
 
-   ```javascript
    const resultPromise = MyModel.findOne({ name: 'John' }).select('name').exec();
    resultPromise.then((doc) => {
      console.log(doc);

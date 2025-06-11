@@ -10,6 +10,31 @@ options 为空时 setFilteredOptions 设置react 状态为 [],这个又进一步
   }, [debouncedInputValue, options])
   even though two empty arrays ([] and []) look the same, they are not strictly equal. Each empty array in memory is a different object,
 
+* Rendered more hooks than during the previous render
+React's rules of hooks require that the number and order of hooks called during a render must remain consistent. If a hook is conditionally rendered (e.g., placed inside an if statement or relies on some state that changes), React will throw this error.
+  useEffect(() => {
+  ...
+  }, [])
+
+  // should put after all hooks
+  if (!data) return null
+
+* href vs link
+               {data.map(link => (
+              <Menu.Item key={link.url}>
+                <Link
+                  className="custom-link text-blue-600 font-medium flex items-center"
+                  to="/smokedashboard"
+                  state={{ paramName: link.url }}
+                >
+                  {link.label}
+                </Link>
+                <a href={link.url} target="_blank" rel="noopener noreferrer">
+                  {link.label}
+                </a>
+              </Menu.Item>
+            ))}
+
 * onClick={() => toggleOpen(e => !e)} vs onClick={toggleOpen(e => !e)}
 onClick={toggleOpen(e => !e)}: This is incorrect because it immediately invokes toggleOpen during the render phase rather than on the click event.
 It would result in an error unless toggleOpen returns a function that matches the expected onClick callback signature.

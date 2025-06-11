@@ -1,6 +1,20 @@
 * Prevent onBlur from firing before onClick
 onMouseDown={e => e.preventDefault()}
 
+* glob
+glob allows you to perform file globbing synchronously, without using callbacks or Promises.
+The `globSync` function takes a glob pattern as its first argument and returns an array of file paths that match the pattern.
+const glob = require('glob');
+const files = glob.sync('path/to/files/*.txt');
+console.log(files);
+The `globSync` function can also accept additional options as the second argument, such as `cwd` (current working directory), `ignore` (patterns to exclude), and `nodir` (whether to include directories in the result).
+* reduce
+      const closestPoint = targetPoints.reduce((prev, curr) =>
+        Math.hypot(curr.x - endPoint.x, curr.y - endPoint.y) <
+        Math.hypot(prev.x - endPoint.x, prev.y - endPoint.y)
+          ? curr
+          : prev
+      )
 * input can't get focus, because click is processed by its parents
 <input onChange={(e) => setName(e.target.value)}
        onClick={(e) => e.stopPropagation()}  // prevent

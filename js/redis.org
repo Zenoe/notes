@@ -35,6 +35,8 @@ MGET key1 key2 key3
 
 * clear value
 del key
+## delete keys start with 'xxx'
+redis-cli --scan --pattern "bull:messageQueue*" | xargs redis-cli del
 * connect
 redis-cli -h <hostname> -p <port> -a <password>
 

@@ -165,8 +165,6 @@ myObject = {
 * call
 In JavaScript, the `call` method is a built-in function that allows you to call a function with a specified `this` value and arguments provided individually. This method is useful when you want to invoke a function and explicitly set the `this` context for that function.
 
-### Syntax
-
 ```javascript
 function.call(thisArg, arg1, arg2, ...);
 ```
@@ -174,13 +172,11 @@ function.call(thisArg, arg1, arg2, ...);
 - `thisArg`: The value to use as `this` when executing the function.
 - `arg1, arg2, ...`: Arguments to pass to the function.
 
-### Key Points
+- **Setting `this` Context**: The primary use of `call` is to set the `this` context of a function. This is particularly useful when you want a function to operate on a different object.
 
-1. **Setting `this` Context**: The primary use of `call` is to set the `this` context of a function. This is particularly useful when you want a function to operate on a different object.
+- **Invoking Functions**: `call` immediately invokes the function with the specified `this` value and arguments.
 
-2. **Invoking Functions**: `call` immediately invokes the function with the specified `this` value and arguments.
-
-3. **Arguments as a List**: Unlike `apply`, which takes an array of arguments, `call` takes arguments individually.
+- **Arguments as a List**: Unlike `apply`, which takes an array of arguments, `call` takes arguments individually.
 
 ### Examples
 

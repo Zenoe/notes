@@ -54,5 +54,3 @@ To add TypeScript support to a Vite-created JavaScript project, you can follow t
 
 6. Restart your development server with `npm run dev`.
 
-That's it! Your Vite-created JavaScript project should now have TypeScript support.
-

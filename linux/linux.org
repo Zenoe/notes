@@ -463,6 +463,11 @@ character is a-z, A-Z, or 0-9 and everything after that being a wildcard.
 
 with preserve privilege option: -p
 * rsync
+只拷贝 xxxxxx_xx(23)_20250510172701_2850227729.txt 的文件
+rsync -avm --delete --include='*([0-9][0-9]*)_[0-9][0-9]*_[0-9][0-9]*.txt' --include='*/' --exclude='*'  Administrator@10.110.185.228:/cygdrive/d/AutoTestLog/LogManager/平台测试五部_自动化全表【脚本负责人上传】 ./
+--include='*/': Include all directories (so rsync traverses the tree)
+--exclude='*': Exclude everything else
+* rsync
 You can also exclude multiple paths within curly braces:
 no space in between items in curly braces
 rsync -az --exclude={'.git','node_modules','*.bak'}  ../zenoe1 root@10.110.198.52:/home/

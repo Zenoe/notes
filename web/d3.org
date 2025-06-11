@@ -773,3 +773,19 @@ const [x, y] = d3.pointer(event, svg.node());
 This gives you the coordinates of the click relative to the SVG, considering all transformations in the hierarchy.
 
 Let me know if you'd like further details on handling these transformations!
+
+* attr('class', 'xx')
+work only with one class. if there are 2 or more, the latter class overwrites the previous one
+* With .ease(d3.easeLinear):
+Definition: Linear easing progresses the animation at a constant rate throughout its duration.
+Effect: The movement (or any interpolated property) happens smoothly and uniformly, making it appear consistent and natural.
+d3.select("path")
+  .transition()
+  .duration(2000) // 2 seconds
+  .ease(d3.easeLinear) // Constant speed
+  .attr("stroke-dashoffset", 0);
+Without .ease(d3.easeLinear) (Default Behavior):
+Default Easing: If .ease is not specified, D3 applies d3.easeCubicInOut by default.
+Effect: The animation starts slowly, speeds up, and then slows down towards the end.
+This easing mimics acceleration and deceleration, adding a natural-looking dynamic to the motion.
+speed:Varies (slow-fast-slow)

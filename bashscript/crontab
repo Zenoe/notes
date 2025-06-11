@@ -1,3 +1,5 @@
+crontab log, proxy
+0 8 * * * https_proxy=http://10.110.198.52:20171 /root/.pyenv/shims/python /root/lzy/d3-statistic/py/crawVissualcrossing.py >> /root/lzy/d3-statistic/py/logs/script_$(date +\%Y\%m\%d_\%H\%M).log 2>&1
 
 30 21 * * * /usr/local/etc/rc.d/lighttpd restart
 每晚的21:30重启apache。
@@ -50,28 +52,6 @@ f1 f2 f3 f4 f5 program
 当 f1 为 a, b, c,... 时表示第 a, b, c,... 分钟要执行，f2 为 a, b, c,... 时表示第 a, b, c...个小时要执行，其馀类推 
 使用者也可以将所有的设定先存放在档案 file 中，用 crontab file 的方式来设定时程表。 
 
-#每天早上7点执行一次 /bin/ls : 
-0 7 * * * /bin/ls 
-在 12 月内, 每天的早上 6 点到 12 点中，每隔3个小时执行一次 /usr/bin/backup : 
-0 6-12/3 * 12 * /usr/bin/backup 
-周一到周五每天下午 5:00 寄一封信给 alex@domain.name : 
-0 17 * * 1-5 mail -s "hi" alex@domain.name < /tmp/maildata 
-每月每天的午夜 0 点 20 分, 2 点 20 分, 4 点 20 分....执行 echo "haha" 
-20 0-23/2 * * * echo "haha" 
-注意 : 
-当程序在你所指定的时间执行后，系统会寄一封信给你，显示该程序执行的内容，若是你不希望收到这样的信，请在每一行空一格之 
-后加上 > /dev/null 2>&1 即可 
-例子2 : 
-#每天早上6点10分 
-10 6 * * * date 
-#每两个小时 
-0 */2 * * * date 
-#晚上11点到早上8点之间每两个小时，早上8点 
-0 23-7/2，8 * * * date 
-#每个月的4号和每个礼拜的礼拜一到礼拜三的早上11点 
-0 11 4 * mon-wed date 
-#1月份日早上4点 
-0 4 1 jan * date 
 
 1. Schedule a cron to execute at 2am daily.
 This will be useful for scheduling database backup on a daily basis.

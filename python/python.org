@@ -97,13 +97,15 @@ import glob
 files = glob.glob("*.bc")
 print files # ['file1.bc', 'file2.bc']
 * pyvenv
+install pyenv: curl https://pyenv.run | bash
+python3.12 -m venv myenv  # 使用 Python 3.12 创建虚拟环境
+激活虚拟环境
+source myenv/bin/activate
+退出虚拟环境
+deactivate
 
 # install python3.10.10 needs the following extra libs
 apt install libsqlite3-dev tk-dev libffi-dev
-
-# use current version of python to create a virtual env
-python3 -m venv venv
-source venv/bin/activate
 
 https://blog.kyomind.tw/ubuntu-pyenv/
 
@@ -282,3 +284,28 @@ jupyter notebook  --allow-root
     tn.write(b"exit\n")
     output = tn.read_all()
     print(output.decode('ascii'))
+* print dict
+pprint.pprint(data)
+import json
+print(json.dumps(data, indent=4))
+
+* # The http.server module in Python is a very basic HTTP server and doesn’t include CORS headers by default,  thus do not support cors request
+cors server
+import http.server
+import socketserver
+class CORSRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type, X-Custom-Header')
+        if self.command == 'OPTIONS':
+            self.send_response(200)
+            self.end_headers()
+            return
+        super().end_headers()
+
+if __name__ == "__main__":
+    PORT = 8081
+    with socketserver.TCPServer(("", PORT), CORSRequestHandler) as httpd:
+        print(f"Serving at port {PORT}")
+        httpd.serve_forever()

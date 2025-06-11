@@ -15,24 +15,6 @@ network:
           - 8.8.4.4
 #netplan apply
 
-* firewalld
-a zone which accepts all traffic already exists, and it is named trusted. By default, though, nothing is in this zone. So, you don't even need to create a zone, just add the IP address to the trusted zone.
-firewall-cmd --zone=trusted --list-sources
-firewall-cmd --zone=public --remove-source=10.104.30.88 --permanent
-
-firewall-cmd --zone=trusted --add-source=10.104.30.88 --permanent
-firewall-cmd --zone=trusted --add-source=10.110.198.50 --permanent
-firewall-cmd --zone=trusted --add-source=172.28.36.0/24 --permanent
-
-// open a port to be accessed by any host, must be in the publich zone
-firewall-cmd --permanent --add-port=3009/tcp --zone=public
-firewall-cmd --permanent --add-port=34444/tcp --zone=public
-firewall-cmd --permanent --add-port=18083/tcp --zone=public
-firewall-cmd --permanent --add-port=11435/tcp --zone=public
-firewall-cmd --reload
-
-firewall-cmd --list-ports
-firewall-cmd --reload
 * install font
 Copy the fonts to /usr/local/share/fonts or a subfolder (such as /usr/local/share/fonts/TTF) and then run sudo fc-cache -fv
 you can confirm they are installed correctly by running fc-list | grep "<name-of-font>"

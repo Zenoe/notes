@@ -6,6 +6,14 @@ Break before user code starts
 
 node --inspect-brk=0.0.0.0:9229 extractSection.test.js
 
+* sse
+Server-Sent Events (SSE)，数据是以文本流的形式从服务器发送到客户端的。虽然你可以发送一个完整的对象作为一个 JSON 字符串，但接收端在处理时可能会遇到数据分段的情况，具体取决于网络传输和缓冲机制。
+一般来说，如果你在服务器端发送一个完整的 JSON 对象作为一条事件消息，客户端应该会一次性接收到完整的对象数据。不过，SSE 是基于 HTTP 流的，数据可能会因为网络延迟或分段传输而被分成多个部分接收。因此，确保每个消息是一个完整的 JSON 对象是很重要的。
+确保每条消息以双换行符结束，以便客户端能够正确解析每条完整的消息。例如： res.write(`data: ${JSON.stringify(myObject)}\n\n`);
+
+前端不需要手动累积和重组消息段。SSE 协议和浏览器的 EventSource 接口会自动处理消息的完整性。
+消息完整性：服务器通过 SSE 发送的每条消息都被视为一个完整的事件。每条消息以两个换行符 (\n\n) 结束，标志着消息的结束。浏览器会在接收到完整的消息后，触发 onmessage 事件。
+自动处理：浏览器的 EventSource 实现负责处理消息的接收和解析。只要服务器端正确地格式化消息，浏览器就会确保每个 onmessage 事件处理程序接收到的是完整的消息数据。
 * req.query vs req.params
 Feature	req.params	req.query
 Location	In the URL path	In the query string

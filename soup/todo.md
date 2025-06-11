@@ -1,10 +1,20 @@
-## war3 伤害统计
+## 3d 路线图
 ## godot
 ## Mindfulness meditation
+## 大学校徽
+## python的结巴分词包, 人物关系图，同一段落同时出现次数
+## Gephi（一款画关系矩阵的可视化软件）
+## 大学录取分数
+
+## jordon 得分占比
 emacs leverage treesitter to edit
 filter out something like import xxx from goto defition list
 
+Gephi（一款画关系矩阵的可视化软件）
 
+Streets GL – 3D OpenStreetMap (streets.gl). 打不开 https://github.com/r-follador/cubetrek
+Maptiler: 3D texture data. 2D map . 
+https://github.com/inca/blender-differential-growth
 ## js
 
 链接：https://www.zhihu.com/question/429436558/answer/1572099805

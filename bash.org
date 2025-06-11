@@ -180,44 +180,47 @@ email_content="谢谢!"
 
 ./sendEmail -f ${email_sender} -t ${email_reciver} -s ${email_smtphost} -u ${email_title} -xu ${email_username} -xp ${email_password} -m ${email_content} -a ${file1_path} ${file2_path} -o message-charset=utf-8
 
-* firewalld
-firewall-cmd --permanent --zone=public --add-rich-rule=' rule family="ipv4" source address="172.29.32.61/32" port protocol="tcp" port="4567" accept'
 
-firewall-cmd --permanent --add-rich-rule="rule family="ipv4" source address="172.29.32.61" port protocol="tcp" port="8020" accept"
-firewall-cmd --permanent --remove-rich-rule="rule family="ipv4" source address="172.29.32.61" port protocol="tcp" port="8020" accept"
+* firewalld
+a zone which accepts all traffic already exists, and it is named trusted. By default, though, nothing is in this zone. So, you don't even need to create a zone, just add the IP address to the trusted zone.
+firewall-cmd --zone=trusted --list-sources
+firewall-cmd --zone=trusted --remove-source=10.104.30.88 --permanent
+firewall-cmd --zone=trusted --add-source=172.28.36.0/24 --permanent
+
+
+firewall-cmd --zone=trusted --add-source=10.110.185.50 --permanent
+// open a port to be accessed by any host, must be in the publich zone
+firewall-cmd --permanent --add-port=3009/tcp --zone=public
+firewall-cmd --permanent --add-port=34444/tcp --zone=public
+firewall-cmd --permanent --add-port=18083/tcp --zone=public
+firewall-cmd --permanent --add-port=11435/tcp --zone=public
+
+firewall-cmd --list-ports
+firewall-cmd --reload
+
+--list-services
+--list-all
+--get-zones
 
 对指定IP开放所有端口
 firewall-cmd --zone=public --add-rich-rule 'rule family="ipv4" source address=172.29.32.61 accept'
 
-firewall-cmd --permanent --zone=public --add-rich-rule="rule family="ipv4" source address="172.29.32.61" port protocol="tcp" port="8020" accept"
-
---list-ports
---list-services
---list-all
 To add a service to the firewall, we use the following command, in which case the service will use any port to open in the firewall.
-
 firewall-cmd --add-services=ntp
+
 For this service to be permanently open we use the following command.
-
 firewall-cmd —-add-service=ntp --permanent
-
-To run the firewall must be reloaded using the following command.
 
 I'd accomplish this by adding sources to a zone. First checkout which sources there are for your zone:
 
 firewall-cmd --permanent --zone=public --list-sources
 If there are none, you can start to add them, this is your "whitelist"
 
-firewall-cmd --permanent --zone=public --add-source=192.168.100.0/24
 firewall-cmd --permanent --zone=public --add-source=192.168.222.123/32
 (That adds a whole /24 and a single IP, just so you have a reference for both a subnet and a single IP)
 
 Set the range of ports you'd like open:
-
 firewall-cmd --permanent --zone=public --add-port=1-22/tcp
-
-firewall-cmd --get-zones
-sudo firewall-cmd --zone=home --list-all
 
 * at
 at now <<< "/home/test/script.sh arg1 arg2"

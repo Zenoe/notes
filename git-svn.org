@@ -28,11 +28,19 @@ git config --global https.proxy ''
 git config --global https.proxy http://10.110.198.52:20171
 git config --global http.proxy http://10.110.198.52:20171
 
+set HTTP_PROXY=http://10.110.198.52:20171
+set HTTPS_PROXY=http://10.110.198.52:20171
+
+
+git config --global https.proxy http://10.110.198.52:20172
+git config --global http.proxy http://10.110.198.52:20172
+
+set HTTP_PROXY=http://10.110.198.52:20172
+set HTTPS_PROXY=http://10.110.198.52:20172
 export http_proxy=
 export https_proxy=
-
-set http_proxy=10.110.198.50:7890
-set https_proxy=10.110.198.50:7890
+set http_proxy=http://10.110.198.52:20172
+set https_proxy=http://10.110.198.52:20172
 git push origin master
 
 windows:
@@ -40,6 +48,16 @@ netsh winhttp show proxy
 netsh winhttp set proxy "10.110.198.52:20171"
 set HTTP_PROXY=http://10.110.198.52:20171
 set HTTPS_PROXY=http://10.110.198.52:20171
+
+Bash (MSYS2, Git Bash, etc.)
+export HTTP_PROXY="http://proxy.example.com:8080"
+export HTTPS_PROXY="http://proxy.example.com:8080"
+export FTP_PROXY="http://proxy.example.com:8080"
+export NO_PROXY="localhost,127.0.0.1,::1,*.local"
+
+powershell
+$env:HTTP_PROXY = "http://10.110.198.52:20172"
+$env:HTTPS_PROXY = "http://10.110.198.52:20172"
 * git show
 git show shows the changes made in the most recent commit. It is equivalent to git show HEAD.
 git show HEAD~1 takes you back one commit.
@@ -191,7 +209,7 @@ Use the following commands to create your first svn repository with name myrepo.
 
 sudo mkdir -p /var/lib/svn/
 
-name='mystatistic'
+name='rfscripttool'
 sudo mkdir -p /var/lib/svn/${name}
 sudo svnadmin create /var/lib/svn/${name}
 sudo chown -R www-data:www-data /var/lib/svn/${name}
@@ -277,7 +295,6 @@ you typically need to make changes to your Apache configuration file. Below is a
    ```bash
    sudo touch /etc/apache2/dav_svn.authz
    ```
-
    Populate the `dav_svn.authz` file with the appropriate access control rules. For example:
    ```
    [repository:/]
@@ -286,9 +303,7 @@ you typically need to make changes to your Apache configuration file. Below is a
 
 6. **Restart Apache**:
    After making these changes, restart Apache to apply the configuration:
-   ```bash
    sudo systemctl restart apache2
-   ```
 
    我们还可以通过规则的继承, 显式地阻止用户的权限, 方法是把用户名 设置成空:
 

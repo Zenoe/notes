@@ -1,68 +1,6 @@
 * M-x list-faces-display shows you all faces WYSIWYG, and gives you links to their doc and to customizing them.
-* copilot
-Ensure your Emacs version is at least 27, the dependency package editorconfig (melpa) and jsonrpc (elpa, >= 1.0.14) are both installed.
-
-Install Node.js v18+. (You can specify the path to node executable by setting copilot-node-executable.)
-
-Setup copilot.el as described in the next section.
-
-Install the copilot server by M-x copilot-install-server.
-
-Login to Copilot by M-x copilot-login. You can also check the status by M-x copilot-diagnose (NotAuthorized means you don't have a valid subscription).
-
-(package! copilot
-  :recipe (:host github :repo "copilot-emacs/copilot.el" :files ("*.el")))
-Configure copilot in ~/.doom.d/config.el:
-
-;; accept completion from copilot and fallback to company
-(use-package! copilot
-  :hook (prog-mode . copilot-mode)
-  :bind (:map copilot-completion-map
-              ("<tab>" . 'copilot-accept-completion)
-              ("TAB" . 'copilot-accept-completion)
-              ("C-TAB" . 'copilot-accept-completion-by-word)
-              ("C-<tab>" . 'copilot-accept-completion-by-word)))
-Strongly recommend to enable childframe option in company module ((company +childframe)) to prevent overlay conflict.
-
-If pressing tab to complete sometimes doesn't work you might want to bind completion to another key or try:
-
-(after! (evil copilot)
-  ;; Define the custom function that either accepts the completion or does the default behavior
-  (defun my/copilot-tab-or-default ()
-    (interactive)
-    (if (and (bound-and-true-p copilot-mode)
-             ;; Add any other conditions to check for active copilot suggestions if necessary
-             )
-        (copilot-accept-completion)
-      (evil-insert 1))) ; Default action to insert a tab. Adjust as needed.
-
-  ;; Bind the custom function to <tab> in Evil's insert state
-  (evil-define-key 'insert 'global (kbd "<tab>") 'my/copilot-tab-or-default))
-If you would love to configure indentation here, this is an example config that may work for you:
-
-(use-package! copilot
-  :hook (prog-mode . copilot-mode)
-  :bind (:map copilot-completion-map
-              ("<tab>" . 'copilot-accept-completion)
-              ("TAB" . 'copilot-accept-completion)
-              ("C-TAB" . 'copilot-accept-completion-by-word)
-              ("C-<tab>" . 'copilot-accept-completion-by-word)
-              ("C-n" . 'copilot-next-completion)
-              ("C-p" . 'copilot-previous-completion))
-
-  :config
-  (add-to-list 'copilot-indentation-alist '(prog-mode . 2))
-  (add-to-list 'copilot-indentation-alist '(org-mode . 2))
-  (add-to-list 'copilot-indentation-alist '(text-mode . 2))
-  (add-to-list 'copilot-indentation-alist '(closure-mode . 2))
-  (add-to-list 'copilot-indentation-alist '(emacs-lisp-mode . 2)))
-
-Looks like ollama-copilot has instructions for setting up neovim using copilot.vim. Seeing as copilot.el is using copilot.vim, seems possible we could use this and set copilot-network-proxy accordingly? Though from a quick glance at the copilot.el code I don't see anything about the strict ssl setting, so setting that might be an issue.
-
-Hoping to experiment with this myself soon, but in case someone beats me to it 🙂
-
-It actually works!
-Regarding "strict ssl": have a look at the variable copilot-network-proxy in copilot.el. You should use :rejectUnauthorized :json-false.
+* Move to opening {	backward-up-list	C-M-u
+Move to matching closing }	up-list	C-M-n
 * tree-sitter
 check: eval-expression (treesit-available-p)
 * Selective display:
@@ -226,6 +164,10 @@ dst: ({ Hello } world!) // t: tag
 With that setup, packages will be updated every 4 days, and the old packages will be removed.
 
 * search in project
+search xxx follow not ' or "
+xxx[^'"]
+The pattern [^...] matches any character not listed inside the brackets
+
 +ivy-project-search uses ripgrep. Ripgrep does not obey .projectile files, and I have no intention of implementing that, nor connecting it to projectile-rg because a) it's tremendously slow, b) projectile will be replaced with project.el in the future, and
 c) it is redundant with what ripgrep already supports through .ignore and .gitignore files, which all of Doom's file/search commands respect.
 Alternatively, you can adjust counsel-rg-base-command with exemption flags to apply to all searches.

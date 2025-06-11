@@ -43,3 +43,14 @@ How do you make a color appear warmer? Place a cooler color adjacent to it.
 How do you make a color lighter? Place a darker color adjacent to it.  value
 How do you make a color appear brighter? Place a duller color adjacent to it. saturation
 * Color Schemes
+
+* Painting Light & Shadow
+** Add a touch of yellow or orange to all parts of a subject struck by warm light, along with blue
+or purple to all areas in shadow.
+** Create the shadow color by adding the local color’s complement. For example, when painting
+the shadow side of a red apple, add deep green to the local color (red). However, this results in
+dull shadow colors.
+** Use hues that are adjacent to the local color on the color wheel—either lighter and warmer or
+darker and cooler. For example, use orange and yellow hues for the sunlit side of a red apple,
+along with crimson and purple shades for its shadowed side. This approach, which results in
+more vibrant light and shadow colors, is called analogous lightening or darkening

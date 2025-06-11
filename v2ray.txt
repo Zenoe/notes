@@ -1,42 +1,16 @@
-安装 V2Ray 内核
+
 https://v2raya.org/docs/prologue/installation/debian/
-1.  V2Ray 安装
-(来自https://github.com/v2fly/fhs-install-v2ray)
-安裝和更新 V2Ray
-// 安裝執行檔和 .dat 資料檔
-# bash <(curl -L https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-release.sh)
-安裝最新發行的 geoip.dat 和 geosite.dat
-// 只更新 .dat 資料檔
-# bash <(curl -L https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-dat-release.sh)
-移除 V2Ray
-# bash <(curl -L https://raw.githubusercontent.com/v2fly/fhs-install-v2ray/master/install-release.sh) --remove
 
-
-2.  v2rayA 提供的镜像脚本（推荐）
-curl -Ls https://mirrors.v2raya.org/go.sh | sudo bash
-安装后可以关掉服务，因为 v2rayA 不依赖于该 systemd 服务。
-
-sudo systemctl disable v2ray --now
-安装 v2rayA
-方法一：通过软件源安装
+-安装 v2rayA
 添加公钥
-wget -qO - https://apt.v2raya.org/key/public-key.asc | sudo tee /etc/apt/trusted.gpg.d/v2raya.asc
+wget -qO - https://apt.v2raya.org/key/public-key.asc | sudo tee /etc/apt/keyrings/v2raya.asc
 添加 V2RayA 软件源
-echo "deb https://apt.v2raya.org/ v2raya main" | sudo tee /etc/apt/sources.list.d/v2raya.list
+echo "deb [signed-by=/etc/apt/keyrings/v2raya.asc] https://apt.v2raya.org/ v2raya main" | sudo tee /etc/apt/sources.list.d/v2raya.list
 sudo apt update
-安装 V2RayA
-sudo apt install v2raya
+安装 V2RayA#
+sudo apt install v2raya v2ray ## 也可以使用 xray 包
 
-方法二：手动安装 deb 包
-下载 deb 包 后可以使用 Gdebi、QApt 等图形化工具来安装，也可以使用命令行：
-
-sudo apt install /path/download/installer_debian_xxx_vxxx.deb ### 自行替换 deb 包所在的实际路径
-启动 v2rayA / 设置 v2rayA 自动启动
-从 1.5 版开始将不再默认为用户启动 v2rayA 及设置开机自动。
-
-启动 v2rayA
-
+-启动 v2rayA
 sudo systemctl start v2raya.service
 设置开机自动启动
-
 sudo systemctl enable v2raya.service

@@ -1,4 +1,2 @@
 npm install -g live-server
-live-server --no-browser --port=8081 --ignorePattern="\.log$"
-
-jordon 得分在球队占比
+live-server --no-browser --port=8081 --ignorePattern="\.log$|\.txt$|\.graphml$|osm\/cache|logs|node_modules"
