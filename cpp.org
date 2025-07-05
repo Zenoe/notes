@@ -1,0 +1,977 @@
+* g++
+g++ -version
+C++20 requires GCC 11 or later
+
+g++ -std=c++2a your_file.cpp -o output
+g++ -std=c++17 -Wall -Wextra -Wpedantic -Wshadow hello.cpp -o hello
+
+** compile and link
+g++ -c main.cpp
+g++ -c dbl.cpp
+g++ main.o dbl.o -o prog
+
+** emacs flycheck says filesystem is not a namespace-name
+put this in .dir-locals.el in project root
+((c++-mode . ((flycheck-gcc-args . ("-std=c++17"))
+              (flycheck-clang-args . ("-std=c++17")))))
+* using a namespace drags all symbols from that namespace into the global namespace.
+* Avoid std::endl!
+Each call to std::endl flushes the output buffer and writes the output immediately.
+c++ streams use buffers to mitigate the performance impact(potentially expansive) of system I/O operations.
+Output is collected until a minimun number of chars can be written.  Overusing std::endl interferes with this mechanism.
+* c++ 11
+** Braced Initialization
+int j {5};
+double   d {1.23456};  // OK
+float    f {2.53f};    // OK
+unsigned u {120u};     // OK
+** Integer Size Guarantees
+#include <cstdint>
+exact size (not available on some platforms)
+int8_t,   int16_t,   int32_t,   int64_t,   uint8_t, …
+guaranteed minimum size
+int_least8_t,   uint_least8_t, …
+fastest with guaranteed minimum size
+int_fast8_t,   uint_fast8_t, …
+** constexpr
+specify a var or fun can be evaluated at compile time
+can be computed at runtime if not invoked in a constexpr context
+all expressions inside a constexpr context must be constexpr themselves
+constexpr int factorial(int n) {
+    return (n <= 1) ? 1 : (n * factorial(n - 1));
+}
+
+int main() {
+    constexpr int fact5 = factorial(5);  // Evaluated at compile time
+    int runtime_val = 5;
+    int fact_runtime = factorial(runtime_val);  // Evaluated at runtime
+}
+* c++ 14
+** Full Return Type Deduction   C++14 (deduction = compiler determines type automatically)
+auto foo (int i, double d) {
+  …
+  return i;
+}
+* clang format
+apt install clang-format
+(package! clang-format)
+run clang-format -style=llvm -dump-config > .clang-format to generate .clang-format file
+
+https://clang.llvm.org/docs/ClangFormat.html
+
+You set clang-format-style to "file". In that case, clang-format.el will first look for a .clang-format file. It it finds one, it will use it. Otherwise, it will check the clang-format-fallback-style. If that is set to "none", no changes will be made.
+
+** windows install clang format
+pacman -S clang
+
+* vector
+prefer range-based or iterator-based loops over index-based traversal
+use an index type identical to vector::size_type which is an unsigned integer (mixing signed and unsigned integers is a common source of subtle & hard-to-find bugs)
+** erase
+If a single element is removed, the returned iterator points to the element that was immediately after the removed element.
+If the removed element was the last element of the vector, the returned iterator is equal to vector.end().
+Range Removal:
+If a range of elements is removed, the returned iterator points to the element that was immediately after the last element in the removed range.
+If the removed range included all elements up to the end of the vector, the returned iterator is equal to vector.end().
+No Elements Removed:
+If no elements are removed (e.g., when using erase with a range where the start and end iterators are the same), the function returns the iterator that was passed as the starting point.
+
+** shrink the capacity/ free memory
+*** .shrink_to_fit() (May work)
+ISO standard does not demand that it actually shrinks
+standard library implementation might decide not to shrink
+vector<int> v;
+// add a lot of elements …
+// erase elements …
+v.shrink_to_fit(); C++11
+
+*** Guaranteed to work:
+make temporary copy ⇒ copy does exactly fit the elements
+exchange memory buffers by swapping/moving
+temporary gets automatically destroyed
+vector<int> v;
+// add a lot of elements …
+// erase elements …
+// shrink: make a new copy and
+// replace v's content with it:
+v = vector<int>(v);       C++11-20
+// or:
+v.swap( vector<int>(v) ); C++98-20
+** Interfacing With C Functions
+c_header.h
+int foo (int*, size_t);
+c++_file.cpp
+#include "c_header.h"
+…
+vector<int> v;
+// … fill vector etc.
+// raw pointer to memory, size
+int x = foo(v.data(), v.size());
+** Attention: Reference/Pointer Invalidation
+All references or pointers into a vector are invalidated if its capacity is changed or elements are moved by insert, push_back, emplace, emplace_back, erase, =, assign, resize, reserve. (Swapping two vector's contents does not invalidate pointers or, references.)
+
+vector<int> v {0,1,2,3};
+int& i = v[2];
+int* p = &v[1];
+v.resize(20);
+i = 5;  //  UNDEFINED BEHAVIOR: original memory might be gone!
+*p = 3; //  UNDEFINED BEHAVIOR: original memory might be gone!
+v[2] = 5;  // OK
+* enum
+Underlying Type Of Enumerations
+must be an integer type (char, short, long, …)
+int is the default
+// 7 values ⇒ char should be enough
+enum class day : char {
+  mon, tue, wed, thu, fri, sat, sun
+};
+// less than 10,000 ⇒ short should be enough
+enum class language_ISO639 : short {
+  abk, aar, afr, aka, amh, ara, arg, …
+};
+* control flow
+** if(statement; condition) { … }  C++17
+useful for limiting the scope of temporary variables
+
+int i = 0;
+std::cin >> i;
+if ( int x = 2*i; x > 10) { cout << x; }
+
+** switch (statement; variable) { … }  C++17
+useful for limiting the scope of temporary variables
+
+int i = 0;
+std::cin >> i;
+switch (int k = 2*i; k) { … }
+** Range-Based Loops   C++11
+for (variable : range) { … }
+range = object with standard iterator interface, e.g., std::vector
+
+std::vector<int> v {1,2,3,4,5};
+// print all elements of vector to console
+for (int x : v)  { std::cout << x << ' '; }
+* type alias
+using real = double;
+using ullim = std::numeric_limits<unsigned long>;
+using index_vector = std::vector<std::uint_least64_t>;
+
+* string
+** Literals
+*** 'a' // char Literal
+"C string Literal"
+auto a = "seven of";  // type of a is char const[]
+auto b = a;           // b refers to same object as a
+a += " nine";            //  COMPILER ERROR: can't be modified
+auto c = "al" + "cove";  //  COMPILER ERROR
+std::string s = a;    // a is copied into s
+s += " nine";         //  (s is std::string)
+
+*** "std::string Literal"s  C++14
+#include <string>
+using namespace std::string_literals;
+auto s1 = "seven of"s;  // type of s1 is std::string
+auto s2 = s1;           // s2 is a copy of s1
+s1 += " nine";          //
+cout << s1 << '\n';     // seven of nine
+cout << s2 << '\n';     // seven of
+auto s3 = "uni"s + "matrix"s;  //
+cout << s3 << '\n';     // unimatrix
+
+*** Joining 
+String literals that are only separated by whitespace are joined:
+
+"first" "second"  ⇒  "first second"
+
+std::string s =
+  "This is one literal"
+  "split into several"
+  "source code lines!";
+*** Raw String Literals
+Advantage: special characters can be used without escaping
+
+R"(raw "C"-string c:\users\joe)"	char const[]	C++11
+R"(raw "std"-string c:\users\moe)"s	std::string	C++14
+Syntax: R"DELIMITER(characters…)DELIMITER"
+
+where DELIMITER can be a sequence of 0 to 16 characters except spaces, (, ) and \
+
+*** Use std::string_view for read-only parameters!  C++17
+primary use case: read-only function parameters
+#include <string>
+#include <string_view>
+int edit_distance (std::string_view s1, std::string_view s2) { … }
+std::string input = "abx";
+int dist = edit_distance("abc", input);
+avoids expensive temporary strings when string literals are passed to functions
+can speed up accesses by avoiding a level of indirection:
+shows that string_view can have one fewer indirection than a const reference to the actual string storage
+const string reference 需要多一次指引
+string s0 = '...'
+fun(cosnt string& s){...}
+s 指向了s0,通过s0找到真正的string text
+fun(std::string_view s){...}
+s 直接指向真正的string text
+
+*** std::getline
+read entire lines / chunks of text at once
+std::string s;
+getline(std::cin, s);        // read entire line
+getline(std::cin, s, '\t');  // read until next tab
+getline(std::cin, s, 'a');   // read until next 'a'
+* references
+** auto References
+ refer to the same memory location
+reference type is deduced from right hand side of assignment
+int i = 2;
+double d = 2.023;
+double x = i + d;
+auto & ri = i;        // ri:  int &
+auto const& crx = x;  // crx: double const&
+
+** Avoid Lifetime Extension!
+References can extend the lifetime of temporaries (rvalues)
+auto const& r = vector<int>{1,2,3,4};
+⇒ vector exists as long as reference r exists
+
+** Lvalues = expressions of which we can get memory address
+refer to objects that persist in memory
+everything that has a name (variables, function parameters, …)
+** Rvalues = expressions of which we can't get memory address
+literals (123, "string literal", …)
+temporary results of operations
+temporary objects returned from functions
+
+** T & only binds to Lvalues
+T const& binds to const Lvalues and Rvalues
+T && bind to rvalue of type T only
+
+
+* std::move
+casts an expression to an rvalue
+
+void foo(int &x) {cout << x;}
+void bar(int const& x) {cout<<X;}
+void baz(int &&x){cout << x};
+
+int i=0;
+foo(i);  // OK
+foo(move(i));//ERROR:lvalue refcannot bind to rvalue
+
+bar(i);// OK
+bar(move(i));// compile and work, but no move actually happens
+
+baz(i);// ERROR:rvalue ref cannot bind to lvalue
+baz( move(i));// 0K
+
+** cannot move into a const&
+std::move produces an rvalue reference (T&&)
+A const& cannot bind to a non-const rvalue reference (T&&)
+const &it enforces const correctness—meaning the referenced object cannot be modified. But moving from an object requires modifying it
+
+complie ok, no move happens, copy happens
+#include <utility>
+#include <string>
+
+void takeString(const std::string& str) {
+    // str is const; cannot be modified (and thus cannot be moved from)
+}
+
+int main() {
+    std::string s = "Hello";
+    takeString(std::move(s)); // Compiles, but no move happens! copy happens
+    // s is still valid here (no move occurred)
+}
+Even though std::move(s) converts s to an rvalue reference (std::string&&), the function takeString takes a const std::string&, which does not allow modification.
+Thus, no move happens, and a copy is performed instead (if needed).
+
+void takeString(std::string&& str) {
+    std::string stolen = std::move(str); // Now moving is possible!
+}
+** For fundamental types like int, using std::move in swap operations makes no difference in terms of performance or behavior
+always use sdt::swap
+* class/struct
+struct point { int x; int y; };
+point p1 {1, 2};  // construction
+point p2 = p1;    // copy construction
+point p3 ( p1 );  // copy construction  , classic syntax
+point p4 { p1 };  // copy construction  , brace initialization, indtroduced with c++11, prefered
+auto  p5 = p1;    // copy construction
+auto  p6 ( p1 );  // copy construction
+auto  p7 { p1 };  // copy construction
+p3 = p2;  // copy assignment
+          // (both p2 & p3 existed before)
+
+** Can't use empty parentheses for object construction due to an ambiguity in C++'s grammar:
+struct A { … };
+A a ();  // declares function 'a'
+         // without parameters
+         // and return type 'A'
+A a;     // constructs an object of type A
+A a {}   // constructs an object of type A
+
+** Member Initialization
+C++11
+If you use = default, make sure to initialize data members with member initializers. like the following examples
+class Foo {
+  Foo()= default;
+  int i_ = 10;
+  double x_ = 3.14;
+public:
+};
+Constructor Initialization Lists
+constructor (ctor) = special member function that is executed when an object is created
+class Foo {
+  int i_;     // 1st
+  double x_;  // 2nd
+public:
+  Foo(): i_{10}, x_{3.14} { }
+  // same order: i_ , x_
+};
+
+** vector<bool> is widely considered an "anti-feature" in the standard.
+std::vector<bool> is a space-optimized specialization that stores bool values as individual bits (rather than as full bool objects, which are typically 1 byte each).
+ was added early in C++'s history to save memory,
+
+Alternatives:
+Use std::vector<char> or std::vector<uint8_t>:
+These store bool values as bytes but behave like normal containers.
+
+Use std::deque<bool>:
+Behaves like a normal container (no bit-packing) while offering similar performance.
+
+** Types in Interfaces. Don't leak implementation details:
+Only make type aliases public, if the aliased types are used in the public interface of your class, i.e., used as return types or parameters of public member functions.
+Do not make type aliases public if the aliased types are only used in private member functions or for private data members.
+
+#include <cstdint>
+#include <numeric_limits>
+class monotonous_counter {
+public:
+  // public type alias
+  using value_type = std::uint64_t;
+private:
+  value_type count_ = 0;
+public:
+  value_type reading () const { return count_; }
+  …
+};
+const auto max = std::numeric_limits<monotonous_counter::value_type>::max();
+
+** Member vs. Non-Member
+only need to access public data (e.g. via member functions) ⇒ implement as free standing function
+need to access private data ⇒ implement as member function
+Example: How to implement a function that makes a new gap object with both bounds shifted by the same amount?
+
+class gap {
+  int a_;
+  int b_;
+public:
+  explicit gap (int a, int b): a_{a}, b_{b} {}
+  int a () const { return a_; }
+  int b () const { return b_; }
+};
+Free-Standing Function
+gap shifted (gap const& g, int x) {
+  return gap{g.a()+x, g.b()+x};
+}
+implementation only depends on the public interface of gap
+we didn't change type gap itself ⇒ other code depending on it doesn't need to be recompiled
+Member Function
+class gap {
+  …
+  gap shifted (int x) const {
+    return gap{a_+x, b_+x};
+  }
+};
+other users of gap might want a shifted function with different semantics, but they are now stuck with ours
+all other code depending on gap needs to recompile
+* pointer , reference
+Use references when you need a fixed alias (no rebinding needed).
+Use pointers when you need to change the target of indirection at runtime.
+** Raw Pointers: T*
+essentially an (unsigned) integer variable storing a memory address
+size: 64 bits on 64 bit platforms
+many raw pointers can point to the same address / object
+lifetimes of pointer and taget (pointed-to) object are independent
+
+** return value/ptr
+return value: the object is on stack
+return by ptr: on heap
+// Good - transferring ownership of a newly created object
+std::unique_ptr<Database> createDatabaseConnection() {
+    return std::make_unique<Database>();
+}
+
+// Good - shared ownership needed
+std::shared_ptr<Logger> getGlobalLogger() {
+    static auto logger = std::make_shared<FileLogger>();
+    return logger;
+}
+
+// 裸指针, 但注意调用者负责 delete
+MyClass* factory() {
+    return new MyClass;
+}
+
+// Bad, p  会析构，对象立刻被释放
+std::unique_ptr<MyClass> p(new MyClass);
+return p.get(); // BAD
+
+*** 智能指针实际
+不要返回指向智能指针托管对象的裸指针。
+如果一定要返回指针，请由调用方负责释放，
+或者返回智能指针让自动管理生命周期
+
+优先返回 unique_ptr 或 shared_ptr，不要直接返回 new 出来的裸指针！
+用 make_unique/make_shared 创建对象。
+千万不要返回智能指针 get() 的结果（否则容易悬空指针）。
+
+*** 只返回裸指针的唯一场景
+如果对象的生存期不由工厂函数或你的模块管理（比如预置的单例、全局对象），可以返回裸指针，但要在注释里写明生存期！
+
+不推荐，但有时可以：
+
+// 假设 global 是全局变量，由 main 程序管理
+MyClass* getGlobalInstance() {
+    return &global;
+}
+*** When unique_ptr Might Still Be Better
+Even for large objects, consider unique_ptr when:
+1. NRVO can't be guaranteed - In complex control flows, compilers might not apply NRVO
+2. Polymorphism needed - When returning derived classes through base pointer
+3. Optional/nullable return - When you need to potentially return "no object" (nullptr)
+4. Object lifetime requirements - When the object must outlive the current scope
+* Execution Order on Destruction
+After the destructor body has run the destructors of all data members are executed in reverse declaration order
+* Ownership
+An object is said to be an owner of a resource (memory, file handle, connection, thread, lock, …) if it is responsible for its lifetime (initialization/creation, finalization/destruction).
+
+* C++ uses Value Semantics
+= variables refer to objects themselves, i.e., they are not just references/pointers
+
+This is the default behavior for fundamental types (int, double, etc.) in almost all programming languages and also the default for user-defined types in C++:
+
+deep copying: produces a new, independent object; object (member) values are copied
+deep assignment: makes value of target equal to that of source object
+deep ownership: member variables refer to objects with same lifetime as containing object
+value-based comparison: variables compare equal/less/… if their values are equal/less/…
+
+* The Rule of Zero
+= (try to) write zero special member functions
+
+** Avoid writing special member functions unless you need to do RAII-style resource management or lifetime-based tracking.
+The compiler generated default constructor and destructor are sufficient in most cases.
+
+** Initialization doesn't always require writing constructors.
+Most data members can be initialized with Member Initializers .
+
+** Do not add empty destructors to types!
+The presence of a user-defined destructor prevents many optimizations and can seriously impact performance!
+
+** If you don't need to do anything in a destructor body, then don't define one!
+You almost never need to write destructors.
+Before C++11 custom classes with explicit manual memory management were very common. However, in modern C++ memory management strategies are mostly (and should be) encapsulated in dedicated classes (containers, smart pointers, allocators, …).
+
+* resource handler or log tracking
+using an external C library, do lib_init in ctor, do lib_finalize in dtor
+or track log, log start in ctor, log end in dtor
+
+* exception
+if an exception is not handled, it propagate up until it reach main.
+no handler in main=> std::terminate will be called
+default behaviour of std::terminate is to abort the program
+* Assertions
+assert(bool_expression);
+aborts the program if expression yields false
+
+Use cases:
+check expected values/conditions at runtime
+verify preconditions (input values)
+verify invariants (e.g., intermediate states/results)
+verify postconditions (output/return values)
+Runtime assertions should be deactivated in release builds to avoid any performance impact.
+
+(De-)Activation – g++/clang
+Assertions are deactivated by defining preprocessor macro NDEBUG, e.g., with compiler switch: g++ -DNDEBUG …
+
+(De-)Activation – MS Visual Studio
+Assertions are explicitly activated
+
+if preprocessor macro _DEBUG is defined, e.g., with compiler switch /D_DEBUG
+if compiler switch /MDd is supplied
+Assertions are explicitly deactivated, if preprocessor macro NDEBUG is defined; either in the project settings or with compiler switch /DNDEBUG
+** Commas must be protected by parentheses
+assert is a preprocessor macro (more about them later) and commas would otherwise be interpreted as macro argument separator:
+
+assert( min(1,2) == 1 );  //  ERROR
+assert((min(1,2) == 1));  //  OK
+
+* string_view  c++17
+A std::string can be constructed from string literals or an iterator range to a char sequence.
+If we pass an object as function argument that is not a string itself, but something that can be used to construct a string, e.g., a string literal or an iterator range, a new temporary string object will be allocated and bound to the const reference.
+void f_cref (std::string const& s) { … }
+void f_view (std::string_view s) { … }
+
+int main () {
+  std::string stdStr = "Standard String";
+  auto const cStr = "C-String";
+  std::vector<char> v {'c','h','a','r','s','\0'};
+  f_cref(stdStr);     // no copy
+  f_cref(cStr);       //  temp copy
+  f_cref("Literal");  //  temp copy
+  f_cref({begin(v),end(v)});  //  temp copy
+  f_view(stdStr);     // no copy
+  f_view(cStr);       //  no copy
+  f_view("Literal");  //  no copy
+  f_view({begin(v),end(v)});  //  no copy
+}
+
+You should use string_view mainly as function parameter!
+
+** making string_views
+std::string s = "Some Text";
+// view whole string
+std::string_view sv1 { s };
+// view subrange
+std::string_view sv2 {begin(s)+2, begin(s)+5};
+std::string_view sv3 {begin(s)+2, end(s)};
+
+** outlive string
+std::string_view sv1 {std::string{"Text"}};
+cout << sv1; //  string object already destroyed!
+
+* rvalue reference c++11
+ a reference that can bind to an rvalue — that is, a temporary object or a value that doesn’t have a name.
+ int&& x = 5;  // 5 is an rvalue, x is an rvalue reference
+
+- Regular (lvalue) reference: T& — binds to lvalues (named variables)
+- Rvalue reference: T&& — binds to rvalues (temporaries)
+** move ctor
+Feature	Constructor	Move Constructor
+Purpose	Initialize from scratch	Transfer ownership from another obj
+Argument type	Regular parameters or const ref	Rvalue reference (T&&)
+Performance	May involve heap allocations	Avoids deep copies, faster
+When invoked	T x(args);	T y = std::move(x);
+Copy vs Move	Copy data	Steal data, nullify source
+
+MyClass a(5);
+MyClass b = std::move(a);
+* forwarding reference and move ctor
+#include <iostream>
+#include <string>
+#include <utility>
+
+class Person {
+public:
+    Person(const std::string& name) {
+        std::cout << "Copy constructor\n";
+    }
+    Person(std::string&& name) {
+        std::cout << "Move constructor\n";
+    }
+};
+
+template <typename T>
+void createPerson(T&& name) {
+    Person p(std::forward<T>(name));
+}
+
+int main() {
+    std::string name = "Alice";
+    createPerson(name);             // Lvalue → Copy constructor
+    createPerson(std::string("Bob")); // Rvalue → Move constructor
+}
+
+* lambda
+[capture](parameters) -> return_type {
+    // function body
+}
+
+auto greet = []() {
+    std::cout << "Hello, World!" << std::endl;
+};
+greet();  // Calls the lambda
+
+auto add = [](int a, int b) {
+    return a + b;
+};
+std::cout << add(5, 3);  // Outputs 8
+
+** Capture Clauses
+Lambdas can capture variables from their enclosing scope:
+
+*** Capture by value (makes a copy):
+int x = 10;
+auto lambda = [x]() { std::cout << x; };
+*** Capture by reference:
+int y = 20;
+auto lambda = [&y]() { y++; };
+lambda();
+std::cout << y;  // Outputs 21
+*** Capture all by value:
+
+[=]() { /* can use all variables by value */ };
+*** Capture all by reference:
+
+[&]() { /* can use all variables by reference */ };
+*** Return Type
+The return type can be explicitly specified:
+
+auto divide = [](int a, int b) -> double {
+    if (b == 0) return 0.0;
+    return static_cast<double>(a) / b;
+};
+*** Mutable Lambdas
+By default, variables captured by value are const. Use mutable to modify them:
+
+int counter = 0;
+auto increment = [counter]() mutable {
+    counter++;
+    return counter;
+};
+*** Practical Uses
+With algorithms:
+
+std::vector<int> nums {1, 2, 3, 4, 5};
+std::for_each(nums.begin(), nums.end(), [](int n) {
+    std::cout << n << " ";
+});
+As comparators:
+
+std::sort(nums.begin(), nums.end(), [](int a, int b) {
+    return a > b;  // Sort in descending order
+});
+** C++14 and C++17 Enhancements
+*** Generic lambdas (C++14):
+
+auto print = [](auto x) { std::cout << x; };
+print(5);     // int
+print(3.14);  // double
+*** Capture with initializer (C++14):
+
+auto lambda = [value = 42]() { return value; };
+*** constexpr lambdas (C++17):
+
+
+constexpr auto square = [](int x) { return x * x; };
+static_assert(square(5) == 25);
+Lambdas are powerful tools that make C++ code more expressive and concise, especially when working with STL algorithms or callback scenarios.
+
+
+* temp object lifetime extension
+class T
+T const & l = T{}; // lifetime extended
+T&& r = T{}; // lifetime extended
+T&& m = std::move(T{}); // temporary object destroyed, m is dangling reference
+* virtial function
+- 多态, 纯虚接口,
+dtor 要virtual 如果要通过父亲指针删除子对象
+如果有虚函数，通常是要多态，被继承，此时要定义虚 dtor
+you can mark it as final to prevent inheritance issues.
+如果有虚函数，编译器会为每个对象建立vtable,影响性能
+
+when a fun is virtual, derived class can override it
+the correct fun is resolved at runtime(dynamic dispatch) instead of compile-time(static dispatch)
+
+class Base {
+public:
+    virtual draw() = 0; // pure virtual function, must be overridden
+    virtual void show() { std::cout << "Base\n"; }
+    ~Base() { std::cout << "Base destructor\n"; }
+};
+
+class Derived : public Base {
+public:
+    void draw() override { std::cout << "draw in drived"; }
+    void show() override { std::cout << "Derived\n"; }
+    ~Derived() { std::cout << "Derived destructor\n"; }
+};
+
+class OtherDerived : public Base {
+public:
+    void draw() override { std::cout << "draw in other drived"; }
+    void show() override { std::cout << "Other Derived\n"; }
+    ~OtherDerived() { std::cout << "OtherDerived destructor\n"; }
+};
+
+void drawSome(Base* pb){
+  pb->draw();
+}
+
+int main() {
+    Base* ptr = new Derived();
+    ptr->show();  // Calls Derived::show() (Correct!), if no virtual for show, this would only call Base::show
+    delete ptr;  // Calls Derived::~Derived() first, then Base::~Base(), if no virtual dtor, this would only call Base::~Base()
+
+
+    // Runtime Behavior Customization (Strategy Pattern, Plugin Systems)
+    Derived d;
+    OtherDerived od;
+    drawSome(&d);  // draw in drived
+    drawSome(&od); // draw in other drived
+    return 0;
+
+}
+
+✔ Always make destructors virtual in base classes.
+✔ Use override (C++11+) to catch mistakes in derived classes.
+✔ Prefer final for classes/methods that shouldn’t be overridden.
+✔ Avoid virtual in performance-critical sections (use std::variant or CRTP instead).
+
+* return value from function
+** Return Value Optimization (RVO) / Named Return Value Optimization (NRVO)
+The compiler may elide the copy/move entirely by constructing the vector directly in the caller's memory (RVO/NRVO).
+This is an optimization allowed even before C++11.
+
+** Move Semantics (Fallback if RVO/NRVO doesn't apply)
+If RVO/NRVO cannot be applied (e.g., due to complex control flow), C++11 will automatically move the local vector instead of copying it.
+Moving a std::vector is cheap: it transfers ownership of the dynamically allocated buffer (just a pointer swap) and leaves the source vector in a valid but empty state.
+
+** return obj from a function
+before c++ 11, return by reference or pointer
+Return type	Risk or Limitation
+T& or const T&	Must return a reference to a valid object that outlives the call (e.g., global, static, or passed-in).
+T*	Requires heap allocation or lifetime management — risk of memory leaks.
+T (by value)	Used to be expensive, but now is safe and efficient in modern C++ due to RVO and moves.
+
+C++11–14	Return by value or move	Move semantics introduced
+C++17+	Return by value preferred	Copy elision is guaranteed
+
+** 返回string
+by value is ok
+c++98, 如果要避免拷贝，不想返回by value, 可以
+- Pass an output parameter by reference (not as elegant or idiomatic).
+- Work with pointers (rarely recommended for strings).
+- If the caller can modify the input, you could manipulate the input string in-place.
+
+** 返回自定义对象
+无需定义move ctor, move assignment, 使用编译器自动生成的就可以, 返回时自动使用move
+Rule of Zero
+If your class is simple and only contains members that themselves support move, do nothing: the rule of zero applies and the compiler’s move semantics will work.
+
+如果Obj1成员变量subObj也是自定义对象，只要subObj的成员变量支持move,Obj1 就自然可以move
+
+需要定义move operations
+Only if:
+a) subObj manages resources directly (like raw pointers)
+b) You want non-default move behavior
+c) You suppress (e.g., delete) move operations in subObj
+** implement move constructor and move assignment operator
+when your object manages raw pointers (resources).
+
+// Buffer with raw resource
+class Buffer {
+public:
+    int* data;
+    size_t size;
+
+    // Constructor
+    Buffer(size_t sz) : data(new int[sz]), size(sz) { std::cout << "Buffer constructed\n"; }
+
+    // Destructor
+    ~Buffer() {
+        std::cout << "Buffer destructed\n";
+        delete[] data;
+    }
+
+    // Copy constructor
+    Buffer(const Buffer& other) : data(new int[other.size]), size(other.size) {
+        std::cout << "Buffer copied\n";
+        std::copy(other.data, other.data + size, data);
+    }
+
+    // Copy assignment
+    Buffer& operator=(const Buffer& other) {
+        std::cout << "Buffer copy-assigned\n";
+        if(this != &other) {
+            delete[] data;
+            size = other.size;
+            data = new int[size];
+            std::copy(other.data, other.data + size, data);
+        }
+        return *this;
+    }
+
+    // Move constructor
+    Buffer(Buffer&& other) noexcept : data(other.data), size(other.size) {
+        std::cout << "Buffer moved\n";
+        other.data = nullptr;
+        other.size = 0;
+    }
+
+    // Move assignment
+    Buffer& operator=(Buffer&& other) noexcept {
+        std::cout << "Buffer move-assigned\n";
+        if(this != &other) {
+            delete[] data; // free this resource
+            data = other.data;
+            size = other.size;
+            other.data = nullptr;
+            other.size = 0;
+        }
+        return *this;
+    }
+};
+
+class Wrapper {
+public:
+    Buffer buf;
+
+    Wrapper(size_t sz) : buf(sz) {}
+
+    // No need to write special move/copy ctors/assignments.
+    // The compiler will generate them and use Buffer's move/copy operations.
+};
+
+* thread
+** c++98
+#include <queue>
+#include <pthread.h>
+#include <string>
+
+class DirQueue {
+    std::queue<std::string> q;  // using string instead of fs::path
+    pthread_mutex_t m;
+    pthread_cond_t cv;
+    bool finished;
+
+public:
+    DirQueue() : finished(false) {
+        pthread_mutex_init(&m, NULL);
+        pthread_cond_init(&cv, NULL);
+    }
+
+    ~DirQueue() {
+        pthread_mutex_destroy(&m);
+        pthread_cond_destroy(&cv);
+    }
+
+    void push(const std::string& p) {
+        pthread_mutex_lock(&m);
+        q.push(p);
+        pthread_cond_signal(&cv);  // equivalent to notify_one()
+        pthread_mutex_unlock(&m);
+    }
+
+    bool pop(std::string& p) {
+        pthread_mutex_lock(&m);
+        while (q.empty() && !finished) { // while loop protects against spurious wakeups, don't use if
+            pthread_cond_wait(&cv, &m);
+        }
+        if (q.empty()) {
+            pthread_mutex_unlock(&m);
+            return false;
+        }
+        p = q.front();
+        q.pop();
+        pthread_mutex_unlock(&m);
+        return true;
+    }
+
+    void set_finished() {
+        pthread_mutex_lock(&m);
+        finished = true;
+        pthread_cond_broadcast(&cv);  // equivalent to notify_all()
+        pthread_mutex_unlock(&m);
+    }
+
+    // Disable copying
+    DirQueue(const DirQueue&) = delete;
+    DirQueue& operator=(const DirQueue&) = delete;
+};
+
+
+*** Manual Mutex Management:
+No lock_guard or unique_lock - must manually lock/unlock
+Need explicit pthread_mutex_lock()/pthread_mutex_unlock()
+Condition Variable Handling:
+pthread_cond_wait() requires the mutex to be locked first
+
+*** No built-in predicate check (must use a while loop)
+pthread_cond_signal() = notify_one()
+pthread_cond_broadcast() = notify_all()
+
+*** Initialization/Cleanup:
+Must explicitly initialize/destroy mutex and condition variable
+Constructor/Destructor handles this
+
+*** Error Handling:
+pthread functions return error codes (ignored here for simplicity)
+you'd check these return values
+
+*** No Move Semantics:
+Pre-C++11, so no move constructors/assignment
+Explicitly delete copy operations to prevent copying
+** mordern c++
+class DirQueue {
+    std::queue<fs::path> q;
+    std::mutex m;
+    std::condition_variable cv;
+    bool finished = false;
+public:
+    void push(const fs::path& p) {
+        std::lock_guard<std::mutex> lock(m);
+        q.push(p);
+        cv.notify_one();
+    }
+    bool pop(fs::path& p) {
+        std::unique_lock<std::mutex> lock(m);
+        cv.wait(lock, [&]{ return !q.empty() || finished; });
+        if (q.empty()) return false;
+        p = q.front(); q.pop();
+        return true;
+    }
+    void set_finished() {
+        std::lock_guard<std::mutex> lock(m);
+        finished = true;
+        cv.notify_all();
+    }
+};
+
+*** condition_variable
+A std::condition_variable is a synchronization primitive that allows threads to wait for a particular condition to become true. It's always used together with a mutex.
+
+Threads can wait on a condition variable (cv.wait())
+
+Other threads can notify waiting threads when the condition might have changed (cv.notify_one() or cv.notify_all())
+
+*** lock_guard
+Used to avoid busy waiting (constantly checking a condition in a loop)
+std::lock_guard is a simple RAII (Resource Acquisition Is Initialization) wrapper for a mutex:
+
+*** std::unique_lock is similar to lock_guard but more flexible:
+Can be locked/unlocked multiple times
+Can be moved (transfer ownership)
+Required for use with condition variables (cv.wait() needs to be able to unlock/lock)
+
+** Spurious Wakeups
+wake up some thread by OS even they are waiting for some condition variable
+The operating system or hardware decided to wake the thread anyway
+
+** Lost Wakeup
+the notification happens before wait,  the signal is lost
+
+Condition variables don't have memory - they only signal threads that are currently waiting at the moment of notification. If no threads are waiting when notify_one() is called:
+
+The notification has no effect
+The signal disappears into the void
+Future waiters won't know about it
+
+Predicates Prevent This
+The correct version with a predicate solves this:
+
+std::unique_lock<std::mutex> lock(m);
+cv.wait(lock, []{ return !queue.empty(); });
+===>or
+while(!predicate()) {
+    cv.wait(lock);
+}
+** predicate() value before wait()
+*** true:
+not block
+returns right away
+not unlock the mutex or waiting on the condition variable.
+goon to process with shared resource
+*** false:
+block, unlock the mutex, put in sleep
+When notified (possibly spuriously), it reacquires the mutex, and rechecks predicate()
