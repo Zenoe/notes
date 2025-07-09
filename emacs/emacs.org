@@ -1,8 +1,82 @@
+* :%! 指令，可以把 buffer 作为 stdin 输入给一个程序，再用那个程序输出的内容替换 buffer，
+比如用 %!jq 来格式化 json，用 %!sort 排序，用 %!clang-format 格式化代码，用 %!xxd 转换 16 进制模式
+% 文件(当前文件) ！(执行)xxx bash
+%是行号范围range的一种，代表全体。
+还可以写成：
+. 当前行
+$ 最后行
+1,100
+,100
+
 * M-x list-faces-display shows you all faces WYSIWYG, and gives you links to their doc and to customizing them.
 * Move to opening {	backward-up-list	C-M-u
 Move to matching closing }	up-list	C-M-n
 * tree-sitter
 check: eval-expression (treesit-available-p)
+(treesit-load-language-error not-found (libtree-sitter-javascript libtree-sitter-javascript.0 libtree-sitter-javascript.0.0 libtree-sitter-javascript.so libtree-sitter-javascript.so.0 libtree-sitter-javascript.so.0.0) No such file or directory)
+
+M-x treesit-install-language-grammar RET javascript to install libtree-sitter-javascript.so...
+
+
+* company-tabnine-install-binary
+
+* lsp
+lsp-workspace-folders-add/remove
+lsp-workspace-blocklist-remove
+lsp-describe-session
+lsp-restart-workspace
+
+(setq lsp-log-io t)
+
+
+** flycheck says not find tool.h (in projectroot/common)
+projectroot/module/main.cpp include "tool.h" --> flycheck(lsp) says can't find tool.h
+solution:
+in module/CMakeLists.txt, add
+target_include_directories(main PRIVATE projectroot/common)
+and run(*注意：一定要在build目录里 cmake build 之后*)
+
+#+begin_src bash
+mkdir build
+cd build
+cmake --build .
+#+end_src
+
+compile_commands.json 不管用
+
+** compile_commands.json not work in my emacs
+run in build
+cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ..
+** put .clangd file in root of the project
+// 9 means current g++ version is 9
+
+CompileFlags:
+  Add: [
+    -isystem/usr/include/c++/9,
+    -isystem/usr/include/x86_64-linux-gnu/c++/9,
+    -isystem/usr/include/c++/9/backward,
+    -isystem/usr/lib/gcc/x86_64-linux-gnu/9/include,
+    -isystem/usr/local/include,
+    -isystem/usr/include/x86_64-linux-gnu,
+    -isystem/usr/include
+  ]
+
+** clangd --check=<your-file.cpp>
+to see which paths clangd already knows
+** global .clangd
+*** ~/.config/clangd/config.yaml on linux / %APPDATA%\clangd\config.yaml windows
+If:
+  PathMatch: .*  # Applies to all files
+CompileFlags:
+  Add: [
+    -isystem/usr/include/c++/9,
+    -isystem/usr/include/x86_64-linux-gnu/c++/9,
+    -isystem/usr/include/c++/9/backward,
+    -isystem/usr/lib/gcc/x86_64-linux-gnu/9/include,
+    -isystem/usr/local/include,
+    -isystem/usr/include/x86_64-linux-gnu,
+    -isystem/usr/include
+  ]
 * Selective display:
 C-u <n> C-x $ folds all the lines starting with <n> or more spaces;
 C-x $ shows everything.

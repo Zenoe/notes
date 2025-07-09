@@ -14,6 +14,13 @@ g++ main.o dbl.o -o prog
 put this in .dir-locals.el in project root
 ((c++-mode . ((flycheck-gcc-args . ("-std=c++17"))
               (flycheck-clang-args . ("-std=c++17")))))
+** or in .emacs.d
+(with-eval-after-load 'flycheck
+  (add-hook 'c++-mode-hook
+    (lambda ()
+      (setq flycheck-gcc-args '("-std=c++17"))
+      (setq flycheck-clang-args '("-std=c++17")))))
+
 * using a namespace drags all symbols from that namespace into the global namespace.
 * Avoid std::endl!
 Each call to std::endl flushes the output buffer and writes the output immediately.
@@ -249,10 +256,11 @@ T && bind to rvalue of type T only
 * std::move
 casts an expression to an rvalue
 
+#+begin_src c++
+
 void foo(int &x) {cout << x;}
 void bar(int const& x) {cout<<X;}
 void baz(int &&x){cout << x};
-
 int i=0;
 foo(i);  // OK
 foo(move(i));//ERROR:lvalue refcannot bind to rvalue
@@ -262,6 +270,9 @@ bar(move(i));// compile and work, but no move actually happens
 
 baz(i);// ERROR:rvalue ref cannot bind to lvalue
 baz( move(i));// 0K
+
+#+end_src
+
 
 ** cannot move into a const&
 std::move produces an rvalue reference (T&&)
@@ -599,7 +610,6 @@ std::cout << add(5, 3);  // Outputs 8
 
 ** Capture Clauses
 Lambdas can capture variables from their enclosing scope:
-
 *** Capture by value (makes a copy):
 int x = 10;
 auto lambda = [x]() { std::cout << x; };
@@ -609,10 +619,8 @@ auto lambda = [&y]() { y++; };
 lambda();
 std::cout << y;  // Outputs 21
 *** Capture all by value:
-
 [=]() { /* can use all variables by value */ };
 *** Capture all by reference:
-
 [&]() { /* can use all variables by reference */ };
 *** Return Type
 The return type can be explicitly specified:
@@ -823,155 +831,51 @@ public:
     // The compiler will generate them and use Buffer's move/copy operations.
 };
 
-* thread
-** c++98
-#include <queue>
-#include <pthread.h>
-#include <string>
+* operator
+operator T() 是定义到类型 T 的转换
+operator 后接运算符（如 +, []）是重载运算符
+* std::ref
+is a function template defined in the C++ Standard Library (since C++11) that returns a reference wrapper for its argument. The primary result of using std::ref(x) is an object of type std::reference_wrapper<T>, where T is the type of x.
 
-class DirQueue {
-    std::queue<std::string> q;  // using string instead of fs::path
-    pthread_mutex_t m;
-    pthread_cond_t cv;
-    bool finished;
-
-public:
-    DirQueue() : finished(false) {
-        pthread_mutex_init(&m, NULL);
-        pthread_cond_init(&cv, NULL);
-    }
-
-    ~DirQueue() {
-        pthread_mutex_destroy(&m);
-        pthread_cond_destroy(&cv);
-    }
-
-    void push(const std::string& p) {
-        pthread_mutex_lock(&m);
-        q.push(p);
-        pthread_cond_signal(&cv);  // equivalent to notify_one()
-        pthread_mutex_unlock(&m);
-    }
-
-    bool pop(std::string& p) {
-        pthread_mutex_lock(&m);
-        while (q.empty() && !finished) { // while loop protects against spurious wakeups, don't use if
-            pthread_cond_wait(&cv, &m);
-        }
-        if (q.empty()) {
-            pthread_mutex_unlock(&m);
-            return false;
-        }
-        p = q.front();
-        q.pop();
-        pthread_mutex_unlock(&m);
-        return true;
-    }
-
-    void set_finished() {
-        pthread_mutex_lock(&m);
-        finished = true;
-        pthread_cond_broadcast(&cv);  // equivalent to notify_all()
-        pthread_mutex_unlock(&m);
-    }
-
-    // Disable copying
-    DirQueue(const DirQueue&) = delete;
-    DirQueue& operator=(const DirQueue&) = delete;
+** old c++, no std::ref
+template<typename T>
+struct RefWrap {
+    T* ptr;
+    RefWrap(T& ref) : ptr(&ref) {}
+    operator T&() const { return *ptr; }
 };
 
+*** Before c++11, custom reference wrapper
+#include <iostream>
+template<typename T>
+struct RefWrap {
+    T* ptr;
+    RefWrap(T& ref) : ptr(&ref) {}
+    // Enables implicit conversion back to T&
+    operator T&() const { return *ptr; }  // operator 另外一种用法, 类型转换
+};
 
-*** Manual Mutex Management:
-No lock_guard or unique_lock - must manually lock/unlock
-Need explicit pthread_mutex_lock()/pthread_mutex_unlock()
-Condition Variable Handling:
-pthread_cond_wait() requires the mutex to be locked first
+// A generic callback holder (pretending we don't know caller will pass by reference)
+struct Callback {
+    RefWrap<int> wrapped_ref;
 
-*** No built-in predicate check (must use a while loop)
-pthread_cond_signal() = notify_one()
-pthread_cond_broadcast() = notify_all()
+    Callback(RefWrap<int> arg) : wrapped_ref(arg) {}
 
-*** Initialization/Cleanup:
-Must explicitly initialize/destroy mutex and condition variable
-Constructor/Destructor handles this
-
-*** Error Handling:
-pthread functions return error codes (ignored here for simplicity)
-you'd check these return values
-
-*** No Move Semantics:
-Pre-C++11, so no move constructors/assignment
-Explicitly delete copy operations to prevent copying
-** mordern c++
-class DirQueue {
-    std::queue<fs::path> q;
-    std::mutex m;
-    std::condition_variable cv;
-    bool finished = false;
-public:
-    void push(const fs::path& p) {
-        std::lock_guard<std::mutex> lock(m);
-        q.push(p);
-        cv.notify_one();
-    }
-    bool pop(fs::path& p) {
-        std::unique_lock<std::mutex> lock(m);
-        cv.wait(lock, [&]{ return !q.empty() || finished; });
-        if (q.empty()) return false;
-        p = q.front(); q.pop();
-        return true;
-    }
-    void set_finished() {
-        std::lock_guard<std::mutex> lock(m);
-        finished = true;
-        cv.notify_all();
+    void operator()() {
+        wrapped_ref = wrapped_ref + 1; // Implicit conversion lets us do int math
     }
 };
 
-*** condition_variable
-A std::condition_variable is a synchronization primitive that allows threads to wait for a particular condition to become true. It's always used together with a mutex.
+int main() {
+    int x = 10;
 
-Threads can wait on a condition variable (cv.wait())
+    Callback cb(x); // Passes x by reference
 
-Other threads can notify waiting threads when the condition might have changed (cv.notify_one() or cv.notify_all())
+    cb(); // increments x
+    cb(); // increments x again
 
-*** lock_guard
-Used to avoid busy waiting (constantly checking a condition in a loop)
-std::lock_guard is a simple RAII (Resource Acquisition Is Initialization) wrapper for a mutex:
-
-*** std::unique_lock is similar to lock_guard but more flexible:
-Can be locked/unlocked multiple times
-Can be moved (transfer ownership)
-Required for use with condition variables (cv.wait() needs to be able to unlock/lock)
-
-** Spurious Wakeups
-wake up some thread by OS even they are waiting for some condition variable
-The operating system or hardware decided to wake the thread anyway
-
-** Lost Wakeup
-the notification happens before wait,  the signal is lost
-
-Condition variables don't have memory - they only signal threads that are currently waiting at the moment of notification. If no threads are waiting when notify_one() is called:
-
-The notification has no effect
-The signal disappears into the void
-Future waiters won't know about it
-
-Predicates Prevent This
-The correct version with a predicate solves this:
-
-std::unique_lock<std::mutex> lock(m);
-cv.wait(lock, []{ return !queue.empty(); });
-===>or
-while(!predicate()) {
-    cv.wait(lock);
+    std::cout << x << std::endl; // 12
 }
-** predicate() value before wait()
-*** true:
-not block
-returns right away
-not unlock the mutex or waiting on the condition variable.
-goon to process with shared resource
-*** false:
-block, unlock the mutex, put in sleep
-When notified (possibly spuriously), it reacquires the mutex, and rechecks predicate()
+
+// std::function<void()> cb = std::bind(increase, std::ref(x));
+std::function<void()> cb = std::bind(increase, std::ref(x));

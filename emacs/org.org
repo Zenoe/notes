@@ -1,5 +1,13 @@
 
+M-x org-table-convert-region
+put region of text in a table
 The following commands jump to other headlines in the buffer.
+
+org-emphasize
+to bold selected text
+
+<sTAB
+to insert code block
 
 C-c C-n (org-next-visible-heading)
 Next heading.
