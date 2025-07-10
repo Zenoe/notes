@@ -1,5 +1,14 @@
 #+TITLE:
+* break foo.cpp:123 if std::string(dir.c_str()) == "./CMakeFiles"
+some GDB versions don’t fully support std::string in conditional breakpoints.
+break foo.cpp:123 if strcmp(dir.c_str(), "./CMakeFiles") == 0
 
+* if object printing looks messy.
+set print pretty on
+
+if object printing looks messy.
+watch dir
+But for C++ objects, this watchpoint might not work (complicated for structs/classes).
 * look up array
 *array@length
 
@@ -9,3 +18,16 @@ undisplay 显示的号码
 gdb-peda
 gdb-pwndbg
 gdb-gef
+
+* GDB TUI Mode (Visual Highlighting)
+Run GDB in TUI mode for a clearer view:
+
+bash
+gdb -tui ./your_program
+The current line is highlighted in the source code window.
+
+Press Ctrl + L to refresh if the display gets corrupted.
+
+** frame: show current line number
+** list *$pc
+show current instruction line

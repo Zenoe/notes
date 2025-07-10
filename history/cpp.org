@@ -1,4 +1,5 @@
 * template
+不能分开.h/.cpp, 要全部放在.h
 template<class Interface>
 inline void SafeRelease(
 	Interface **ppInterfaceToRelease

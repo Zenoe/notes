@@ -28,25 +28,17 @@ lsp-restart-workspace
 
 (setq lsp-log-io t)
 
-
 ** flycheck says not find tool.h (in projectroot/common)
-projectroot/module/main.cpp include "tool.h" --> flycheck(lsp) says can't find tool.h
-solution:
-in module/CMakeLists.txt, add
-target_include_directories(main PRIVATE projectroot/common)
-and run(*注意：一定要在build目录里 cmake build 之后*)
+need compile_commands.json in project root
+1. add common path to projectroot/someModule/CMakeLists.txt
+target_include_directories(subModule PRIVATE projectroot/common )
 
-#+begin_src bash
-mkdir build
-cd build
-cmake --build .
-#+end_src
+eg: target_include_directories(cpp_fd3 PRIVATE /opt/cpp/common /opt/cpp/cccc )
 
-compile_commands.json 不管用
-
-** compile_commands.json not work in my emacs
-run in build
+2. run in build
 cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=1 ..
+ln -s build/compile_commands.json ../
+
 ** put .clangd file in root of the project
 // 9 means current g++ version is 9
 

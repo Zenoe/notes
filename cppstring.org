@@ -1,0 +1,16 @@
+#+title: Cppstring
+| You want to find | Use          | Example          |
+| A character      | find(char)   | tmp.find('(')    |
+| A string         | find(string) | tmp.find("foo(") |
+|                  |              |                  |
+
+
+| Syntax                                              | Safe? | Comments                               |
+| const auto& tmp = entry.path().filename().string(); | ❌    | Dangling reference to temporary; avoid |
+| auto tmp = entry.path().filename().string();        | ✅    | Safe; do this                          |
+
+
+| Return Type             | Pros                            | Cons                          | Style     |
+| bool + out param        | C style, multi-results          | Awkward, less safe/readable   | Old-style |
+| fs::path only           | Simple, idiomatic, easy         | Must define “not found” value | OK        |
+| std::optional<fs::path> | Most explicit & safe, idiomatic | Requires C++17+               | Preferred |

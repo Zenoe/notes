@@ -5,6 +5,9 @@ C++20 requires GCC 11 or later
 g++ -std=c++2a your_file.cpp -o output
 g++ -std=c++17 -Wall -Wextra -Wpedantic -Wshadow hello.cpp -o hello
 
+echo | /usr/bin/c++ -E -Wp,-v -x c++ -
+to get system include path
+
 ** compile and link
 g++ -c main.cpp
 g++ -c dbl.cpp
@@ -452,6 +455,19 @@ Even for large objects, consider unique_ptr when:
 2. Polymorphism needed - When returning derived classes through base pointer
 3. Optional/nullable return - When you need to potentially return "no object" (nullptr)
 4. Object lifetime requirements - When the object must outlive the current scope
+
+* function param
+
+| void f(std::vector<T>&&)      | Function steals/consumes the parameter   |
+| void f(const std::vector<T>&) | Read-only access                         |
+| void f(std::vector<T>&)       | Will modify input, caller sees changes   |
+| void f(std::vector<T> v)      | “Take or copy” owner, lets caller decide |
+void append_data(std::vector<int> x) {}
+
+std::vector<int> mydata = {1,2,3};
+append_data(mydata);         // copy
+append_data(std::move(mydata)); // move
+
 * Execution Order on Destruction
 After the destructor body has run the destructors of all data members are executed in reverse declaration order
 * Ownership
@@ -558,12 +574,12 @@ cout << sv1; //  string object already destroyed!
 - Regular (lvalue) reference: T& — binds to lvalues (named variables)
 - Rvalue reference: T&& — binds to rvalues (temporaries)
 ** move ctor
-Feature	Constructor	Move Constructor
-Purpose	Initialize from scratch	Transfer ownership from another obj
-Argument type	Regular parameters or const ref	Rvalue reference (T&&)
-Performance	May involve heap allocations	Avoids deep copies, faster
-When invoked	T x(args);	T y = std::move(x);
-Copy vs Move	Copy data	Steal data, nullify source
+| Feature       | Constructor                     | Move Constructor                    |
+| Purpose       | Initialize from scratch         | Transfer ownership from another obj |
+| Argument type | Regular parameters or const ref | Rvalue reference (T&&)              |
+| Performance   | May involve heap allocations    | Avoids deep copies, faster          |
+| When invoked  | T x(args);                      | T y = std::move(x);                 |
+| Copy vs Move  | Copy data                       | Steal data, nullify source          |
 
 MyClass a(5);
 MyClass b = std::move(a);
@@ -879,3 +895,28 @@ int main() {
 
 // std::function<void()> cb = std::bind(increase, std::ref(x));
 std::function<void()> cb = std::bind(increase, std::ref(x));
+
+* std::optional<fs::path> a = ...
+// must check first
+if(a){
+// the followings are all ok
+cout <<*a;
+cout <<a->filename()
+cout (*a).filename()
+}
+
+* misc
+The if statement in C++ can have an initializer (since C++17)
+#+begin_src c++
+if (auto found_path = find_file(...)) {
+    // found_path is in scope here AND is a std::optional<fs::path>
+    // You can safely use found_path, for example:
+
+    std::cout << *found_path << '\n';         // Dereference to get the fs::path
+    std::cout << found_path->filename() << '\n'; // Or access member functions
+}
+#+end_src
+
+| Syntax                                  | Use inside block?       | Safe to dereference? |
+| if (auto x = find_file(...)) { ... }    | Yes                     | Yes                  |
+| auto x = find_file(...); if (x) { ... } | Yes (in or after block) | Yes (after tested)   |

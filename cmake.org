@@ -1,0 +1,71 @@
+* CMake is a build system generator
+CMake itself does not build your project directly.
+It generates build files for another system like Make, Ninja, Visual Studio, etc.
+The build files are placed in your build directory (usually created by running cmake ..).
+
+When you run cmake .. CMake picks a generator:
+On Unix, it defaults to Unix Makefiles (if not told otherwise).
+On Windows, it may default to Ninja or Visual Studio solutions, depending on installed tools and your selection.
+
+* cmake --build .   it's equivalent to make on linux
+It uses whatever "build type" you picked at configure time, or whatever the generator’s default is.
+If you want a Release build, you must configure with -DCMAKE_BUILD_TYPE=Release.
+
+is a CMake front-end to perform the build.
+It examines the build files present in . (the current directory).
+It detects how to build the project based on the generated files.
+It then runs the appropriate build tool (like make, ninja, etc.) automatically.
+
+* debug release
+cd proj_root
+mkdir -p build-debug && cd build-debug
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make -j
+# or for Release
+cd ..
+mkdir -p build-release && cd build-release
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make -j
+
+| Generator  | How to select build type      | Default if not set           |
+| Make/Ninja | cmake -DCMAKE_BUILD_TYPE=TYPE | No type/default, NOT Release |
+| VS, Xcode  | cmake --build . --config TYPE | Usually Debug                |
+
+
+| Build Type | Command (cmake ...)        | CMake/Compiler Flags | For GDB? |
+| Debug      | -DCMAKE_BUILD_TYPE=Debug   | -g -O0               | ✅ Yes   |
+| Release    | -DCMAKE_BUILD_TYPE=Release | -O3 -DNDEBUG         | ❌ No    |
+* specify build target
+cmake --build . --target my_target
+cmake --build . --config Release
+
+* target_link_libraries(foo opencv)
+tells CMake to link your target (foo) against a library called opencv.
+It assumes that opencv is either:
+- An imported CMake target (for example: OpenCV::core, OpenCV::opencv_core); or
+- A library file named libopencv.so, opencv.lib, etc., that can be found by the linker in your library search paths (/usr/lib, etc.).
+
+* find_package() is better, Portable, Handles includes/linking
+find_package(OpenCV REQUIRED)
+target_link_libraries(foo PRIVATE ${OpenCV_LIBS})
+target_include_directories(foo PRIVATE ${OpenCV_INCLUDE_DIRS})
+
+* common library
+
+公共库链接了 stdc++fs 如果是public
+其它链接了公共库的工程可以继承 stdc++fs, 不用再链接了
+CMake will automatically propagate the dependency to anything linking against common.
+
+common/CMakeLists.txt:
+add_library(common STATIC g_utils.cpp)
+target_include_directories(common PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(common INTERFACE stdc++fs)
+
+subproj1/CMakeLists.txt:
+add_executable(subproj1 main.cpp)
+target_link_libraries(subproj1 PRIVATE common)  # 有了common，common里已经包含了 stdc++fs
+|            |                 |                     |                                     |
+| Visibility | Common links... | Subproject links... | "stdc++fs" propagates to consumers? |
+| PRIVATE    | Yes             | No                  | No                                  |
+| PUBLIC     | Yes             | Yes                 | Yes                                 |
+| INTERFACE  | No              | Yes                 | Yes (but not in library itself!)    |

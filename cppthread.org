@@ -1,0 +1,236 @@
+* thread
+** c++98
+#include <queue>
+#include <pthread.h>
+#include <string>
+
+class DirQueue {
+    std::queue<std::string> q;  // using string instead of fs::path
+    pthread_mutex_t m;
+    pthread_cond_t cv;
+    bool finished;
+
+public:
+    DirQueue() : finished(false) {
+        pthread_mutex_init(&m, NULL);
+        pthread_cond_init(&cv, NULL);
+    }
+
+    ~DirQueue() {
+        pthread_mutex_destroy(&m);
+        pthread_cond_destroy(&cv);
+    }
+
+    void push(const std::string& p) {
+        pthread_mutex_lock(&m);
+        q.push(p);
+        pthread_cond_signal(&cv);  // equivalent to notify_one()
+        pthread_mutex_unlock(&m);
+    }
+
+    bool pop(std::string& p) {
+        pthread_mutex_lock(&m);
+        while (q.empty() && !finished) { // while loop protects against spurious wakeups, don't use if
+            pthread_cond_wait(&cv, &m);
+        }
+        if (q.empty()) {
+            pthread_mutex_unlock(&m);
+            return false;
+        }
+        p = q.front();
+        q.pop();
+        pthread_mutex_unlock(&m);
+        return true;
+    }
+
+    void set_finished() {
+        pthread_mutex_lock(&m);
+        finished = true;
+        pthread_cond_broadcast(&cv);  // equivalent to notify_all()
+        pthread_mutex_unlock(&m);
+    }
+
+    // Disable copying
+    DirQueue(const DirQueue&) = delete;
+    DirQueue& operator=(const DirQueue&) = delete;
+};
+
+
+*** Manual Mutex Management:
+No lock_guard or unique_lock - must manually lock/unlock
+Need explicit pthread_mutex_lock()/pthread_mutex_unlock()
+Condition Variable Handling:
+pthread_cond_wait() requires the mutex to be locked first
+
+*** No built-in predicate check (must use a while loop)
+pthread_cond_signal() = notify_one()
+pthread_cond_broadcast() = notify_all()
+
+*** Initialization/Cleanup:
+Must explicitly initialize/destroy mutex and condition variable
+Constructor/Destructor handles this
+
+*** Error Handling:
+pthread functions return error codes (ignored here for simplicity)
+you'd check these return values
+
+*** No Move Semantics:
+Pre-C++11, so no move constructors/assignment
+Explicitly delete copy operations to prevent copying
+** mordern c++
+class DirQueue {
+    std::queue<fs::path> q;
+    std::mutex m;
+    std::condition_variable cv;
+    bool finished = false;
+public:
+    void push(const fs::path& p) {
+        std::lock_guard<std::mutex> lock(m);
+        q.push(p);
+        cv.notify_one();
+    }
+    bool pop(fs::path& p) {
+        std::unique_lock<std::mutex> lock(m);
+        cv.wait(lock, [&]{ return !q.empty() || finished; });
+        if (q.empty()) return false;
+        p = q.front(); q.pop();
+        return true;
+    }
+    void set_finished() {
+        std::lock_guard<std::mutex> lock(m);
+        finished = true;
+        cv.notify_all();
+    }
+};
+
+*** condition_variable
+A std::condition_variable is a synchronization primitive that allows threads to wait for a particular condition to become true. It's always used together with a mutex.
+
+Threads can wait on a condition variable (cv.wait())
+
+Other threads can notify waiting threads when the condition might have changed (cv.notify_one() or cv.notify_all())
+
+*** lock_guard
+Used to avoid busy waiting (constantly checking a condition in a loop)
+std::lock_guard is a simple RAII (Resource Acquisition Is Initialization) wrapper for a mutex:
+
+*** std::unique_lock is similar to lock_guard but more flexible:
+Can be locked/unlocked multiple times
+Can be moved (transfer ownership)
+Required for use with condition variables (cv.wait() needs to be able to unlock/lock)
+
+** Spurious Wakeups
+wake up some thread by OS even they are waiting for some condition variable
+The operating system or hardware decided to wake the thread anyway
+
+** Lost Wakeup
+the notification happens before wait,  the signal is lost
+
+Condition variables don't have memory - they only signal threads that are currently waiting at the moment of notification. If no threads are waiting when notify_one() is called:
+
+The notification has no effect
+The signal disappears into the void
+Future waiters won't know about it
+
+Predicates Prevent This
+The correct version with a predicate solves this:
+
+std::unique_lock<std::mutex> lock(m);
+cv.wait(lock, []{ return !queue.empty(); });
+===>or
+while(!predicate()) {
+    cv.wait(lock);
+}
+** predicate() value before wait()
+*** true:
+not block
+returns right away
+not unlock the mutex or waiting on the condition variable.
+goon to process with shared resource
+*** false:
+block, unlock the mutex, put in sleep
+When notified (possibly spuriously), it reacquires the mutex, and rechecks predicate()
+
+* windows thread before std::thread
+ Windows API: CreateThread, CRITICAL_SECTION (or HANDLE with CreateMutex), and CreateEvent/Condition Variables (though condition variables arrived late in Windows).
+Synchronization: Use CRITICAL_SECTION or HANDLE mutex for protecting shared data (like your pending_work integer).
+Pass all your parameters as pointers, packed in a struct, because Windows thread functions accept a void* argument.
+
+* linux thread before std::thread
+| Modern                  | Pre-C++11 Replacement |
+| std::thread             | pthread_t             |
+| std::mutex              | pthread_mutex_t       |
+| std::condition_variable | pthread_cond_t        |
+| std::atomic<int>        | int + mutex           |
+| std::ref                | pointer               |
+
+#include <pthread.h>
+#include <vector>
+#include <string>
+#include <cstdio>
+
+struct WorkItem {
+    std::string path;
+    int depth;
+    WorkItem(const std::string& p, int d) : path(p), depth(d) {}
+};
+class DirQueue {
+public:
+    void push(const WorkItem& wi) {/* ... */}
+    // ...
+};
+
+// This struct holds all the arguments needed by the worker thread
+struct WorkerArgs {
+    DirQueue* dir_queue;
+    std::string* pattern;
+    std::vector<std::string>* gitignore_rules;
+    int max_depth;
+    int* pending_work;
+    pthread_mutex_t* pending_work_mtx;
+    pthread_mutex_t* output_mtx;
+};
+
+void* worker(void* arg_void) {
+    WorkerArgs* args = static_cast<WorkerArgs*>(arg_void);
+    // Use args->dir_queue, args->pattern, etc.
+    // For pending_work, protect access with *pending_work_mtx
+    return nullptr;
+}
+
+int main() {
+    DirQueue dir_queue;
+    std::string pattern = "foo";
+    std::vector<std::string> gitignore_rules;
+    int max_depth = 5;
+    int pending_work = 1; // not atomic, so needs protected access
+
+    pthread_mutex_t output_mtx = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_t pending_work_mtx = PTHREAD_MUTEX_INITIALIZER;
+
+    // Add initial directory to queue
+    dir_queue.push(WorkItem("start_dir", 0));
+
+    // Create worker threads
+    int num_threads = 4;
+    std::vector<pthread_t> workers(num_threads);
+    std::vector<WorkerArgs> worker_args(num_threads);
+    for (int i = 0; i < num_threads; ++i) {
+        worker_args[i] = {
+            &dir_queue,
+            &pattern,
+            &gitignore_rules,
+            max_depth,
+            &pending_work,
+            &pending_work_mtx,
+            &output_mtx
+        };
+        pthread_create(&workers[i], nullptr, worker, &worker_args[i]);
+    }
+
+    // join
+    for (int i = 0; i < num_threads; ++i) {
+        pthread_join(workers[i], nullptr);
+    }
+    return 0;
+}
