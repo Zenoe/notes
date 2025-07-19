@@ -1,3 +1,48 @@
+* pass args to thread function
+never Pass Non-copable/Movable Object by value
+| What you want to pass                  | Correct way in thread pool               | Notes                            |
+| std::mutex/std::atomic                 | std::ref(obj) or [&]{ }                  | Always by reference              |
+| const std::unique_ptr<T>&              | std::cref(obj) or [&]{ }                 | By const reference               |
+| std::unique_ptr<T> (want to own/move)  | std::move(obj) or [x = std::move(obj)]{} | Leaves source null               |
+| const std::vector<std::unique_ptr<T>>& | std::cref(obj) or [&]{ }                 | Can't copy vector of unique_ptrs |
+Never pass non-copyable things (like mutex, unique_ptr, atomic) by value: use references (std::ref/std::cref), or lambda [&].
+To move unique_ptrs, use std::move.
+If you just want to read (not own), pass const references and use std::cref or capture by ref
+
+void worker(
+    int id,
+    std::mutex& mtx,                         // non-copyable
+    std::atomic<int>& counter,               // non-copyable
+    const std::unique_ptr<Object>& uref,     // non-copyable (const ref)
+    const std::vector<std::unique_ptr<Object>>& vuref, // non-copyable (const ref to vector of unique_ptrs)
+    std::unique_ptr<Object> obj
+) {
+    std::lock_guard<std::mutex> lock(mtx);
+    std::cout << "Thread " << id << ": value="
+              << (uref ? uref->val : -1)
+              << ", vector size=" << vuref.size()
+              << ", counter=" << counter.load() << std::endl;
+}
+
+** Use std::ref / std::cref
+std::thread t(worker,
+    1,
+    std::ref(mtx),
+    std::ref(counter),
+    std::cref(uobj),
+    std::cref(vobj),
+    std::move(uobj))
+** use lambda
+std::thread t([&, u = std::move(uobj)]{
+    worker(1, mtx, counter, uobj, vobj, std::move(u));
+});
+
+The lambda [&] will capture everything by reference, avoiding any copy attempt of non-copyable types.
+pool.enqueue([&, max_depth] {fd_search_threaded(subdir, pattern, gitignore_rules, collector, pool, active_tasks, output_mtx, max_depth);});
+** error
+ pass uncopable object by value, triggering copy
+ use of deleted function ‘std::atomic<int>::atomic(const std::atomic<int>&)’
+ use of deleted function ‘std::mutex::mutex(const std::mutex&)’
 * thread
 ** c++98
 #include <queue>

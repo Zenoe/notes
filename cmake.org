@@ -1,3 +1,31 @@
+* cmake ../
+../   - Specifies the path to the CMake project's root directory (one level up from the current directory)
+../.. -The path to the root of your project's source directory (two levels up from the current directory).
+
+CMake looks for a CMakeLists.txt file in the specified directory (../)
+It generates build files (Makefiles, Visual Studio projects, etc.) in the current directory
+The build system is now ready for compilation (using make, ninja, etc.)
+
+** add flags like -DCMAKE_PREFIX_PATH when:  (-D defines a CMake variable)
+You need to specify custom installation paths for dependencies
+You want to set CMake variables or options
+You need to control the build type or generator
+
+#+begin_src shell
+# With custom options
+cmake -DCMAKE_BUILD_TYPE=Debug ../
+
+# With custom install path
+cmake -DCMAKE_INSTALL_PREFIX=/usr/local ../
+
+# Specifying a generator
+cmake -G "Ninja" ../
+
+cmake -DCMAKE_PREFIX_PATH=$MY_INSTALL_DIR ../..
+
+cmake -DCMAKE_PREFIX_PATH=/path1:/path2:/path3 ..
+
+#+end_src
 * CMake is a build system generator
 CMake itself does not build your project directly.
 It generates build files for another system like Make, Ninja, Visual Studio, etc.
@@ -39,6 +67,11 @@ make -j
 cmake --build . --target my_target
 cmake --build . --config Release
 
+* If you don't explicitly specify CMAKE_BUILD_TYPE
+No optimization flags (-O, -g, etc.) will be added by default
+Debug symbols are typically not included (unless your compiler adds them by default)
+The behavior is compiler-dependent, but generally produces a plain, unoptimized build
+
 * target_link_libraries(foo opencv)
 tells CMake to link your target (foo) against a library called opencv.
 It assumes that opencv is either:
@@ -69,3 +102,5 @@ target_link_libraries(subproj1 PRIVATE common)  # 有了common，common里已经
 | PRIVATE    | Yes             | No                  | No                                  |
 | PUBLIC     | Yes             | Yes                 | Yes                                 |
 | INTERFACE  | No              | Yes                 | Yes (but not in library itself!)    |
+|            |                 |                     |                                     |
+cmake -DCMAKE_PREFIX_PATH=$MY_INSTALL_DIR ../..

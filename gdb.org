@@ -1,7 +1,7 @@
 #+TITLE:
 * break foo.cpp:123 if std::string(dir.c_str()) == "./CMakeFiles"
 some GDB versions don’t fully support std::string in conditional breakpoints.
-break foo.cpp:123 if strcmp(dir.c_str(), "./CMakeFiles") == 0
+b fd4.cpp:138 if strcmp(dir.string().c_str(), "tdir/cpp_fd4.dir/src") == 0
 
 * if object printing looks messy.
 set print pretty on
