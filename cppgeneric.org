@@ -1,0 +1,37 @@
+
+* auto generic
+#+begin_src cpp
+std::vector<std::wstring> v{L"one", L"two"};
+std::deque<std::wstring> d{L"three", L"four"};
+
+size_t idx = 0;
+
+auto loadItem = [&](const auto& items) {
+    std::wcout << items[idx] << std::endl;
+};
+
+loadItem(v); // prints: one
+loadItem(d); // prints: three
+#+end_src
+
+* non lambda, tmplate
+template<typename Container>
+void loadItem(const Container& items, size_t idx) {
+    // items[idx] is available
+    std::wcout << items[idx] << std::endl;
+}
+
+* Bonus: Constraints (C++20 Concepts)
+#include <concepts>
+#include <vector>
+#include <deque>
+#include <iostream>
+
+template<typename T>
+concept BracketIndexable = requires (const T& t, size_t i) {
+    { t[i] } -> std::convertible_to<const std::wstring&>;
+};
+
+auto loadItem = [&](const BracketIndexable auto& items) {
+    std::wcout << items[idx] << std::endl;
+};

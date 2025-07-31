@@ -1,3 +1,23 @@
+* capturing by reference into a detached thread is dangerous:
+
+Don't capture local variables by reference into a detached thread--they might be gone.
+It's safe for members via this (assuming the object lives long enough).
+std::thread([this, notifyFun]() { ...  notifyFun();}).detach();
+
+* start a new detch thread is async
+#+begin_src cpp
+// the aller should not access full content of use the variable being modified until notified!
+void HistoryManager::filterModifyItemThread(const std::wstring& pat, std::function<void()> notify) {
+  std::thread([notify, this]() {
+    for (const auto& item : this->items_) {
+      if (string_util::fuzzy_match(pat, item)) {
+        std::lock_guard<std::mutex> lock(filtered_items_mtx);
+        this->filtered_items_.push_back(item);
+      }
+      notify();
+    }).detach();
+#+end_src
+}
 * pass args to thread function
 never Pass Non-copable/Movable Object by value
 | What you want to pass                  | Correct way in thread pool               | Notes                            |
@@ -279,3 +299,90 @@ int main() {
     }
     return 0;
 }
+
+* mutable
+
+mutable std::mutex items_mtx; // mutable 允许 const 成员函数加锁
+
+const std::deque<std::wstring>& HistoryManager::all() const {
+    std::lock_guard<std::mutex> lock(items_mtx);
+    return items_;
+}
+
+* two var, two lock
+std::thread([&, filterDone, this]() {
+    if (pat.empty()) {
+        std::lock_guard<std::mutex> lock(filtered_items_mtx);
+        this->filtered_items_ = this->items_; // 读取权限冲突
+    }
+});
+
+* thread safe
+#+begin_src cpp
+
+// size() and [] are thread safe, but not the combination
+auto sz = history_.size();
+if (idx >= 0 && idx < (int)sz) {
+    std::wstring sel = history_[idx];
+    history_.add(sel);
+}
+#+end_src
+
+Each Individual Call Is Thread-Safe…
+Each call to size() and operator[] is thread-safe as you lock around the underlying container.
+
+...But Not the Combo
+NO. The sequence is NOT thread-safe, due to a classic "check-then-use" data race.
+
+# **
+** with functor
+void with_items(std::function<void(const std::deque<std::wstring>&)> fn) const {
+    std::lock_guard<std::mutex> lock(filtered_items_mtx);
+    fn(filtered_items_);
+}
+** template
+template<typename Func>
+void with_items(Func&& fn) const {
+    std::lock_guard<std::mutex> lock(filtered_items_mtx);
+    fn(filtered_items_);
+}
+** do not need move a functor
+with_items(lambda is ok)
+with_items(std::move(lambda)); unnecessary
+
+`std::move` is generally used when you want to **move** an object into a function (e.g., when passing a container as an rvalue).
+
+#+begin_src cpp
+std::vector<int> v = ...;
+do_something_with_items(std::move(v));
+#+end_src
+But for lambdas, you don’t need `std::move` on the lambda **unless** you are moving a named lambda already defined elsewhere (very unusual).
+
+** move-capture in a lambda
+If you're trying to move some object into your lambda (not into with_items), you can move-capture it like this (C++14 and higher):
+
+#+begin_src cpp
+auto foo = std::make_unique<MyClass>();
+history_.with_items([bar = std::move(foo)](const auto& items) {
+    // Use bar inside here: bar is moved into the lambda's closure
+});
+#+end_src
+** return mutext protected reference is dangerous
+#+begin_src cpp
+const std::deque<std::wstring>& HistoryManager::all() const {
+    std::lock_guard<std::mutex> lock(filtered_items_mtx);
+    return filtered_items_;
+}
+#+end_src
+As soon as the function returns, the lock is released, and any code that then accesses the returned reference is not protected by the mutex. If other threads modify filtered_items_ concurrently, this leads to undefined behavior and possible crashes.
+
+- return by value
+- define a with_items function, pass in a callback
+
+* pit
+    在history模式下 输入c: 会调用history.filterAsync(callback),这里启动一个线程执行过滤，然后执行callback
+在callback里会更新UI界面。
+但是紧接着输入 \  , 变成了 c:\  ，模式变成了filebrowser, filebrowser会执行它的filter，过滤出c盘内容更新到界面上。
+这时候会出现(迅速输入c:\时)无法显示c盘内容。因为实际上显示了，被history调用的callback的更新覆盖了ui
+处理方法是在callback中检查当前的mode
+另外也许可以不在callback中直接操作ui，而是postmessage到ui线程，接收到消息时根据实际mode处理(未尝试)

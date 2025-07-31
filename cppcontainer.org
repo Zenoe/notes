@@ -1,0 +1,39 @@
+
+* map
+| What you want          | How to do it                            | C++ Version |
+| Check if key exists    | code_map.find(key)                      | All         |
+| Check if key exists    | code_map.contains(key)                  | C++20+      |
+| Insert or update value | code_map[key] = value                   | All         |
+| Access value safely    | code_map.at(key) (throws if not exists) | All         |
+TL;DR:
+For existence check, never use code_map[key]—prefer find (all versions) or contains (C++20+).
+
+| const auto& s = code_map[k];    | Yes | Avoid if you don't want to insert           |
+| string_view sv = code_map[k];   | Yes | Same as above                               |
+| auto it = code_map.find(k); ... | No  | Preferred, safe for existence-check-and-use |
+
+auto it = code_map.find("0419");
+if (it != code_map.end()) {
+    std::string_view sv = it->second; // or const auto& s = it->second;
+    // Use sv or s safely here
+}
+
+
+
+* iterator
+auto it = code_map.find("0419");
+the type of it is std::map<std::string, std::string>::iterator
+
+If code_map is const, then:
+std::map<std::string, std::string>::const_iterator
+
+** should you use const auto& it = ...  *no*
+Iterators are lightweight objects, not large structures.
+You want a local copy rather than a reference to the iterator—you’re not trying to bind to the iterator in the map, just use it.
+Using const auto& means you're referencing a temporary (find()'s return value), which is not necessary and may be confusing or dangerous.
+the same rule applies for iterators return from begin()
+
+* string vector --> strinv_view vector
+std::vector<std::string> strings = {"hello", "world"};
+// Convert vector<string> to vector<string_view> (safe if func doesn't store views)
+std::vector<std::string_view> views(strings.begin(), strings.end());

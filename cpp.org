@@ -1,4 +1,28 @@
 * vs
+** Ctrl+Shift+F12	视图.下一个错误
+** vsvim
+In order of priority, VsVim looks for a file named .vsvimrc or .vimrc in:
+ C:\Users\yourusername\.vsvimrc or C:\Users\yourusername\.vimrc
+Project root folder (if a solution is loaded): At the root of the current solution/project, same filename(s).
+#+begin_src bash
+set incsearch             " Highlight matches as you type
+set hlsearch              " Highlight all search results
+set ignorecase            " Case-insensitive search
+set smartcase             " Unless uppercase in pattern
+set clipboard=unnamedplus " Use system clipboard
+set showcmd               " Show command in bottom bar
+vnoremap y "+y
+nnoremap yy "+yy
+let mapleader = ","
+" Save with <Leader>w (e.g., ,w)
+nmap <Leader>w :w<CR>
+
+" Quit with <Leader>q (e.g., ,q)
+nmap <Leader>q :q<CR>
+
+" Easy select all (like Ctrl-A in VS)
+nnoremap <Leader>a ggVG
+#+end_src
 ** 添加 src 为include 查找目录
 配置属性 -> C/C++ -> 常规
 右侧找到“附加包含目录”（Additional Include Directories）。
@@ -269,6 +293,7 @@ T && bind to rvalue of type T only
 
 * std::move
 casts an expression to an rvalue
+It casts its argument to an rvalue reference, telling the compiler: “it’s safe to steal/move data from this object now.”
 
 #+begin_src c++
 
@@ -479,6 +504,40 @@ std::vector<int> mydata = {1,2,3};
 append_data(mydata);         // copy
 append_data(std::move(mydata)); // move
 
+** string param
+| Function Arg            | Called with     | Copies made before stored                                  |
+| const std::wstring&     | lvalue (text)   | 1 (push_back copy for stack)                               |
+| const std::wstring&     | rvalue (L"abc") | 1 (temp created by compiler, then copied for stack)        |
+| std::wstring (by value) | lvalue          | 2 (copy for call, copy for storage) unless compiler elides |
+| std::wstring (by value) | rvalue          | 1 (move into arg, move/copy for storage)                   |
+#+begin_src cpp
+
+// define arg as const & or string_view is ok, avoiding copying on function call
+// the push_back will do the copy after all
+void push(const std::wstring & text, const size_t caret) {
+	if (undo_stack.size() < max_size) {
+		// push_back do the copy
+		undo_stack.push_back({ text, caret });
+              // if text is wstring_view
+		//undo_stack.push_back({ std::wstring(text), caret });
+	}
+	else {
+		undo_stack.erase(undo_stack.begin());
+	}
+}
+#+end_src
+
+** vector param
+|                                 | copy made? | can modify? | typical usage                      |
+| const std::vector<std::string>& | NO         | NO          | Best for large, read-only          |
+| const std::vector<std::string>  | YES        | NO          | Rarely, when you want a local copy |
+If the function parameter is by value, and you want to "give away" (move from) your vector, use:
+sort_items(std::move(xx));
+If you want to keep your local vector untouched, use:
+sort_items(xx);
+| Function Param                         | fun(item)       | fun(std::move(item)) |
+| void fun(std::vector<std::string>&& a) | Error! (lvalue) | OK (move, rvalue)    |
+| void fun(std::vector<std::string> a)   | OK (copy)       | OK (move)            |
 * Execution Order on Destruction
 After the destructor body has run the destructors of all data members are executed in reverse declaration order
 * Ownership
@@ -573,7 +632,7 @@ std::string_view sv1 { s };
 // view subrange
 std::string_view sv2 {begin(s)+2, begin(s)+5};
 std::string_view sv3 {begin(s)+2, end(s)};
-
+std::string_view s(text.data(), text.size() - 1); // all except last char
 ** outlive string
 std::string_view sv1 {std::string{"Text"}};
 cout << sv1; //  string object already destroyed!
@@ -714,6 +773,27 @@ class T
 T const & l = T{}; // lifetime extended
 T&& r = T{}; // lifetime extended
 T&& m = std::move(T{}); // temporary object destroyed, m is dangling reference
+
+std::string getStr() { return "Hello"; }  // Returns a temporary string
+const std::string& s = getStr();         // Lifetime extended!
+std::string s = getStr();  // Clean and efficient. Prefer return-by-value (let RVO/move semantics optimize):
+
+Why It Works:
+getStr() returns a temporary std::string (an rvalue).
+When you bind it to a const reference (const std::string&), C++ extends the lifetime of the temporary to match the reference's scope.
+s is now a valid reference until it goes out of scope.
+
+** Lifetime extension only occurs when:
+You bind a const T& (or T&& in C++11+) directly to a temporary.
+The temporary is not a local variable inside a function (i.e., it's a prvalue/xvalue).
+
+#+begin_src cpp
+const std::string& getBadRef() {
+    std::string tmp = "Hello";
+    return tmp;  // ❌ UB: `tmp` is a local, not a temporary
+}
+
+#+end_src
 * virtial function
 - 多态, 纯虚接口,
 dtor 要virtual 如果要通过父亲指针删除子对象
@@ -780,13 +860,13 @@ Moving a std::vector is cheap: it transfers ownership of the dynamically allocat
 
 ** return obj from a function
 before c++ 11, return by reference or pointer
-Return type	Risk or Limitation
-T& or const T&	Must return a reference to a valid object that outlives the call (e.g., global, static, or passed-in).
-T*	Requires heap allocation or lifetime management — risk of memory leaks.
-T (by value)	Used to be expensive, but now is safe and efficient in modern C++ due to RVO and moves.
-
-C++11–14	Return by value or move	Move semantics introduced
-C++17+	Return by value preferred	Copy elision is guaranteed
+| Return type    | Risk or Limitation                                                                                     |                            |
+| T& or const T& | Must return a reference to a valid object that outlives the call (e.g., global, static, or passed-in). |                            |
+| T*             | Requires heap allocation or lifetime management — risk of memory leaks.                                |                            |
+| T (by value)   | Used to be expensive, but now is safe and efficient in modern C++ due to RVO and moves.                |                            |
+|                |                                                                                                        |                            |
+| C++11–14       | Return by value or move                                                                                | Move semantics introduced  |
+| C++17+         | Return by value preferred                                                                              | Copy elision is guaranteed |
 
 ** 返回string
 by value is ok
@@ -1084,3 +1164,54 @@ Capturing the result of a function and testing it immediately (e.g., std::option
 ** special case
 if (auto x = foo()) { ... }
 – This is valid: it will test if x converts to true
+* std::function vs funtcion pointer
+| Feature                | Function Pointer | std::function                           |
+| Regular function       | ✅               | ✅                                      |
+| Lambda (no capture)    | ✅ (in C++11+)*  | ✅                                      |
+| Lambda (with capture)  | ❌               | ✅                                      |
+| Functor (object)       | ❌               | ✅                                      |
+| std::bind              | ❌               | ✅                                      |
+| Flexible assignment    | ❌               | ✅                                      |
+| Slight performance hit | No               | Minor (type-erasure, heap if capturing) |
+
+#+begin_src cpp
+// function pointer
+void load_async(void (*on_append)(const std::wstring&));
+void handle_line(const std::wstring& line) {
+    // do something
+}
+
+load_async(handle_line); // OK
+
+// std::function
+void load_async(std::function<void(const std::wstring&)> on_append);
+// Regular function
+void handle_line(const std::wstring& line) { ... }
+load_async(handle_line);
+
+// Lambda
+load_async([](const std::wstring& line) { ... });
+
+// Lambda with capture
+int count = 0;
+load_async([&count](const std::wstring& line) { ++count; ... });
+
+// Functor (struct with operator())
+struct Appender {
+  void operator()(const std::wstring& line) { ... }
+};
+Appender a;
+load_async(a);
+#+end_src
+
+* basic_string_view is template
+std::basic_string_view<char> (aka std::string_view)
+std::basic_string_view<wchar_t> (aka std::wstring_view)
+std::basic_string_view<char16_t> (aka std::u16string_view)
+std::basic_string_view<char32_t> (aka std::u32string_view)
+* std::filesystem::path::lexically_normal()
+ It simplifies things like redundant ., .., and extra slashes.
+| a/b/./c/../d/    | a/b/d/   |
+| /foo//bar/../baz | /foo/baz |
+| ../a/../b        | ../b     |
+| ./foo/bar        | foo/bar  |

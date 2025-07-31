@@ -1,0 +1,119 @@
+* debug print
+Windows GUI applications (using WinMain) don't automatically create a console window
+Output to std::cout goes to the standard output stream, which isn't visible
+
+
+** OutputDebugStringW(L"This will appear in the debug output\n");
+OutputDebugStringW() expects a null-terminated wide string (const wchar_t*)
+wstring input;...
+if (!input.empty()) {
+    wchar_t debugMsg[2] = { input.back(), L'\0' };
+    OutputDebugStringW(debugMsg);
+}
+** attach a console
+AllocConsole();
+FILE* f;
+freopen_s(&f, "CONOUT$", "w", stdout);
+freopen_s(&f, "CONOUT$", "w", stderr);
+
+** MessageBoxW(nullptr, L"Your message here", L"Title", MB_OK);
+
+** log to a file
+#include <fstream>
+
+void LogToFile(const std::wstring& message) {
+    std::wofstream logfile("log.txt", std::ios::app);
+    if (logfile) {
+        logfile << message << std::endl;
+    }
+}
+
+* Windows edit controls do not send WM_COMMAND/EN_CHANGE when Enter is pressed.
+EN_CHANGE is sent when the edit content changes, which is not triggered by Enter (\r); pressing Enter when nothing is happening doesn't insert a character (for a single-line edit), so EN_CHANGE doesn't happen at all.
+
+Instead, to react to the Enter key, you must handle the WM_KEYDOWN or WM_CHAR message for the edit control, or subclass it and handle keyboard input.
+
+* Conflicting max macro (common in Windows headers) with std::max
+Windows headers (like <windows.h>) sometimes define max as a macro, which interferes with std::max.
+Fix:
+Define NOMINMAX before including Windows headers:
+
+#define NOMINMAX
+#include <windows.h>  // If you're using Windows APIs
+Or use parentheses to avoid macro expansion:
+
+int a = (std::max)(3, 5);  // Prevents macro interference
+
+* Why Tab works for selection even without explicit VK_TAB processing in your EditProc?
+Answer:
+By default, in a standard Win32 dialog or form, pressing Tab in an edit control moves keyboard focus to the next control (here, maybe the ListBox), and if the ListBox is focused, Tab navigates its items or cycles back to other controls.
+However, in your current Win32 launcher, you have only an Edit and a ListBox as child controls. If the edit box does NOT handle VK_TAB, Windows processes it as a navigation key—moving focus to the next control (often landing in the listbox). Once the ListBox has focus, arrow and even tab navigation may end up moving selection within the ListBox.
+
+Alternatively, if you subclass the edit and return 0 for WM_KEYDOWN:VK_TAB (without calling DefSubclassProc), you eat the message, and Tab does nothing.
+If you do not handle it (DefSubclassProc or DefWindowProc), Tab works as Windows default, which is to change focus.
+
+In summary:
+
+If you do not process VK_TAB, Tab key will by default move the focus out of the edit box.
+If your listbox gets focus via Tab, keyboard navigation applies to the listbox.
+If you want to trap Tab (for autofill, for example), you must handle it yourself in your subclassed EditProc and return 0 to prevent default focus change.
+
+* a common issue with Win32 popups/tool windows. Even if you call SetFocus, the window activation order may prevent it, especially with WS_EX_TOOLWINDOW and some popup styles.
+You must ensure that:
+
+Your main window is active (call SetForegroundWindow)
+The edit control actually can accept focus, and you call SetFocus(edit_) after ShowWindow.
+
+        SetForegroundWindow(hwnd_);                 // <--- Ensure window is in front & active
+        SetActiveWindow(hwnd_);                     // <--- (sometimes needed for popup style)
+        SetWindowTextW(edit_, L"");
+        SetFocus(edit_);
+
+
+* WM_CHAR and WM_KEYDOWN
+both will process Ctrl+N, this would cause problem
+| Event      | Ctrl+N pressed? | What happens?       |
+| WM_KEYDOWN | Yes             | wParam == 'N'       |
+| WM_CHAR    | Yes             | wParam == 0x0E (SO) |
+
+** Alt+Backspace sends WM_SYSKEYDOWN rather than WM_KEYDOWN.
+| Key Combo     | Message Sent  | wParam  |
+| Backspace     | WM_KEYDOWN    | VK_BACK |
+| Alt+Backspace | WM_SYSKEYDOWN | VK_BACK |
+When the Alt key is involved (except with F10 or menu mnemonics), many keys generate WM_SYSKEYDOWN, not WM_KEYDOWN!
+Your code may look like:
+
+case WM_KEYDOWN:
+    // catches regular keys
+case WM_SYSKEYDOWN:
+    // catches keys pressed with Alt
+* EM_GETSEL (get cursor pos)
+HWND hwndEdit;          // Handle to your EDIT control
+DWORD start, end;
+
+// Send EM_GETSEL. (WPARAM and LPARAM are pointers to UINTs)
+DWORD ret = SendMessage(hwndEdit, EM_GETSEL, (WPARAM)&start, (LPARAM)&end);
+
+// If nothing is selected, start == end == caret position
+printf("Caret position: %lu\n", (unsigned long)start);
+
+start is equal to LOWORD(ret);
+end is equal to HIWORD(ret)
+
+* CreateWindowEx's param (HMENU)1 is WM_COMMAND LOWORD(wParam)
+Menu Handle for top wnd, Control ID for child wnd
+(HMENU)1 assigns your edit control the ID 1. When you get a WM_COMMAND, you use LOWORD(wParam) to check which control sent the message—that will be 1 for your edit box, because you assigned it.
+
+* listview :comctl32:
+better to initlize in the winmain
+
+INITCOMMONCONTROLSEX icex = { sizeof(icex), ICC_LISTVIEW_CLASSES };
+InitCommonControlsEx(&icex);
+
+why can be ommited:
+- On most modern systems, the common controls DLL (comctl32.dll) is already initialized and can provide ListView/TreeView/etc. without explicit initialization.
+- This is especially true for programs using Unicode, and for applications running in modern environments where the correct version of comctl32.dll is loaded automatically by your manifest or by Windows itself.
+* hinstance and GetModuleHandle(nullptr)
+hInstance and the result of GetModuleHandle(nullptr) do represent the current module's instance handle
+- In a single EXE app, either is fine (they're the same).
+- In a DLL registering a global window class, you would use the DLL's instance handle (via GetModuleHandle(L"mydll.dll")).

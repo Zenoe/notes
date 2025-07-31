@@ -1,0 +1,56 @@
+#+title: Cppcodestyle
+* not good
+        auto it = log_script_map.find(logdir.filename());
+        if(it != log_script_map.end())
+        {
+        string_view scriptDir = it->second;
+        if (auto found_path = find_file("/root/work/script/" + std::string(scriptDir),
+                                        std::string(caseId) + ".txt"))
+        cout << *found_path << '\n';
+        }
+
+* better
+        if(auto it = log_script_map.find(logdir.filename().string()); it != log_script_map.end())
+            {
+              string fullPath = "/root/work/script/" + string(it->second);
+              cout << "fullPath: " << fullPath << '\n';
+              if (auto found_path = find_file(fullPath, string(caseId) + ".txt"))
+                cout << *found_path << '\n';
+            }
+
+* Helper Class?
+*Win32 message procedures (and similar event-handler patterns) grow, refactoring is crucial for readability and maintainability*
+*You can put stateless helpers in a GuiHelper class as static methods, especially for reusable, generic UI logic (formatting, dialog creation, message box helpers, etc).
+But for event routing that uses self, prefer member functions on your window/view class (so you have access to your state/data).
+
+Keep the message proc as a dispatcher, delegate actual logic to methods.
+Each logical "handler" is a member function, making code maintainable and testable.
+
+* Always use explicit blocks for mutex guards if your function does more work than just holding the lock
+#+begin_src cpp
+
+std::thread([this, on_batch] {
+  std::wifstream in(L"alfred_history.txt"); //C26115
+  std::lock_guardstd::mutex lk(this->loaded_mtx);
+ }).detach();
+
+std::thread([this, on_batch] {
+  std::wifstream in(L"alfred_history.txt"); //no warning
+  {
+    std::lock_guard<std::mutex> lk(this->loaded_mtx);
+  }
+ }).detach();
+
+#+end_src
+
+* auto* batchCopy = new std::vector<std::wstring>(batch);
+auto*:  Deduces the type as a pointer to std::vector<std::wstring>
+
+new allocates memory from the heap for an object.
+std::vector<std::wstring>(batch) constructs a copy of the argument batch (which is a const reference to a std::vector<std::wstring>) by calling the vector's copy constructor.
+
+why use this:
+Often, when passing objects asynchronously or across threads, you want a separate, heap-allocated copy for later or different thread usage.
+
+// more efficiency, but Don't use std::move on const variables
+auto* pBatch = new std::vector<std::wstring>(std::move(batch));
