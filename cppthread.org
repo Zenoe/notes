@@ -386,3 +386,12 @@ As soon as the function returns, the lock is released, and any code that then ac
 这时候会出现(迅速输入c:\时)无法显示c盘内容。因为实际上显示了，被history调用的callback的更新覆盖了ui
 处理方法是在callback中检查当前的mode
 另外也许可以不在callback中直接操作ui，而是postmessage到ui线程，接收到消息时根据实际mode处理(未尝试)
+// When done (result_ptr could be some pointer or just 0)
+PostMessage(hwndMainWindow, WM_APP + 1, (WPARAM)result_ptr, 0);
+// in wndproc
+case WM_APP+1:
+    {
+        std::unique_ptr<std::vector<FileEntry>> results(reinterpret_cast<std::vector<FileEntry>*>(wParam));
+        // Use *results...
+        // Your code to set browser_.results() and update ListView ...
+    }

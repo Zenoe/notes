@@ -492,6 +492,53 @@ Even for large objects, consider unique_ptr when:
 3. Optional/nullable return - When you need to potentially return "no object" (nullptr)
 4. Object lifetime requirements - When the object must outlive the current scope
 
+
+
+
+
+* share_ptr 操作
+
+** 容器类型改为 share_ptr 后代码修改
+#+begin_src cpp
+std::shared_ptr<std::deque<std::wstring>> items_ = std::make_shared<std::deque<std::wstring>>();
+// 要初始化后才可以 items_->push_back(xxx);
+std::deque<std::wstring> filtered_items_;
+// change to shared_ptr
+std::shared_ptr<std::dequestd::wstring> filtered_items_;
+
+// this->filtered_items_ = this->items_;// shallow copy
+// --->
+this->filtered_items_ = std::make_shared<std::deque<std::wstring>>(*this->items_);
+
+std::deque<std::wstring> items_copy;
+items_copy = this->items_;
+// --->
+items_copy = *this->items_;
+filtered_items_ = std::move(result);
+// --->
+filtered_items_ = std::make_shared<std::deque<std::wstring>>(std::move(result));
+
+filtered_items_.push_back(xxx)
+// --->
+filtered_items_->push_back(xxx)
+
+
+const std::deque<std::wstring>& HistoryManager::all() const {
+  // if filtered_items_ is nullptr, cause UB
+  return *filtered_items_;
+}
+// return a copy
+std::deque<std::wstring> HistoryManager::all() const {
+    std::lock_guard<std::mutex> lock(filtered_items_mtx);
+    return filtered_items_ ? *filtered_items_ : std::deque<std::wstring>{};
+}
+// better return a shared_ptr
+std::shared_ptr<const std::deque<std::wstring>> HistoryManager::all() const {
+    std::lock_guard<std::mutex> lock(filtered_items_mtx);
+    return filtered_items_;
+}
+
+#+end_src
 * function param
 
 | void f(std::vector<T>&&)      | Function steals/consumes the parameter   |
@@ -712,6 +759,12 @@ std::cout << add(5, 3);  // Outputs 8
 
 ** Capture Clauses
 Lambdas can capture variables from their enclosing scope:
+*** this-> is optional when referring to member variables inside class member functions or lambdas that capture [this].
+both are functionally identical
+
+filter_cv_.wait(lock, [this] { return stop_ || new_request_; });
+
+filter_cv_.wait(lock, [this] { return this->stop_ || this->new_request_; });
 *** Capture by value (makes a copy):
 int x = 10;
 auto lambda = [x]() { std::cout << x; };

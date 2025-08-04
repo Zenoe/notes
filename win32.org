@@ -117,3 +117,37 @@ why can be ommited:
 hInstance and the result of GetModuleHandle(nullptr) do represent the current module's instance handle
 - In a single EXE app, either is fine (they're the same).
 - In a DLL registering a global window class, you would use the DLL's instance handle (via GetModuleHandle(L"mydll.dll")).
+
+* WM_CHAR WM_KEYDOWN
+edit control uses WM_CHAR to process (insert/delete) text, NOT just WM_KEYDOWN
+For standard EDIT controls, both WM_KEYDOWN and WM_CHAR can be involved in backspace handling.
+
+WM_KEYDOWN(VK_BACK) is sent when the physical key is pressed.
+WM_CHAR('\b') is sent as a character input.
+
+在 WM_KEYDOWN 自定义处理，会发现比实际的要少一个字符，因为默认的 WM_CHAR 会悄悄执行 backspace
+直接在 WM_CHAR 里处理即可
+** efficient way to handle backspace
+Get the selection range with EM_GETSEL.
+If nothing is selected, move the start selection one character left (if possible).
+Replace the selected text (single character or selection) with an empty string using EM_REPLACESEL.
+#+begin_src cpp
+    DWORD selStart, selEnd;
+    SendMessageW(hwnd, EM_GETSEL, (WPARAM)&selStart, (LPARAM)&selEnd);
+
+    if (selStart == selEnd)
+    {
+        if (selStart == 0)
+            return; // At start, nothing to delete
+
+        // Get full text to handle surrogate pairs (optional, for Unicode correctness)
+        int len = GetWindowTextLengthW(hwnd);
+        std::wstring buf(len, 0);
+        GetWindowTextW(hwnd, &buf[0], len + 1);
+        size_t prev = selStart - 1;
+        // Set the selection to the char before the caret
+        SendMessageW(hwnd, EM_SETSEL, prev, selStart);
+    }
+    // 2. Delete the selected text (or the single character)
+    SendMessageW(hwnd, EM_REPLACESEL, TRUE, (LPARAM)L"");
+#+end_src
