@@ -1,0 +1,57 @@
+*  template specialization
+The primary template template<typename CharT> bool is_space(CharT ch) is a generic version that could work for any character type,
+but it lacks a definition (it’s just a declaration).
+This forces users to explicitly specialize it for supported types (char and wchar_t here), ensuring only safe, well-defined implementations are used.
+#+begin_src cpp
+template<typename CharT>
+bool is_space(CharT ch);
+
+template<>
+inline bool is_space<char>(char ch) {
+    return std::isspace(static_cast<unsigned char>(ch));
+}
+
+template<>
+inline bool is_space<wchar_t>(wchar_t ch) {
+    return std::iswspace(ch);
+}
+
+#+end_src
+** why not overloading
+#+begin_src cpp
+bool is_space(char ch) { ... }
+bool is_space(wchar_t ch) { ... }
+#+end_src
+using template specializations allows:
+- Consistent Interface: The same template name is_space<CharT> can be used uniformly in generic code.
+- SFINAE-Friendly: Template specializations can participate in SFINAE (Substitution Failure Is Not An Error) if needed.
+- Future Extensibility: If more character types (e.g., char8_t, char16_t) need support, additional specializations can be added without changing existing code.
+
+* nested type defined in a template
+If a class (or struct) inside a template refers to a nested type defined inside a template parameter, the compiler doesn't know whether you mean a type or static value. You must tell it that you mean a type by putting typename in front.
+在模板里使用内部嵌套的类型，编译器不知道你是用的是类型还是静态成员，因此需要用 typename 指定类型
+
+#+begin_src cpp
+template<typename CharT>
+class AhoCorasick {
+public:
+  using StringView = std::basic_string_view<CharT>;
+
+  struct Node {
+    // Use small-vector optimization if needed for larger alphabets
+    struct Edge {
+      CharT ch;
+      Node* next;
+    };
+  }
+  // referring Edge, should put typename in front
+    typename Node::Edge e; // correct
+  Edge e2;  // error: unknown symbol 'Edge'
+
+  // Lambda parameter list, typename is not required( not standard)
+  // Lambda parameter: no 'typename' required
+  auto lambda = [](const Node::Edge& e) { /* ... */ };
+  // Function parameter list, typename is Not required too
+}
+
+#+end_src
