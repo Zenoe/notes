@@ -1,0 +1,19 @@
+mysql 5.7 不支持
+使用Connector C++ 9.4编译后运行会出现SQL Error: Authentication plugin 'mysql_native_password' cannot be loaded: 找不到指定的模块
+新版mysql推荐使用的是 caching_sha2_password, 但是这里是mysql5.7
+
+使用mysql-connector-c++-8.x 编译链接,运行OK, 但是需要boost
+// cl.exe /EHsc /std:c++17 /I"C:\Program Files\MySQL\MySQL Connector C++ 9.4\include"  clidata.cpp /link /LIBPATH:"C:\Program Files\MySQL\MySQL Connector C++ 9.4\lib64\vs14" mysqlcppconn.lib
+// cl.exe /EHsc /std:c++17 /I"C:\portable\mysql-connector-c++-8.0.20-winx64\include" /I"C:\cpplib\boost_1_88_0" clidata.cpp /link /LIBPATH:"C:\portable\mysql-connector-c++-8.0.20-winx64\lib64\vs14" mysqlcppconn.lib
+
+
+#+begin_src sql
+
+SELECT ID,  CREATE_TIME FROM TEST_CASE_DATA_LOG
+WHERE PROJECT_ID = '7AFAEA50-BCF2-F190-6CA3-3A1AC2ED5BC9' and ANALYST_LOG like '%93293%'
+AND CREATE_TIME = (SELECT MAX(CREATE_TIME) FROM TEST_CASE_DATA_LOG WHERE PROJECT_ID = '7AFAEA50-BCF2-F190-6CA3-3A1AC2ED5BC9' AND ANALYST_LOG LIKE '%93293%')
+,-->
+better, more efficient
+SELECT TOP 1 ID, CREATE_TIME  FROM TEST_CASE_DATA_LOG WHERE PROJECT_ID = '7AFAEA50-BCF2-F190-6CA3-3A1AC2ED5BC9' AND ANALYST_LOG LIKE '%93293%' ORDER BY CREATE_TIME DESC
+
+#+end_src

@@ -1,0 +1,70 @@
+* write to file 中文乱码  :encoding:
+- std::ios::binary：指定以二进制模式打开文件。这意味着数据会原样写入，不进行任何换行符转换（和文本模式对比）。
+- std::ofstream本身不做编码转换：C++标准库的文件流类（如 std::ofstream）仅仅按字节写入/读取数据，对编码毫无感知。编码相关动作（比如ASCII、UTF-8、GBK等）全靠你写入时的内容本身决定。
+- std::ofstream(..., std::ios::binary)只是保证不发生“回车换行翻译”等行为。
+- Windows文本模式会自动把\n转换为\r\n。二进制模式不会。
+- 你可以往文件写入任何内容，包括结构体、图片、乱码皆可，编码完全看你自己。
+
+
+outfile << "中文abc";
+即使文件以二进制模式打开，<< 写入的字符串 "中文abc" 是根据你当前源码文件的编码保存的。如果你的源码就是 UTF-8 编码，并且整个操作系统和编辑器都能正确处理 UTF-8，那可能没事；但在很多情况下，尤其是 Windows 下，多半会是 GBK 或 ANSI，程序写入的并不是 UTF-8 字节流，查看容易乱码。
+
+标准解决办法是不要用 <<，而用 write()，并明确保证写入的是 UTF-8 字节流：
+
+推荐做法举例
+1. 源码保存为 UTF-8
+假如你用的是 C++11 或更新，推荐这样：
+
+#+begin_src cpp
+#include <fstream>
+#include <string>
+
+int main() {
+    std::ofstream outfile("output.bin", std::ios::binary);
+
+    // char* way
+    // u8 字符串字面量自动是 UTF-8 编码：
+    const char* utf8_str = u8"中文";
+    // 直接写入 UTF-8 字符流
+    outfile.write(utf8_str, std::strlen(utf8_str));
+
+    // string way
+    std::string data = u8"中文abc";    // u8前缀保证字符串是UTF-8
+
+    outfile.write(data.data(), data.size());  // 按字节写入
+
+    outfile.close();
+    return 0;
+}
+#+end_src
+
+这样 data 一定是 UTF-8 字节流，直接写入绝不会乱码。
+1. 不用 <<，而是 write()
+<< 只适合写纯英文、或者你所有环境都保证编码一致的场景。写二进制时，用 write()：
+
+outfile.write(data.data(), data.size());
+3. 验证
+用十六进制编辑器或支持 UTF-8 的文本编辑器打开 output.bin，会正确显示 “中文abc”。
+
+总结
+用 write() 按字节方式写入 UTF-8（std::string u8前缀）数据，保证结果不会乱码！
+用 << 不适合写 Unicode 中文到二进制，容易受编译器、系统编码影响出现乱码。
+
+* std::filesystem::path::lexically_normal()
+ It simplifies things like redundant ., .., and extra slashes.
+| a/b/./c/../d/    | a/b/d/   |
+| /foo//bar/../baz | /foo/baz |
+| ../a/../b        | ../b     |
+| ./foo/bar        | foo/bar  |
+
+* 斜杆转换为反斜杠
+#+begin_src cpp
+#include <filesystem>
+namespace fs = std::filesystem;
+
+    std::wstring path = L"c:/book/Ab";
+    // 使用 std::filesystem::path 进行转换
+    fs::path p(path);
+    p.make_preferred(); // 将斜杠转换为当前系统的首选格式（Windows 上是反斜杠）
+    std::wstring converted_path = p.wstring();
+#+end_src

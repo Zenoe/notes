@@ -395,3 +395,41 @@ case WM_APP+1:
         // Use *results...
         // Your code to set browser_.results() and update ListView ...
     }
+
+* process in parallel
+#+begin_src cpp
+
+#include <future>
+// simplified: read file to buffer, then split lines
+std::vector<std::wstring> load_lines_parallel(const std::wstring& filename) {
+  std::wifstream in(filename);
+  if (!in) return {};
+  std::vector<std::wstring> lines;
+  std::wstring line;
+  while (std::getline(in, line)) lines.push_back(std::move(line));
+
+  // process (e.g. filter non-empty) in parallel
+  size_t n = lines.size();
+  size_t num_threads = std::thread::hardware_concurrency();
+  std::vector<std::future<std::vector<std::wstring>>> futures;
+  size_t chunk = n / num_threads;
+  for (size_t i = 0; i < num_threads; ++i) {
+    size_t b = i * chunk, e = (i == num_threads-1) ? n : (i+1)*chunk;
+    futures.push_back(std::async([b, e, &lines] {
+      std::vector<std::wstring> result;
+      for (size_t j = b; j < e; ++j)
+        if (!lines[j].empty()) result.push_back(lines[j]);
+      return result;
+    }));
+  }
+  // gather all results
+  std::vector<std::wstring> filtered;
+  for (auto& fut : futures) {
+    auto tmp = fut.get();
+    filtered.insert(filtered.end(), std::make_move_iterator(tmp.begin()), std::make_move_iterator(tmp.end()));
+  }
+  return filtered;
+}
+#+end_src
+
+* don't lock a mutex twice in the same thread
