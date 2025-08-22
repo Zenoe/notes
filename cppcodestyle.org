@@ -54,3 +54,20 @@ Often, when passing objects asynchronously or across threads, you want a separat
 
 // more efficiency, but Don't use std::move on const variables
 auto* pBatch = new std::vector<std::wstring>(std::move(batch));
+
+* improve
+#+begin_src cpp
+
+// create a single found vector outside the loop and std::fill(found.begin(), found.end(), false) before each use.
+// This eliminates allocation/deallocation every iteration.
+std::vector<bool> found(pattern_views.size(), false);
+for (const auto& item : items) {
+  // std::vector<bool> found(pattern_views.size(), false); // move outside of loop
+  std::fill(found.begin(), found.end(), false); // add this line(Reuse and reset)
+  std::wstring_view item_view = extractor(item);
+  ac.search(item_view, found);
+  if (std::all_of(found.begin(), found.end(), [](bool b) { return b; })) {
+    result.push_back(item);
+  }
+}
+#+end_src

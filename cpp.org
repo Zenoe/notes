@@ -34,6 +34,7 @@ nnoremap <Leader>a ggVG
 $(ProjectDir)src
 这里 $(ProjectDir) 是项目所在目录的宏，表示项目根目录。
 * g++
+need compile_commands.json in project root // ref emacs.org
 g++ -version
 C++20 requires GCC 11 or later
 
@@ -494,8 +495,40 @@ Even for large objects, consider unique_ptr when:
 
 
 
+* unique_ptr
+error: 尝试引用已删除的函数
 
+std::unique_ptr不能拷贝，只能移动
+#+begin_src cpp
 
+std::vector<std::unique_ptr<ClipItem>> Clipboard::getItems(int start, int limit ) {
+    return filteredItems;  // ❌ 错了，禁止拷贝
+    return std::move(filteredItems);// ✅ OK
+}
+// 如果你不想清空 filteredItems（即不想所有权转移），而只是想把内容“提供只读访问”，你应该返回一个引用或者 const 引用：
+const std::vector<std::unique_ptr<ClipItem>>& Clipboard::getItems(int start, int limit ) const {
+    return filteredItems;
+}
+const auto& items = clipboard_.getItems(); // ✅
+auto items = clipboard_.getItems(); // ❌ auto 不会自动推断引用
+
+std::vector<std::unique_ptr<T>> v;
+std::unique_ptr<T> item = ...;
+v.push_back(item);              // ❌ 错了，禁止拷贝
+v.push_back(std::move(item));   // ✅ OK
+
+auto vec = getRecord(...);
+for (auto item : vec) {         // ❌ 错了，item 是拷贝
+    ...
+}
+for (auto& item : vec) {        // ✅ OK，item 是引用，可以move
+    ...
+}
+
+auto vec1 = getRecord(...);
+std::vector<std::unique_ptr<T>> vec2 = vec1; // ❌ 编译报错
+std::vector<std::unique_ptr<T>> vec2 = std::move(vec1); // ✅
+#+end_src
 * share_ptr 操作
 
 ** 容器类型改为 share_ptr 后代码修改

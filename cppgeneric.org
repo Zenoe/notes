@@ -35,3 +35,76 @@ concept BracketIndexable = requires (const T& t, size_t i) {
 auto loadItem = [&](const BracketIndexable auto& items) {
     std::wcout << items[idx] << std::endl;
 };
+
+* function supports diff containers with customData
+Use templates for container and item types.
+Use SFINAE or a custom "extractor" (lambda or function pointer) to get the string view from the item.
+#+begin_src cpp
+#include <vector>
+#include <deque>
+#include <string>
+#include <string_view>
+#include <functional>
+#include <algorithm>
+// Assume AhoCorasick and string_util are already implemented as in your code.
+template <
+    typename Container,
+    typename Extractor = std::function<std::wstring_view(const typename Container::value_type&)>
+>
+Container filterContainerWithPats(
+    const Container& items,
+    const std::wstring& pat,
+    Extractor extractor = [](const auto& item) -> std::wstring_view {
+        // Default: just return the string view if the value_type is std::wstring
+        if constexpr (std::is_same_v<std::decay_t<decltype(item)>, std::wstring>) {
+            return std::wstring_view(item);
+        } else {
+            static_assert(sizeof(item) == 0,
+                "Please provide a custom extractor for custom types!");
+        }
+    }
+) {
+    Container result;
+    std::vector<std::wstring> pats = string_util::split_by_space(pat);
+    std::vector<std::wstring_view> pattern_views;
+    pattern_views.reserve(pats.size());
+    for (const auto& s : pats)
+        pattern_views.emplace_back(s);
+
+    // Build Aho-Corasick ONCE
+    AhoCorasick<wchar_t> ac;
+    ac.build(pattern_views);
+
+    for (const auto& item : items) {
+        std::wstring_view item_view = extractor(item);
+        std::vector<bool> found(pattern_views.size(), false);
+        ac.search(item_view, found);
+        if (std::all_of(found.begin(), found.end(), [](bool b) { return b; })) {
+            result.push_back(item);
+        }
+    }
+
+    return result;
+}
+
+// example
+std::vector<std::wstring> items = {L"apple orange", L"banana apple", L"cherry"};
+std::wstring pat = L"apple orange";
+
+auto filtered = filterContainerWithPats(items, pat);
+// filtered is vector<wstring> containing only those with all patterns.
+
+struct CustomData {
+    std::wstring name;
+    // ... other fields
+};
+
+std::vector<CustomData> items = { ... };
+
+// Provide an extractor for name:
+auto filtered = filterContainerWithPats(
+    items,
+    L"pattern1 pattern2",
+    [](const CustomData& d) -> std::wstring_view { return d.name; }
+);
+#+end_src
