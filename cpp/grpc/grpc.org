@@ -1,0 +1,59 @@
+* Key Parts of gRPC
+| Component              | Description              | Role                                 |
+| .proto files           | API & message definition | Defines communication schema         |
+| protoc                 | Proto compiler           | Code gen for messages & APIs         |
+| protoc-gen-grpc-<lang> | gRPC plugin for protoc   | Generates service/stub classes       |
+| gRPC Core Library      | Transport/runtime        | Handles network, serialization, etc. |
+| gRPC C++ Library       | C++ language bindings    | User-facing API for server/client    |
+|                        |                          |                                      |
+
+** Typical C++ gRPC Project Workflow
+Define your API in a .proto file.
+Run protoc (with protoc-gen-grpc-cpp, plugin)
+Generates:
+C++ classes for messages (from proto definitions)
+C++ abstract base service class (for server implementation)
+C++ stub class (for client code)
+Implement your server (by subclassing the service base class) and client (using the stub).
+Link against gRPC C++ libraries and Protobuf C++ runtime  (libgrpc++, libprotobuf, etc.)
+
+
+install protobuf c++ runtime sudo apt-get install libprotobuf-dev protobuf-compiler
+
+helloworld.pb.cc = protobuf messages
+helloworld.grpc.pb.cc = gRPC service interface and client stubs (RPC code)
+
+* grpcpp/grpcpp.h: No such file or directory
+- Removed the old-style variables: Don't use ${GRPC_LIBRARIES}, ${GRPC_INCLUDE_DIRS}, ${Protobuf_LIBRARIES}, or ${Protobuf_INCLUDE_DIRS}
+
+- Used the modern target-based approach: Use gRPC::grpc++ and protobuf::libprotobuf targets instead, which automatically handle include directories and linking
+
+- The modern CMake targets (gRPC::grpc++ and protobuf::libprotobuf) automatically propagate all necessary include directories, compile definitions, and link dependencies, so you don't need to manually specify them with target_include_directories().
+
+* #error "Protobuf C++ gencode is built with an incompatible version of"
+If your CMake project does not use find_package(gRPC CONFIG REQUIRED), you might be using a different (possibly system-installed) Protobuf than gRPC was built with.
+
+- find_package(gRPC CONFIG REQUIRED) locates the gRPC CMake configuration and its exported targets, which in turn depend on the right version of Protobuf.
+- When you link your target to gRPC::grpc++ (which is set up by the config), CMake will also set up protobuf::libprotobuf to match the version gRPC expects.
+** find_package(gRPC CONFIG REQUIRED)
+This command in CMake tries to locate and configure an external package (library).
+gRPC: The name of the package; in this case, the gRPC RPC (Remote Procedure Call) framework by Google.
+CONFIG: Tells CMake to look for a CMake package configuration file (gRPCConfig.cmake) instead of a Find module (FindgRPC.cmake).
+REQUIRED: Causes the configure step to fail if the package is not found.
+
+** You need to have gRPC installed with CMake package configuration files.
+Pre-built binaries from some distributions may not provide these; you sometimes may need to build gRPC from source using CMake (cmake .. -DgRPC_BUILD_CMAKE_PACKAGE=ON) to ensure it generates gRPCConfig.cmake.
+The path to these config files must be in your CMAKE_PREFIX_PATH or CMAKE_MODULE_PATH.
+
+#+begin_src bash
+git clone -b v1.59.0 https://github.com/grpc/grpc
+cd grpc
+git submodule update --init
+mkdir -p cmake/build
+cd cmake/build
+cmake ../.. -DgRPC_BUILD_CMAKE_PACKAGE=ON -DCMAKE_INSTALL_PREFIX=/your/prefix
+make -j
+make install
+#+end_src
+
+find_package(gRPC CONFIG REQUIRED) is the best modern way to use gRPC in a CMake project as long as you have a proper gRPC CMake package installation.

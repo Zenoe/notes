@@ -71,3 +71,15 @@ for (const auto& item : items) {
   }
 }
 #+end_src
+
+* return value of getRecordFromDB(...)
+
+// T 是 POD 或纯数据对象
+// recommanded. 设计简单、性能好，且最容易理解和维护
+std::vector<MyStruct> getRecord(...);
+
+// 多态体系、有自定义资源管理
+std::vector<std::unique_ptr<BaseClass>> getRecord(...);
+
+// 需要共享
+std::vector<std::shared_ptr<BaseClass>> getRecord(...);
