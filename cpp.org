@@ -1301,3 +1301,42 @@ std::basic_string_view<char32_t> (aka std::u32string_view)
 | /foo//bar/../baz | /foo/baz |
 | ../a/../b        | ../b     |
 | ./foo/bar        | foo/bar  |
+
+* placement new
+#+BEGIN_SRC cpp
+#include <iostream>
+#include <new>      // placement new 所需
+
+struct Foo {
+    int x, y;
+    Foo(int a, int b) : x(a), y(b) {
+        std::cout << "Foo constructed: x = " << x << ", y = " << y << std::endl;
+    }
+    ~Foo() {
+        std::cout << "Foo destructed: x = " << x << ", y = " << y << std::endl;
+    }
+};
+
+int main() {
+    // 普通 new: 分配内存并调用构造函数
+    Foo* ptr1 = new Foo(1, 2);
+
+    // placement new:
+    // 1. 自己分配一片原始内存
+    // operator new(sizeof(Foo))：其实就是 malloc，只分配内存，不构造对象
+    void* raw = operator new(sizeof(Foo));  // 仅分配内存，不调用构造函数
+
+    // 2. 在这片自定义内存上构造对象
+    Foo* ptr2 = new (raw) Foo(3, 4);        // 这里才会调用构造函数
+
+    // 使用对象
+    std::cout << "ptr2: x = " << ptr2->x << ", y = " << ptr2->y << std::endl;
+
+    // 正确释放
+    delete ptr1;                            // 正常 delete
+    ptr2->~Foo();                           // 显式析构（只析构对象，不释放内存）
+    operator delete(raw);                   // 释放内存
+
+    return 0;
+}
+#+END_SRC

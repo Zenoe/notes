@@ -83,3 +83,26 @@ std::vector<std::unique_ptr<BaseClass>> getRecord(...);
 
 // 需要共享
 std::vector<std::shared_ptr<BaseClass>> getRecord(...);
+* it is generally not necessary to define std::unique_ptr<SqliteDB> db_ in the Clipboard class.
+SqliteDB class is already RAII-compliant:
+
+It closes itself in destructor.
+Non-copyable, but moveable.
+Does not require dynamic allocation for normal usage.
+
+#+begin_src cpp
+
+class Clipboard {
+private:
+    SqliteDB db_; // recommended: value type (not pointer)
+
+    // or, if absolutely needed for polymorphism/flexible ownership:
+    // std::unique_ptr<SqliteDB> db_;
+};
+#+end_src
+
+Use std::unique_ptr<SqliteDB> only if:
+
+You need to manage its lifetime manually (e.g., may close/reopen/replace the db connection during Clipboard's lifetime).
+Or want to do dependency injection (e.g., test stubs/mock DB).
+Or need to use inheritance.

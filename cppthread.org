@@ -433,6 +433,10 @@ std::vector<std::wstring> load_lines_parallel(const std::wstring& filename) {
 #+end_src
 
 * don't lock a mutex twice in the same thread
+from ui, call fun1 lock mtx, in fun1 call fun2, and fun2 tries to lock the mtx. ---> error. nested locking.
+to support nested locking, use std::recursive_mutex
+
+if fun1 lock mtx, the later fun2 get called. this is fine. fun2 will wait for fun1 to finish
 
 * typical thread class
 #+begin_src cpp
@@ -465,3 +469,85 @@ void ClipboardManager::Monitor() {
     RemoveClipboardFormatListener(hwnd_);
 }
 #+end_src
+
+* std::async
+#+BEGIN_SRC cpp
+#include <future>
+#include <iostream>
+
+int task() { return 123; }
+
+int main() {
+// std::launch::async | std::launch::deferred (the default)
+    std::future<int> fut = std::async(std::launch::async, task); // Launches 'task' asynchronously
+    // Do other work here...
+    int value = fut.get();  // Blocks if the task hasn't finished, then gets result
+    std::cout << value << std::endl; // prints 123
+}
+
+#+END_SRC
+
+fut.get(): Waits for the async task to finish, then gets the int result.
+fut.wait(): Waits for the task to finish, but does not get the result.
+fut.valid(): True if the future is still associated with a result.
+std::future<int> is a "promise to deliver an int later".
+You retrieve the result with .get() after the async task finishes.
+* wait removing finishes before saving
+void HistoryManager::remove(int idx){
+// removing may be time cousuming, put it in bg thread? and save operation should be waiting if it does not finish
+items_->erase(std::remove(items_->begin(), items_->end(), text), items_->end());
+}
+
+void HistoryManager::save() {
+std::wofstream out(L"alfred_history.txt");
+for (const auto& s : *items_) out << s << L"\n";
+}
+
+** use mutext to achieve synchronization
+std::lock_guard<std::mutex> lock(data_mutex_); lock mtx in each function. save will wait if the mtx has been locked
+** remove in bg
+*** std::async
+#+BEGIN_SRC cpp
+std::future<void> items_erase_task_;
+
+void HistoryManager::remove(int idx){
+    // Start erase in a background thread using std::async
+    items_erase_task_ = std::async(std::launch::async, [this, text] {
+        std::lock_guard<std::mutex> lock2(items_mtx);
+        items_->erase(std::remove(items_->begin(), items_->end(), text), items_->end());
+    });
+}
+
+// Ensure previous erase completes before saving
+void HistoryManager::save() {
+    if (items_erase_task_.valid()) {
+        items_erase_task_.wait();
+    }
+    std::lock_guard<std::mutex> lock(items_mtx);
+    std::wofstream out(L"alfred_history.txt");
+    for (const auto& s : *items_) out << s << L"\n";
+}
+#+END_SRC
+
+*** std::thread
+#+BEGIN_SRC cpp
+std::thread items_erase_thread_;
+
+void HistoryManager::remove(int idx){
+    // If previous thread is still running, wait for it
+    if (items_erase_thread_.joinable()) items_erase_thread_.join();
+
+    items_erase_thread_ = std::thread([this, text] {
+        std::lock_guard<std::mutex> lock2(items_mtx);
+        items_->erase(std::remove(items_->begin(), items_->end(), text), items_->end());
+    });
+}
+
+// Wait for background erase before saving
+void HistoryManager::save() {
+    if (items_erase_thread_.joinable()) items_erase_thread_.join();
+    std::lock_guard<std::mutex> lock(items_mtx);
+    std::wofstream out(L"alfred_history.txt");
+    for (const auto& s : *items_) out << s << L"\n";
+}
+#+END_SRC
