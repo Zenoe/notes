@@ -14,3 +14,32 @@
 | bool + out param        | C style, multi-results          | Awkward, less safe/readable   | Old-style |
 | fs::path only           | Simple, idiomatic, easy         | Must define “not found” value | OK        |
 | std::optional<fs::path> | Most explicit & safe, idiomatic | Requires C++17+               | Preferred |
+
+
+be care with tmp string return by a function
+#+BEGIN_SRC cpp
+std::wstring joinWstrings(const std::vectorstd::wstring& lines) {
+  std::wostringstream oss;
+  bool first = true;
+  for (const auto& line : lines) {
+    if (!first) oss << L'\n';
+    oss << line;
+    first = false;
+  }
+  return oss.str();
+}
+}
+
+auto tmp = string_util::joinWstrings( data[i].matched_lines ).c_str();
+ListView_SetItemText(hList, lvi.iItem, 5, (LPWSTR)tmp);
+
+// string_util::joinWstrings(data[i].matched_lines) returns a temporary std::wstring.
+// .c_str() returns a pointer to internal data of that string.
+// The pointer is only valid for the lifetime of the string. Since you don’t keep it alive, the pointer may be invalid or point to deleted memory when ListView actually uses it (especially if it gets used asynchronously or after this call).
+// How to fix
+// Keep the std::wstring alive until after the API call and use its pointer.
+
+std::wstring joined = string_util::joinWstrings(data[i].matched_lines);
+// LVI expects pointer: use joined.c_str(), joined will be alive during the call.
+ListView_SetItemText(hList, lvi.iItem, 5, (LPWSTR)joined.c_str());
+#+END_SRC

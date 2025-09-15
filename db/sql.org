@@ -10,3 +10,80 @@ select from_unixtime(unix_timestamp(ymd,"yyyyMMdd"),"yyyy-MM-dd") from dwd_user_
 * select to_date(hours_sub(now(), 1)); => 2019-03-29
 * select hour(hours_sub(now(),1)) to get hour value
 * select now()  => 2019-03-29 14:38:20.273337000
+
+* sqlite3
+# Export table from source database
+sqlite3 mytools.db ".dump a" > table_a_dump.sql
+
+# Import into destination database
+sqlite3 srsautocase.db ".read table_a_dump.sql"
+
+** slow in searching  :数据量很大，记得先建索引:
+    std::string sql = "SELECT CASESUITE,CASENAME,CASEID,SCRIPTID,COMPOSITONNAME,REMARK,CASETXTCONTENT FROM srscase WHERE 1=1";
+    if (!suite.empty()) sql += " AND CASESUITE LIKE ?";
+    if (!name.empty()) sql += " AND CASENAME LIKE ?";
+    if (!id.empty()) sql += " AND CASEID LIKE ?";
+    if (!scriptid.empty()) sql += " AND SCRIPTID LIKE ?";
+    if (!module.empty()) sql += " AND COMPOSITONNAME LIKE ?";
+    if (!text.empty()) sql += " AND CASETXTCONTENT LIKE ?";
+    if (cbg) {
+        sql += " AND EXISTS (SELECT 1 FROM tcmgmt WHERE CASEDESCRIPTION = srscase.SCRIPTID )";
+    }
+    // 新建索引大大提高查询效率
+    CREATE INDEX idx_casedesc ON tcmgmt(CASEDESCRIPTION);
+
+** exists vs join
+精确匹配场景下（即 CASEDESCRIPTION = SCRIPTID），EXISTS 和 JOIN 性能对比如下：
+一、核心结论
+- 有索引时（给 CASEDESCRIPTION 建了索引），JOIN 和 EXISTS 性能几乎等价，差别很小，都是走索引，结果极快。
+- 数据量很大且结果去重时，JOIN 可能产生重复（尤其是 srscase 和 tcmgmt 关联有多个 CASEDESCRIPTION = SCRIPTID），需要用 DISTINCT 或 GROUP BY 去重；EXISTS 可天然去重（只判断“是否存在”）。
+- 筛选行仅需判断“是否存在”时（比如返回 srscase 表记录），EXISTS 语义更清晰，也略优于 JOIN。
+- 大部分数据库优化器会自动将简单 JOIN/EXISTS 转为最优方式，差距趋近于零。
+
+    只查主表数据，用 EXISTS 更佳、更简明清晰
+    要用副表数据或做复杂右/左连接、统计时，用 JOIN
+    如果只有主表过滤、追求性能、精确等号：EXISTS 推荐。
+    如果还要 tcmgmt 其它字段，JOIN 推荐。
+二、原理讲解
+1. JOIN
+#+BEGIN_SRC sql
+SELECT srscase.*
+FROM srscase
+JOIN tcmgmt ON tcmgmt.CASEDESCRIPTION = srscase.SCRIPTID
+
+[其它条件…]
+#+END_SRC
+实际上是将两个表合并。
+如果 tcmgmt 表里有多个 CASEDESCRIPTION = SCRIPTID，结果会有重复（笛卡尔积）。
+通常比 EXISTS 声明性强，但需要注意去重。
+2. EXISTS
+#+BEGIN_SRC sql
+SELECT srscase.*
+FROM srscase
+WHERE EXISTS (
+  SELECT 1 FROM tcmgmt WHERE CASEDESCRIPTION = srscase.SCRIPTID
+)
+[其它条件…]
+
+#+END_SRC
+只判断 tcmgmt 是否有一行满足条件。
+只返回 srscase 满足条件的去重行（不产生重复）。
+如果只查 srscase，不需要 tcmgmt 的字段，EXISTS 更简洁。
+
+三、性能测试结论
+- 对于精确匹配+有索引+不需要 tcmgmt 字段：EXISTS、JOIN 都很快。
+- 对于需要 tcmgmt 字段：JOIN。
+- 对于结果要求去重：EXISTS 天然去重，JOIN 需手动 DISTINCT。
+
+最佳实践代码
+SQL:
+
+SELECT CASESUITE,CASENAME,CASEID,SCRIPTID,COMPOSITONNAME,REMARK,CASETXTCONTENT
+FROM srscase
+WHERE 1=1
+  AND EXISTS (SELECT 1 FROM tcmgmt WHERE CASEDESCRIPTION = srscase.SCRIPTID)
+或者
+
+SELECT DISTINCT CASESUITE,CASENAME,CASEID,SCRIPTID,COMPOSITONNAME,REMARK,CASETXTCONTENT
+FROM srscase
+JOIN tcmgmt ON tcmgmt.CASEDESCRIPTION = srscase.SCRIPTID

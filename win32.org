@@ -151,3 +151,31 @@ Replace the selected text (single character or selection) with an empty string u
     // 2. Delete the selected text (or the single character)
     SendMessageW(hwnd, EM_REPLACESEL, TRUE, (LPARAM)L"");
 #+end_src
+
+* static control doesn't clear old text, when setwindowtext
+
+#+BEGIN_SRC cpp
+// 因为加了这个处理,(这个是为了让static 背景透明),static 无法正常刷新文本，解决方法是 return (LRESULT)GetSysColorBrush(COLOR_BTNFACE);
+case WM_CTLCOLORSTATIC: {
+            // Uniform background coloring - make labels blend with main window
+            // Default static control background appears as light gray and needs adjustment
+            HDC hdc = (HDC)wParam;
+            HWND hwndStatic = (HWND)lParam;
+            // 设置文本颜色（可选）
+            SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+            // 设置背景模式为透明
+            SetBkMode(hdc, TRANSPARENT);
+            // 返回空画刷实现透明背景
+            return (LRESULT)GetStockObject(NULL_BRUSH);  // When you use a NULL_BRUSH, Windows doesn't erase the previous text's background before drawing the new text.
+            return (LRESULT)GetSysColorBrush(COLOR_BTNFACE);
+}
+#+END_SRC
+
+* UINT_PTR
+#+BEGIN_SRC cpp
+HWND CreateLabel(HWND parent, LPCWSTR text, int x, int y, int w, int h, UINT_PTR id) {
+    //  64 位 Windows 上，HMENU 实际为指针型，强制转换低位 int 可能丢失高位数据，id 不要为int 类型
+    return CreateWindowEx(0, L"STATIC", text, WS_CHILD | WS_VISIBLE, x, y, w, h, parent, (HMENU)id, NULL, NULL);
+}
+
+#+END_SRC
