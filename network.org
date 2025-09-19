@@ -1,6 +1,143 @@
-﻿* 组播： 01:00:5E
+﻿* socket
+** if (setsockopt(server_socket_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {// 出错处理}
+SO_REUSEADDR
+套接字选项，允许端口被重复使用。
+即使 socket 正处于 TIME_WAIT 状态也能快速重新绑定。
+常用于服务器开发，服务器程序重启后,会出现“Address already in use”错误。
+
+&opt
+选项值的指针。
+通常是 int opt = 1;，表示打开 SO_REUSEADDR 选项。
+第 4 个参数要求传指针，目的是为了灵活设定不同类型、长度的选项值。
+
+** accept
+struct sockaddr_in client_addr;
+socklen_t len = sizeof(client_addr);
+int client_socket = accept(server_socket_, (struct sockaddr*)&client_addr, &len);
+
+accpet 第三个参数应该是指针，可以外传
+输入：告诉 accept client_addr 多大
+输出：accept 写入实际地址结构的长度（通常没变化）
+*** addr_len 可能会变成 IPv6 的长度
+#+BEGIN_SRC c
+// 支持 v4 v6 写法
+struct sockaddr_storage client_addr;
+socklen_t addr_len = sizeof(client_addr);
+
+int client_socket = accept(server_socket_, (struct sockaddr*)&client_addr, &addr_len);
+
+if (client_addr.ss_family == AF_INET) {
+    struct sockaddr_in* in = (struct sockaddr_in*)&client_addr;
+    // 处理 IPv4 地址
+} else if (client_addr.ss_family == AF_INET6) {
+    struct sockaddr_in6* in6 = (struct sockaddr_in6*)&client_addr;
+    // 处理 IPv6 地址
+}
+
+#+END_SRC
+
+**** 如果  server_socket_ 是 AF_INET 类型, 仅监听IPv4, 客户端只有通过 IPv4 才能连上你的这个 socket
+sockaddr_in 就足够了
+struct sockaddr_in client_addr;
+socklen_t len = sizeof(client_addr);
+int client_socket = accept(server_socket_, (struct sockaddr*)&client_addr, &len);
+**** server_socket_ 是 AF_INET6 类型 socket(AF_INET6, SOCK_STREAM, ...)
+假如你仍然声明 struct sockaddr_in client_addr; 用于存储客户端地址
+客户端是 IPv6 地址连过来的
+accept 实际会写入 sockaddr_in6 结构体内容到这块空间
+但是你的空间只有 sizeof(struct sockaddr_in)（16字节），而 IPv6 需要 sizeof(struct sockaddr_in6)（28字节）
+写入的时候会溢出/覆盖内存
+
+*** getsockname(target_socket, (sockaddr*)&local_addr, &addr_len);
+获取某个 socket 当前绑定的本地地址（即系统给这个 socket 分配了哪个 IP/端口）
+最后一个参数返回时被覆盖为实际地址长度
+#+BEGIN_SRC c
+struct sockaddr_storage local_addr;
+socklen_t addr_len = sizeof(local_addr);
+
+getsockname(target_socket, (struct sockaddr*)&local_addr, &addr_len);
+
+// 判断协议族并处理
+if (local_addr.ss_family == AF_INET) {
+    struct sockaddr_in *addr4 = (struct sockaddr_in*)&local_addr;
+    // 解析端口和IP
+} else if (local_addr.ss_family == AF_INET6) {
+    struct sockaddr_in6 *addr6 = (struct sockaddr_in6*)&local_addr;
+    // 解析端口和IPv6
+}
+#+END_SRC
+
+** listen(sockfd, backlog);
+此时，内核为你的这个监听socket维护了两个队列：
+- 半连接队列（syn queue）
+存放刚刚收到客户端 SYN，还没有收到第三次握手 ACK 的连接，即“半连接”
+只完成了握手的第1步和第2步
+队列大小通常是系统参数（e.g. /proc/sys/net/ipv4/tcp_max_syn_backlog）
+如果满了，新的syn被丢弃
+- 全连接队列（accept queue）
+存放已完成完整三次握手（SYN, SYN+ACK, ACK）的连接，等待你的程序调用 accept() 去取出来
+队列大小由 listen() 的 backlog 参数决定（但受限于 /proc/sys/net/core/somaxconn），Linux下最常见最大128
+如果满了，已三次握手的连接也没法再移入队列（新连接会被拒绝或TCP层丢失ACK）。
+
+** SYN泛洪攻击（SYN Flood）
+攻击者伪造大量TCP SYN包，发送到服务器监听端口。 整个攻击只发第一个握手包（SYN），不发送有效的ACK回包完成三次握手。
+服务器内核收到大量 SYN，把连接状态都暂存到半连接队列 syn queue, 占满后正常客户端连接被丢弃
+*** accept并发模型优化
+1. 单线程accept（传统模式）
+while (1) {
+    int client = accept(listenfd, ...);
+    // 每次处理一个连接
+}
+优点：简单稳定
+缺点：处理慢，无法分担压力
+
+2. 多线程/多进程accept（并发accept模式）
+形式1：多个进程、线程都监听同一端口
+for (i = 0; i < N; ++i)
+    fork(); // 每个进程都 accept
+
+或者
+pthread_create(..., accept_thread, ...);
+每个并发单元都可能 accept 到新连接
+现代Linux支持多进程/多线程轮流accept，内核用负载均衡算法（称为“惊群”问题已优化，epoll实现中表现更好）
+形式2：主线程 accept，分发到线程池
+while (1) {
+    int client = accept(listenfd, ...);
+    put_into_workqueue(client);
+}
+主线程只负责accept，业务处理交给线程池/工作进程
+
+3. 高性能事件驱动模式（epoll/kqueue）
+主线程用 epoll/kqueue 管理多个事件，随时 accept 到新连接，轮流分发到 worker
+支持百万级并发连接
+例如 nginx/redis 等大负载应用的常见做法：
+
+启动多个 worker 进程/线程都监听同一个 socket
+每次新连接由内核算法“分发”给一个 worker
+某些场景用 SO_REUSEPORT，让多个监听 socket 并发读写，提升并发，自带负载均衡
+
+4. SO_REUSEPORT新特性
+让多个进程/线程可以绑定同一个端口，每个 accept 得到自己的连接
+Linux 3.9及以上支持，性能极高、安全无惊群
+setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, ...);
+
+5. 系统参数优化
+backlog 设置为 somaxconn（128/1024/更高）
+accept 用 epoll 边缘触发模式（EPOLLET），减少系统调用
+accept 结果立刻让 worker 处理，避免主线程阻塞
+
+6. 用户态负载均衡调度
+accept 到新连接后分析负载分配（如最少连接数、CPU亲和性、worker状态等）
+某些场景用独立 accept 单元、独立处理单元
+** connect()
+会立即发送SYN
+- 发SYN包 到目标服务器
+- 等待收到服务器的 SYN+ACK 回复
+- 回复 ACK 完成握手
+connect() 只有在三次握手全部成功后，才返回成功；否则会返回错误（比如超时、拒绝等）
+
+* 组播： 01:00:5E
 * SSL VPN 握手失败
- https://172.18.31.140:1443
 tcp 连接ok udp无法连接（dtls握手失败）
  大网---路由器---sw-----
                  |
@@ -8,19 +145,6 @@ tcp 连接ok udp无法连接（dtls握手失败）
 
 1.UDP的443 端口没映射出去到1443，TCP映射出去了。
 2.客户端使用了443端口进行握手(udp),导致隧道无法连接
-
-* sock return 0
-  A socket with value 0 is fine, it means stdin was closed which will
-  make fd 0 available for reuse - such as by a
-  socket.
-  chances are one of the filedescriptors you close in the forkExec()
-  child path(XMLSocket/ServerFd) etc.) was fd 0 . 
-  That'll start the child with fd 0 closed, which won't happen when you
-  run the app from a command line, as fd 0 
-  will be already open as the stdin of the shell.
-  If you want your socket to not be 0,1 or 2 (stdin/out/err) call the
-  following in your forkExec()
-  function after all the close() calls
 
 * icmpv6
    ICMPv6和IVMPv4的校验和的计算方法是不一样的，v6校验范围更广，包含了伪首部，先解释下什么是伪首部。
@@ -64,7 +188,7 @@ unsigned short checksum(int len, unsigned char *buffer)
         return (unsigned short) (~cksum);      // 取补码，和v4不同
 } 
 * arp
-在实现TCP%2FIP协议的网络环境下，一个ip包走到哪里，要怎么走是靠路由表定义，但是，当ip包到达该网络后，哪台机器响应这个ip包却是靠该ip包中所包含的硬件mac地址来识别。也就是说，只有机器的硬件mac地址和该ip包中的硬件mac地址相同的机器才会应答这个ip包，因为在网络中，每一台主机都会有发送ip包的时候，所以，在每台主机的内存中，都有一个+arp-->+硬件mac+的转换表。通常是动态的转换表（该arp表可以手工添加静态条目）。也就是说，该对应表会被主机在一定的时间间隔后刷新。这个时间间隔就是ARP高速缓存的超时时间。+通常主机在发送一个ip包之前，它要到该转换表中寻找和ip包对应的硬件mac地址，如果没有找到，该主机就发送一个ARP广播包，于是，主机刷新自己的ARP缓存。然后发出该ip包。+了解这些常识后，现在就可以谈在以太网络中如何实现ARP欺骗了，可以看看这样一个例子。&oq=我们先复习一下上面所讲的ARP协议的原理。在实现TCP%2FIP协议的网络环境下，一个ip包走到哪里，要怎么走是靠路由表定义，但是，当ip包到达该网络后，哪台机器响应这个ip包却是靠该ip包中所包含的硬件mac地址来识别。也就是说，只有机器的硬件mac地址和该ip包中的硬件mac地址相同的机器才会应答这个ip包，因为在网络中，每一台主机都会有发送ip包的时候，所以，在每台主机的内存中，都有一个+arp-->+硬件mac+的转换表。通常是动态的转换表（该arp表可以手工添加静态条目）。也就是说，该对应表会被主机在一定的时间间隔后刷新。这个时间间隔就是ARP高速缓存的超时时间。+通常主机在发送一个ip包之前，它要到该转换表中寻找和ip包对应的硬件mac地址，如果没有找到，该主机就发送一个ARP广播包，于是，主机刷新自己的ARP缓存。然后发出该ip包。
+在实现TCP/IP协议的网络环境下，一个ip包走到哪里，要怎么走是靠路由表定义，但是，当ip包到达该网络后，哪台机器响应这个ip包却是靠该ip包中所包含的硬件mac地址来识别。也就是说，只有机器的硬件mac地址和该ip包中的硬件mac地址相同的机器才会应答这个ip包，因为在网络中，每一台主机都会有发送ip包的时候，所以，在每台主机的内存中，都有一个+arp-->+硬件mac+的转换表。通常是动态的转换表（该arp表可以手工添加静态条目）。也就是说，该对应表会被主机在一定的时间间隔后刷新。这个时间间隔就是ARP高速缓存的超时时间。+通常主机在发送一个ip包之前，它要到该转换表中寻找和ip包对应的硬件mac地址，如果没有找到，该主机就发送一个ARP广播包，于是，主机刷新自己的ARP缓存。然后发出该ip包。+了解这些常识后，现在就可以谈在以太网络中如何实现ARP欺骗了，可以看看这样一个例子。&oq=我们先复习一下上面所讲的ARP协议的原理。在实现TCP%2FIP协议的网络环境下，一个ip包走到哪里，要怎么走是靠路由表定义，但是，当ip包到达该网络后，哪台机器响应这个ip包却是靠该ip包中所包含的硬件mac地址来识别。也就是说，只有机器的硬件mac地址和该ip包中的硬件mac地址相同的机器才会应答这个ip包，因为在网络中，每一台主机都会有发送ip包的时候，所以，在每台主机的内存中，都有一个+arp-->+硬件mac+的转换表。通常是动态的转换表（该arp表可以手工添加静态条目）。也就是说，该对应表会被主机在一定的时间间隔后刷新。这个时间间隔就是ARP高速缓存的超时时间。+通常主机在发送一个ip包之前，它要到该转换表中寻找和ip包对应的硬件mac地址，如果没有找到，该主机就发送一个ARP广播包，于是，主机刷新自己的ARP缓存。然后发出该ip包。
 * MSG_PEEK
 Peeks at an incoming message. The data is treated as unread and the next recv() or similar function shall still return this data.
 http://pubs.opengroup.org/onlinepubs/009695399/functions/recv.html

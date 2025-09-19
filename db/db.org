@@ -46,14 +46,25 @@ where length( name ) = ( select max( length( name ) ) from my_table );
 describe tablename in mysql
 sp_help tablename in sql server
 desc tablename in oracle
-* GRANT ALL PRIVILEGES
+* GRANT ALL PRIVILEGES // not supported
 一个用户不能设置在多个Host地址上
-
 modify  /etc/mysql/mariadb.conf.d/50-server.cnf : bind 0.0.0.0
 flush privileges is not needed when you use grant commands
+** GRANT ... IDENTIFIED BY ... syntax is deprecated or removed; you should first create (or alter) the user, and then grant privileges.
+
+CREATE USER 'appuser'@'10.104.30.88' IDENTIFIED BY 'password';
+GRANT ALL PRIVILEGES ON test_cases.* TO 'appuser'@'10.104.30.88';
+FLUSH PRIVILEGES;
+
+if the user already exist
+ALTER USER 'root'@'10.104.30.88' IDENTIFIED BY '12344';
+
+** not supported
 grant all privileges on mydb.* to myuser@localhost identified by '123456';
 grant all privileges on *.* to root@'172.20.94.86' identified by '123qaz';
 GRANT ALL PRIVILEGES ON *.* TO 'admin'@'%' IDENTIFIED BY 'saiclient';
+
+grant all privileges on test_cases.* to root@'10.104.30.88' identified by '2021OuWen#@1024';
 
 % seems to not cover socket communications, that the localhost is
 for. WITH GRANT OPTION is only good for the super user, otherwise it

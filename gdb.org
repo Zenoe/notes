@@ -20,6 +20,9 @@ gdb-pwndbg
 gdb-gef
 
 * GDB TUI Mode (Visual Highlighting)
+已经进入gdb, 运行 layout src -->tui
+Ctrl-x a       # 切换 TUI/非 TUI
+
 Run GDB in TUI mode for a clearer view:
 
 bash
