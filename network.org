@@ -333,6 +333,22 @@ default:  /* Parent - writes to pipe */
     close(fildes[1]);                       /* Child will see EOF */
     exit(EXIT_SUCCESS);
 }
+
+* accept4  non-block
+   while (true) {
+    int client_socket = accept4(server_socket_, ...);
+    if (client_socket < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            break;  // no more connections
+        }
+        // ... handle other errors
+    }
+    // ... handle new connection
+}
+accept4 is non-blocking: returns immediately.
+If all pending connections have been handled, further calls yield EAGAIN/EWOULDBLOCK.
+You break out of the loop so you don't spin unnecessarily waiting for connections.
+You'd usually wait for the next event (e.g., using epoll, select, etc.) signaling the server socket is readable again, meaning new connections have arrived.
 * select
 The select() function allows you to implement an event driven design pattern, when you have to deal with multiple event sources.
 

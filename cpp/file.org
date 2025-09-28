@@ -68,3 +68,40 @@ namespace fs = std::filesystem;
     p.make_preferred(); // 将斜杠转换为当前系统的首选格式（Windows 上是反斜杠）
     std::wstring converted_path = p.wstring();
 #+end_src
+
+* filesystem 文件路径操作  filepath
+#include <filesystem>
+#include <iostream>
+#include <iterator>
+
+int main() {
+    std::filesystem::path p("/root/work/script/pass20250602/RG-三层路由域-BGP-BGP多径路由-GN-TP/RG-三层路由域-BGP-IPv6-VRF-UCMP-93266-GN-001.txt");
+
+    auto begin = p.begin();
+    // 0:/, 1:root, 2:work, 3:script, 4:pass20250602, 5:RG-..., etc.
+    std::advance(begin, 4); // Move to 4th part (pass20250602)
+    auto end = begin;
+    std::advance(end, 2);   // Move 2 steps further (so subpath is [4, 6))
+
+    std::filesystem::path subpath;
+    for (auto it = begin; it != end; ++it)
+        subpath /= *it;
+    std::cout << subpath.string() << '\n'; // Prints: pass20250602/RG-三层路由域-BGP-BGP多径路由-GN-TP
+}
+
+
+#include <filesystem>
+#include <iostream>
+#include <vector>
+
+int main() {
+    std::filesystem::path p("/root/work/script/pass20250602/RG-三层路由域-BGP-BGP多径路由-GN-TP/RG-三层路由域-BGP-IPv6-VRF-UCMP-93266-GN-001.txt");
+
+    std::vector<std::filesystem::path> parts;
+    for (const auto& part : p) {
+        if (!part.empty()) parts.push_back(part);
+    }
+    // 0:/, 1:root, 2:work, 3:script, 4:pass..., 5:RG-三层...
+    std::filesystem::path subpath = parts[4] / parts[5];
+    std::cout << subpath.string() << '\n'; // Outputs desired result
+}

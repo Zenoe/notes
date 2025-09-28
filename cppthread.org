@@ -52,6 +52,14 @@ std::thread t(worker,
     std::cref(uobj),
     std::cref(vobj),
     std::move(uobj))
+*** why ref to wrap mutex and conditon_variable
+    std::mutex and std::condition_variable are non-copyable and non-movable
+    std::ref wraps an object in a reference wrapper. When you call std::thread(worker, std::ref(cv), std::ref(mtx));, you're telling std::thread:
+    Don't try to copy/move cv and mtx. Instead, pass them as references to the worker function.
+*** The mechanics:
+std::ref(obj) returns a std::reference_wrapper<T>.
+When the thread infrastructure unpacks this to pass to the function, it gives your function a reference to the original object.
+
 ** use lambda
 std::thread t([&, u = std::move(uobj)]{
     worker(1, mtx, counter, uobj, vobj, std::move(u));

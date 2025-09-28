@@ -311,6 +311,23 @@ bar(move(i));// compile and work, but no move actually happens
 baz(i);// ERROR:rvalue ref cannot bind to lvalue
 baz( move(i));// 0K
 
+void foo(std::vector<std::string> vec);
+// If you call foo(myvec);, myvec is copied into foo's parameter.
+// If you call foo(std::move(myvec));, myvec is moved (if a move constructor is available).
+
+// inside function
+void bar(std::vector<std::string> vec) {
+  std::vector<std::string> local = vec;            // copy
+  std::vector<std::string> moved = std::move(vec); // move
+}
+
+
+// when move ctor is called automatically
+// When you return a local variable from a function by value (NRVO/Move semantics), the compiler may elide the copy (RVO), or call the move constructor if available:
+std::vector<std::string> make_vec() {
+  std::vector<std::string> v = ...;
+  return v; // v may be moved, or elided entirely (RVO)
+}
 #+end_src
 
 
