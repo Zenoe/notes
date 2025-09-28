@@ -1,4 +1,15 @@
-#+TITLE:
+
+* b
+info b: 查看所有
+del 8: delete 第8个断点
+b : 无参数，在当前行设置断点
+
+* step out fin(ish)
+* p
+(gdb) p/x mask      # 十六进制
+(gdb) p/t mask      # 二进制（GDB 7.7及更高支持）
+如果gdb 版本不支持p/tj
+(gdb) python print(bin(gdb.parse_and_eval("mask")))
 * break foo.cpp:123 if std::string(dir.c_str()) == "./CMakeFiles"
 some GDB versions don’t fully support std::string in conditional breakpoints.
 b fd4.cpp:138 if strcmp(dir.string().c_str(), "tdir/cpp_fd4.dir/src") == 0
@@ -23,9 +34,8 @@ gdb-gef
 已经进入gdb, 运行 layout src -->tui
 Ctrl-x a       # 切换 TUI/非 TUI
 
-Run GDB in TUI mode for a clearer view:
+ctrl p : get history command
 
-bash
 gdb -tui ./your_program
 The current line is highlighted in the source code window.
 

@@ -11,6 +11,9 @@ SO_REUSEADDR
 第 4 个参数要求传指针，目的是为了灵活设定不同类型、长度的选项值。
 
 ** accept
+用于TCP服务器监听套接字，当有客户端完成三次握手连入时，accept() 返回一个新的连接 socket。
+即，本质是在“取出一个已经完成握手的连接”。
+
 struct sockaddr_in client_addr;
 socklen_t len = sizeof(client_addr);
 int client_socket = accept(server_socket_, (struct sockaddr*)&client_addr, &len);
@@ -136,56 +139,98 @@ accept 到新连接后分析负载分配（如最少连接数、CPU亲和性、w
 - 回复 ACK 完成握手
 connect() 只有在三次握手全部成功后，才返回成功；否则会返回错误（比如超时、拒绝等）
 
+* 主机序ntohl，网络序 inet_addr
+#+BEGIN_SRC cpp
+bool matches_cidr(const std::string& destination, const std::string& cidr){
+  if(cidr == "0.0.0.0/0") return true;
+  int slashpos = cidr.find('/');
+  if(slashpos == std::string::npos){
+    return destination == cidr;
+  }
+  std::string cidr_ip = cidr.substr(0, slashpos);
+  int prefix_bits = std::stoi(cidr.substr(slashpos + 1));
+
+  // inet_addr 返回的是网络序，要转化为主机序才能正常比较
+  uint32_t ip_num = ntohl(inet_addr(destination.c_str()));
+  uint32_t cidr_ip_num = ntohl(inet_addr(cidr_ip.c_str()));
+
+  uint32_t mask  = prefix_bits == 0 ? 0: ~(( 1 << (32-prefix_bits)) - 1 );
+  return ( ip_num & mask ) == ( cidr_ip_num & mask );
+
+  // 使用 inet_pton 更现代
+  // #include <arpa/inet.h>
+  uint32_t ip, cidr_ip;
+  if (inet_pton(AF_INET, ip_str.c_str(), &ip) != 1) return false;
+  if (inet_pton(AF_INET, base.c_str(), &cidr_ip) != 1) return false;
+  ip = ntohl(ip);        // 转主机序
+  cidr_ip = ntohl(cidr_ip);
+  uint32_t mask = bits == 0 ? 0 : ~((1u << (32 - bits)) - 1);
+  return (ip & mask) == (cidr_ip & mask);
+}
+  #+END_SRC
+
+* epoll
+is an efficient Linux kernel facility for managing a large number of file descriptors
+epoll_fd_ = epoll_create1(0);
+return fd for futher epoll ops
+** scalable
+select/poll 是线性扫描所有的fd。 select 有用户内核空间拷贝开销. O(n)
+select limit 1024
+epoll 采用红黑树+ready list。 limit ~100,000
+O(ready count): On epoll_wait(), kernel only scans the ready list (those that have events) — not all registered FDs
+
+** epoll_wait
+epoll_wait() 是事件等待机制，它不“拿连接”，而是等待被注册到 epoll 的文件描述符（FD，包括socket等）出现某种 I/O事件（比如可读、可写、出错等）。
 * 组播： 01:00:5E
 * SSL VPN 握手失败
 tcp 连接ok udp无法连接（dtls握手失败）
- 大网---路由器---sw-----
-                 |
-               EG2000D（桥模式）
+大网---路由器---sw-----
+|
+EG2000D（桥模式）
 
 1.UDP的443 端口没映射出去到1443，TCP映射出去了。
 2.客户端使用了443端口进行握手(udp),导致隧道无法连接
 
 * icmpv6
-   ICMPv6和IVMPv4的校验和的计算方法是不一样的，v6校验范围更广，包含了伪首部，先解释下什么是伪首部。
-    伪首部并非TCP&UDP数据报中实际的有效成分。伪首部是一个虚拟的数据结构，其中的信息是从数据报所在IP分组头的分组头中提取的，既不向下传送也不向上递交，而仅仅是为计算校验和。这样的校验和，既校验了TCP&UDP用户数据的源端口号和目的端口号以及TCP&UDP用户数据报的数据部分，又检验了IP数据报的源IP地址和目的地址。伪报头保证TCP&UDP数据单元到达正确的目的地址。因此，伪报头中包含IP地址并且作为计算校验和需要考虑的一部分。最终目的端根据伪报头和数据单元计算校验和以验证通信数据在传输过程中没有改变而且到达了正确的目的地址。伪首部更确切的说是校验和包含的—个96位的伪首标，是个理论上的值，只是理论上它位于TCP&UDP首标的前面。这个伪首标包含了源地址、目的地址、协议和TCP&UDP长度等字段，这使得TCP&UDP能够防止出现路由选择错误的数据段。这些信息由网际协议(IP)承载，通过TCP&UDP网络接口，在IP上运行的TCP&UDP调用参数或者结果中传递。
-    上面是copy的百度百科，回到我们的ICMPv6报文来，简单说来，我们的伪首部包含4个部分：sourse address， destination addrss， payload length， next header。大小为16 + 16 + 2 + 1字节。要计算校验和，还需要的信息是ICMPv6首部的内容，其中checksum值在计算之前需要先置为0，为什么就不用解释里吧，呵呵，咱就是算这东西的呀。
-    在TCP、UDP和ICMPv6中，in6_chsum()函数提供校验和计算方法，而in6_cksum()函数假定分组是以mbuf结构进行传递的，不适合我们自己做包调试。这里给出我采用的一种方法，参考了http://hi.baidu.com/fleago/blog/item/846e86864489743dc75cc3f4.html，感谢fleago同学。
-    我们以如下方法构造一个报文，并给出计算函数：
+ICMPv6和IVMPv4的校验和的计算方法是不一样的，v6校验范围更广，包含了伪首部，先解释下什么是伪首部。
+伪首部并非TCP&UDP数据报中实际的有效成分。伪首部是一个虚拟的数据结构，其中的信息是从数据报所在IP分组头的分组头中提取的，既不向下传送也不向上递交，而仅仅是为计算校验和。这样的校验和，既校验了TCP&UDP用户数据的源端口号和目的端口号以及TCP&UDP用户数据报的数据部分，又检验了IP数据报的源IP地址和目的地址。伪报头保证TCP&UDP数据单元到达正确的目的地址。因此，伪报头中包含IP地址并且作为计算校验和需要考虑的一部分。最终目的端根据伪报头和数据单元计算校验和以验证通信数据在传输过程中没有改变而且到达了正确的目的地址。伪首部更确切的说是校验和包含的—个96位的伪首标，是个理论上的值，只是理论上它位于TCP&UDP首标的前面。这个伪首标包含了源地址、目的地址、协议和TCP&UDP长度等字段，这使得TCP&UDP能够防止出现路由选择错误的数据段。这些信息由网际协议(IP)承载，通过TCP&UDP网络接口，在IP上运行的TCP&UDP调用参数或者结果中传递。
+上面是copy的百度百科，回到我们的ICMPv6报文来，简单说来，我们的伪首部包含4个部分：sourse address， destination addrss， payload length， next header。大小为16 + 16 + 2 + 1字节。要计算校验和，还需要的信息是ICMPv6首部的内容，其中checksum值在计算之前需要先置为0，为什么就不用解释里吧，呵呵，咱就是算这东西的呀。
+在TCP、UDP和ICMPv6中，in6_chsum()函数提供校验和计算方法，而in6_cksum()函数假定分组是以mbuf结构进行传递的，不适合我们自己做包调试。这里给出我采用的一种方法，参考了http://hi.baidu.com/fleago/blog/item/846e86864489743dc75cc3f4.html，感谢fleago同学。
+我们以如下方法构造一个报文，并给出计算函数：
 unsigned char packet_buffer[] = {
-   //icmp header 完整的ICMPv6首部，长度不一定是这么长
-   0x87, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x75, 0xc5, 0xf1, 0x20, 0x80, 0x97, 0x0e, 0x39,
+//icmp header 完整的ICMPv6首部，长度不一定是这么长
+0x87, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+0x75, 0xc5, 0xf1, 0x20, 0x80, 0x97, 0x0e, 0x39,
 
-   // pseudo header
-   // source addr
-   0x20, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
-   // dest addr
-   0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-   0x00, 0x00, 0x00, 0x01, 0xff, 0x97, 0x0e, 0x39,
-   // payload len
-   0x00, 0x00, 0x00, 0x18,
-   // next header
-   0x00, 0x00, 0x00, 0x3a
+// pseudo header
+// source addr
+0x20, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+// dest addr
+0xff, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+0x00, 0x00, 0x00, 0x01, 0xff, 0x97, 0x0e, 0x39,
+// payload len
+0x00, 0x00, 0x00, 0x18,
+// next header
+0x00, 0x00, 0x00, 0x3a
 };
 unsigned short checksum(int len, unsigned char *buffer)
 {
-	unsigned long cksum = 0;
-        unsigned short *p = (unsigned short*)buffer;
-        int size = (len >> 1) + (len & 0x1);  // 以两个字节为运算单位，					      // len除以2四舍五入
-        while (size > 0) {
-		cksum += *p;
-		printf("%4x, %8x\n", *p, cksum);
-                p ++;
-                size --;
-        }
-        cksum = (cksum >> 16) + (cksum & 0xffff);
-        cksum += (cksum >> 16);
-        printf("before ~cksum: %8x\n", cksum);
-       printf("checksum is (hex, in packet byte seq): %02x, %02x\n", 	      ~cksum & 0xff, ~cksum >> 8);
-        return (unsigned short) (~cksum);      // 取补码，和v4不同
+unsigned long cksum = 0;
+unsigned short *p = (unsigned short*)buffer;
+int size = (len >> 1) + (len & 0x1);  // 以两个字节为运算单位，					      // len除以2四舍五入
+while (size > 0) {
+cksum += *p;
+printf("%4x, %8x\n", *p, cksum);
+p ++;
+size --;
+}
+cksum = (cksum >> 16) + (cksum & 0xffff);
+cksum += (cksum >> 16);
+printf("before ~cksum: %8x\n", cksum);
+printf("checksum is (hex, in packet byte seq): %02x, %02x\n", 	      ~cksum & 0xff, ~cksum >> 8);
+return (unsigned short) (~cksum);      // 取补码，和v4不同
 } 
 * arp
 在实现TCP/IP协议的网络环境下，一个ip包走到哪里，要怎么走是靠路由表定义，但是，当ip包到达该网络后，哪台机器响应这个ip包却是靠该ip包中所包含的硬件mac地址来识别。也就是说，只有机器的硬件mac地址和该ip包中的硬件mac地址相同的机器才会应答这个ip包，因为在网络中，每一台主机都会有发送ip包的时候，所以，在每台主机的内存中，都有一个+arp-->+硬件mac+的转换表。通常是动态的转换表（该arp表可以手工添加静态条目）。也就是说，该对应表会被主机在一定的时间间隔后刷新。这个时间间隔就是ARP高速缓存的超时时间。+通常主机在发送一个ip包之前，它要到该转换表中寻找和ip包对应的硬件mac地址，如果没有找到，该主机就发送一个ARP广播包，于是，主机刷新自己的ARP缓存。然后发出该ip包。+了解这些常识后，现在就可以谈在以太网络中如何实现ARP欺骗了，可以看看这样一个例子。&oq=我们先复习一下上面所讲的ARP协议的原理。在实现TCP%2FIP协议的网络环境下，一个ip包走到哪里，要怎么走是靠路由表定义，但是，当ip包到达该网络后，哪台机器响应这个ip包却是靠该ip包中所包含的硬件mac地址来识别。也就是说，只有机器的硬件mac地址和该ip包中的硬件mac地址相同的机器才会应答这个ip包，因为在网络中，每一台主机都会有发送ip包的时候，所以，在每台主机的内存中，都有一个+arp-->+硬件mac+的转换表。通常是动态的转换表（该arp表可以手工添加静态条目）。也就是说，该对应表会被主机在一定的时间间隔后刷新。这个时间间隔就是ARP高速缓存的超时时间。+通常主机在发送一个ip包之前，它要到该转换表中寻找和ip包对应的硬件mac地址，如果没有找到，该主机就发送一个ARP广播包，于是，主机刷新自己的ARP缓存。然后发出该ip包。
