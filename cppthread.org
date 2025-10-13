@@ -224,6 +224,152 @@ goon to process with shared resource
 block, unlock the mutex, put in sleep
 When notified (possibly spuriously), it reacquires the mutex, and rechecks predicate()
 
+** in preC++, how to do this:
+    DirQueue dir_queue;
+    std::atomic<int> pending_work{1};  // Start with 1 for the initial directory
+    std::mutex output_mtx;
+    std::mutex worker_mtx;
+    std::condition_variable worker_cv;
+
+    // Add initial directory to queue
+    dir_queue.push(WorkItem(start_dir, 0));
+
+    // Create worker threads
+    std::vector<std::thread> workers;
+    workers.reserve(num_threads);
+
+    for (int i = 0; i < num_threads; ++i) {
+        workers.emplace_back(worker,
+            std::ref(dir_queue),
+            std::ref(pattern),
+            std::ref(gitignore_rules),
+            max_depth,
+            std::ref(pending_work),
+            std::ref(output_mtx)
+        );
+    }
+
+*** old cpp
+#include <pthread.h>
+#include <vector>
+#include <string>
+#include <cstdio>
+
+struct WorkItem {
+    std::string path;
+    int depth;
+    WorkItem(const std::string& p, int d) : path(p), depth(d) {}
+};
+class DirQueue {
+public:
+    void push(const WorkItem& wi) {/* ... */}
+    // ...
+};
+
+// This struct holds all the arguments needed by the worker thread
+struct WorkerArgs {
+    DirQueue* dir_queue;
+    std::string* pattern;
+    std::vector<std::string>* gitignore_rules;
+    int max_depth;
+    int* pending_work;
+    pthread_mutex_t* pending_work_mtx;
+    pthread_mutex_t* output_mtx;
+};
+
+void* worker(void* arg_void) {
+    WorkerArgs* args = static_cast<WorkerArgs*>(arg_void);
+    // Use args->dir_queue, args->pattern, etc.
+    // For pending_work, protect access with *pending_work_mtx
+    return nullptr;
+}
+
+int main() {
+    DirQueue dir_queue;
+    std::string pattern = "foo";
+    std::vector<std::string> gitignore_rules;
+    int max_depth = 5;
+    int pending_work = 1; // not atomic, so needs protected access
+
+    pthread_mutex_t output_mtx = PTHREAD_MUTEX_INITIALIZER;
+    pthread_mutex_t pending_work_mtx = PTHREAD_MUTEX_INITIALIZER;
+
+    // Add initial directory to queue
+    dir_queue.push(WorkItem("start_dir", 0));
+
+    // Create worker threads
+    int num_threads = 4;
+    std::vector<pthread_t> workers(num_threads);
+    std::vector<WorkerArgs> worker_args(num_threads);
+    for (int i = 0; i < num_threads; ++i) {
+        worker_args[i] = {
+            &dir_queue,
+            &pattern,
+            &gitignore_rules,
+            max_depth,
+            &pending_work,
+            &pending_work_mtx,
+            &output_mtx
+        };
+        pthread_create(&workers[i], nullptr, worker, &worker_args[i]);
+    }
+
+    // join
+    for (int i = 0; i < num_threads; ++i) {
+        pthread_join(workers[i], nullptr);
+    }
+    return 0;
+}
+
+*** on windows
+int main() {
+    DirQueue dir_queue;
+    std::string pattern = "foo";
+    std::vector<std::string> gitignore_rules;
+    int max_depth = 5;
+    int pending_work = 1;
+
+    CRITICAL_SECTION output_cs;
+    CRITICAL_SECTION pending_work_cs;
+    InitializeCriticalSection(&output_cs);
+    InitializeCriticalSection(&pending_work_cs);
+
+    // Add initial dir to queue
+    dir_queue.push(WorkItem("start_dir", 0));
+
+    int num_threads = 4;
+    std::vector<HANDLE> workers(num_threads);
+    std::vector<WorkerArgs> worker_args(num_threads);
+
+    for (int i = 0; i < num_threads; ++i) {
+        worker_args[i] = {
+            &dir_queue,
+            &pattern,
+            &gitignore_rules,
+            max_depth,
+            &pending_work,
+            &pending_work_cs,
+            &output_cs
+        };
+        workers[i] = CreateThread(
+            nullptr,            // default security
+            0,                  // default stack size
+            WorkerThread,       // thread function
+            &worker_args[i],    // parameter to function
+            0,                  // default creation flags
+            nullptr);           // thread identifier not needed
+    }
+
+    // Wait for workers to finish
+    WaitForMultipleObjects(num_threads, workers.data(), TRUE, INFINITE);
+
+    // Clean up
+    for (int i = 0; i < num_threads; ++i)
+        CloseHandle(workers[i]);
+    DeleteCriticalSection(&output_cs);
+    DeleteCriticalSection(&pending_work_cs);
+    return 0;
+}
 * windows thread before std::thread
  Windows API: CreateThread, CRITICAL_SECTION (or HANDLE with CreateMutex), and CreateEvent/Condition Variables (though condition variables arrived late in Windows).
 Synchronization: Use CRITICAL_SECTION or HANDLE mutex for protecting shared data (like your pending_work integer).

@@ -1128,12 +1128,6 @@ C++ 的 inline 修饰符让函数可以在多个文件定义各自的实现，�
 is a function template defined in the C++ Standard Library (since C++11) that returns a reference wrapper for its argument. The primary result of using std::ref(x) is an object of type std::reference_wrapper<T>, where T is the type of x.
 
 ** old c++, no std::ref
-template<typename T>
-struct RefWrap {
-    T* ptr;
-    RefWrap(T& ref) : ptr(&ref) {}
-    operator T&() const { return *ptr; }
-};
 
 *** Before c++11, custom reference wrapper
 #include <iostream>
@@ -1161,7 +1155,7 @@ int main() {
 
     Callback cb(x); // Passes x by reference
 
-    cb(); // increments x
+    cb(); ///  increments x
     cb(); // increments x again
 
     std::cout << x << std::endl; // 12
