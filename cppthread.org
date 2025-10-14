@@ -705,3 +705,147 @@ void HistoryManager::save() {
     for (const auto& s : *items_) out << s << L"\n";
 }
 #+END_SRC
+
+* mutex
+C++互斥锁底层主要依赖：
+
+原子指令（硬件保证原子性），如 x86 的 lock cmpxchg
+操作系统同步原语（pthread_mutex、CriticalSection，可能还用 futex/futex2 等优化器）
+用户态与内核态混合（快速路径用 CAS/Spin，慢速路径挂起等待）
+
+std::mutex 是对这些工具的高级封装，屏蔽了具体细节及跨平台差异。
+
+** 递归互斥锁
+#include <mutex>
+#include <iostream>
+
+std::recursive_mutex rmtx;
+
+void foo(int depth) {
+    if (depth <= 0) return;
+    rmtx.lock();
+    std::cout << "foo depth " << depth << std::endl;
+    foo(depth - 1); // 递归调用，仍会加锁
+    rmtx.unlock();
+}
+
+int main() {
+    foo(5);
+    return 0;
+}
+** 读写锁
+c++17
+#include <shared_mutex>
+#include <map>
+#include <string>
+
+class ConfigTable {
+    std::map<std::string, int> table;
+    mutable std::shared_mutex mtx;
+public:
+    // 读操作
+    int get(std::string key) const {
+        std::shared_lock lock(mtx); // 读锁
+        auto it = table.find(key);
+        return it == table.end() ? -1 : it->second;
+    }
+
+    // 写操作
+    void set(std::string key, int value) {
+        std::unique_lock lock(mtx); // 写锁
+        table[key] = value;
+    }
+};
+** 自己用原子变量实现自旋锁
+自旋锁是一种轻量级的锁机制，适用于临界区代码极短、线程持锁时间很少的场景。它的特点是——线程在获取不到锁时不会睡眠阻塞，而是循环“自旋”不断尝试获取锁，直到成功。
+
+一般用于多核系统内核、线程库或者高性能场景。
+若锁持有时间较长，频繁自旋会浪费CPU，性能反而不如普通互斥锁。
+
+std::atomic_flag lock = ATOMIC_FLAG_INIT;
+void lock() {
+// test_and_set是原子操作，无需内核介入
+    while (lock.test_and_set(std::memory_order_acquire)); // memory order acquire 保证 lock 之后的读取不会被重排到 lock 之前
+}
+void unlock() {
+    lock.clear(std::memory_order_release);// memory_order_release 保证unlock之前的数据写入不会重排到unlock之后(重排是因为编译器优化)
+}
+
+| 机制     | 优点                                 | 缺点                       | 适用场景             |
+| Spinlock | 用户态，无需系统调用。适合短临界区。 | 锁阻塞时浪费CPU。          | 多核、持锁极短场景   |
+| Mutex    | 线程阻塞时释放CPU。                  | 加锁失败进入内核态，开销大 | 适合锁持有较长的场景 |
+
+* remove data in bg :Using std::future with std::async:
+#+begin_src cpp
+void HistoryManager::remove(int idx){
+	if(idx <0 || idx >= filtered_items_->size()) return;
+	std::wstring text = ( * filtered_items_)[idx];
+	{
+		std::lock_guard<std::mutex> lock(filter_mutex_);
+		filtered_items_->erase(filtered_items_->begin() + idx);
+	}
+
+	{
+		std::lock_guard<std::mutex> lock2(items_mtx);
+//how to put this erase in bg thread
+		items_->erase(std::remove(items_->begin(), items_->end(), text), items_->end());
+	}
+}
+
+    // using std::future
+std::future<void> items_erase_task_;
+
+void HistoryManager::remove(int idx){
+    if(idx <0 || idx >= filtered_items_->size()) return;
+    std::wstring text = (*filtered_items_)[idx];
+    {
+        std::lock_guard<std::mutex> lock(filter_mutex_);
+        filtered_items_->erase(filtered_items_->begin() + idx);
+    }
+
+    // Start erase in a background thread using std::async
+    items_erase_task_ = std::async(std::launch::async, [this, text] {
+        std::lock_guard<std::mutex> lock2(items_mtx);
+        items_->erase(std::remove(items_->begin(), items_->end(), text), items_->end());
+    });
+}
+
+// Ensure previous erase completes before saving
+void HistoryManager::save() {
+    if (items_erase_task_.valid()) {
+        items_erase_task_.wait();
+    }
+    std::lock_guard<std::mutex> lock(items_mtx);
+    std::wofstream out(L"alfred_history.txt");
+    for (const auto& s : *items_) out << s << L"\n";
+}
+
+
+    //  Using std::thread (optional, but harder to manage completion)
+std::thread items_erase_thread_;
+
+void HistoryManager::remove(int idx){
+    if(idx <0 || idx >= filtered_items_->size()) return;
+    std::wstring text = (*filtered_items_)[idx];
+    {
+        std::lock_guard<std::mutex> lock(filter_mutex_);
+        filtered_items_->erase(filtered_items_->begin() + idx);
+    }
+
+    // If previous thread is still running, wait for it
+    if (items_erase_thread_.joinable()) items_erase_thread_.join();
+
+    items_erase_thread_ = std::thread([this, text] {
+        std::lock_guard<std::mutex> lock2(items_mtx);
+        items_->erase(std::remove(items_->begin(), items_->end(), text), items_->end());
+    });
+}
+
+// Wait for background erase before saving
+void HistoryManager::save() {
+    if (items_erase_thread_.joinable()) items_erase_thread_.join();
+    std::lock_guard<std::mutex> lock(items_mtx);
+    std::wofstream out(L"alfred_history.txt");
+    for (const auto& s : *items_) out << s << L"\n";
+}
+#+end_src

@@ -264,6 +264,26 @@ std::string s;
 getline(std::cin, s);        // read entire line
 getline(std::cin, s, '\t');  // read until next tab
 getline(std::cin, s, 'a');   // read until next 'a'
+** find substr
+///  split by four spaces
+std::wstring delimiter = L"    "; // four spaces
+size_t pos = 0;
+size_t start = 0;
+std::vector<std::wstring> tokens;
+
+while ((pos = line.find(delimiter, start)) != std::wstring::npos) {
+    tokens.push_back(line.substr(start, pos - start));
+    start = pos + delimiter.length();
+}
+tokens.push_back(line.substr(start)); // Last token
+
+// use regex to split by four spaces
+#include <regex>
+
+std::wregex re(L" {4}"); // four spaces
+std::wsregex_token_iterator it(line.begin(), line.end(), re, -1);
+std::wsregex_token_iterator end;
+std::vector<std::wstring> tokens(it, end);
 * references
 ** auto References
  refer to the same memory location
@@ -781,6 +801,36 @@ std::atomic<T>::operator=( value ) is equivalent to store(value).
 If you want to specify memory ordering (like memory_order_relaxed), then you must use .store():
 stop.store(true, std::memory_order_relaxed);
 But the default operator= and .store(true) both use std::memory_order_seq_cst.
+
+#+begin_src cpp
+// error, atomic 成员不能拷贝
+ProxyStats get_stats() const {
+  return stats_;
+}
+// ok
+const ProxyStats& get_stats() const {
+  return stats_;
+}
+
+// ok manul copy
+ProxyStatsSnapshot get_stats() const {
+    return {
+        stats_.total_connections.load(),
+        stats_.active_connections.load(),
+    };
+}
+struct ProxyStats {
+  std::atomic<uint64_t> total_connections{0};
+  std::atomic<uint64_t> active_connections{0};
+  ...
+
+  void reset() {
+    total_connections = 0;
+    active_connections = 0;
+    ...
+      }
+};
+#+end_src
 * std::bind
 is a function template from the C++ Standard Library (<functional> header) that creates a function object (a "binder") that binds some or all arguments of a function to fixed values or rearranges them.
 
@@ -1338,6 +1388,7 @@ int main() {
     void* raw = operator new(sizeof(Foo));  // 仅分配内存，不调用构造函数
 
     // 2. 在这片自定义内存上构造对象
+    // placement new call the ctor of Foo at that location. you do not allocate memory; you only construct the object.
     Foo* ptr2 = new (raw) Foo(3, 4);        // 这里才会调用构造函数
 
     // 使用对象
@@ -1351,3 +1402,85 @@ int main() {
     return 0;
 }
 #+END_SRC
+
+* static_cast
+compile time check
+char* current = static_cast<char*>(block);
+for (std::size_t i = 0; i < BLOCK_SIZE; ++i) {
+Chunk* chunk = reinterpret_cast<Chunk*>(current);
+chunk->next = free_list_;
+free_list_ = chunk;
+current += chunk_size_;
+}
+
+block 是一个 void* 指针类型，转换成 char* 是为了后续按字节步进地处理内存（比如当前你写的 current += chunk_size_）。
+使用 static_cast 是比较安全的，如果 block 是 void* 或从别的 char* 转过来的指针，这样转换没有问题。
+
+reinterpret_cast
+用于任何指针类型之间的强制转换，或者指针和整数类型之间的转换。
+没有类型安全检查，完全是逐位解释。
+常用于底层代码，比如将字节缓冲区转成某种结构体。
+
+是将一个 char* 内存指针（只知道它是指向某块内存）强制转换为 Chunk*（结构体指针）。这样做是告诉编译器“从这里开始，把这块内存看作一个 Chunk 对象”。
+这种用法适合底层内存管理、对象池、自己分配内存场景，但有一定风险，如果类型、内存对齐不对就会出错。
+
+| 特性       | static_cast  | reinterpret_cast |
+| 类型检查   | 有           | 无               |
+| 安全性     | 相对安全     | 危险             |
+| 使用场景   | 相关类型转换 | 无关类型重新解释 |
+| 编译时检查 | 有           | 无               |
+
+- Standard Conversions: int to double, double to int, enum to int.
+
+- Pointer Conversions: Converting between related pointer types, specifically upcasts in a class hierarchy (converting a derived class pointer to a base class pointer).
+
+- void* to any pointer type: void* is a generic pointer. static_cast can convert it back to a specific type.
+
+- Explicitly calling constructors or conversion operators.
+  #+begin_src cpp
+    MyString s1 = "Hello";  // const char* implicitly converted to MyString
+    displayString("World"); // const char* implicitly converted to MyString
+
+    // EXPLICIT conversion using static_cast
+    MyString s2 = static_cast<MyString>("Explicit");
+
+  #+end_src
+** dynamic_cast  runtime check
+downcast.  把指向基类的指针转化为指向子类的指针，这样可以执行子类的函数
+#+begin_src cpp
+    Base* basePtr = new Derived; // Base pointer to a Derived object
+
+    // Safe downcast using dynamic_cast
+    Derived* derivedPtr = dynamic_cast<Derived*>(basePtr);
+    if (derivedPtr) { // Check if the cast succeeded
+        derivedPtr->derivedMethod(); // This will run
+    } else {
+        std::cout << "Cast failed!\n";
+    }
+
+    Base* basePtr2 = new Base; // Base pointer to a Base object
+
+    // This downcast will fail
+    Derived* derivedPtr2 = dynamic_cast<Derived*>(basePtr2);
+    if (derivedPtr2) {
+        derivedPtr2->derivedMethod();
+    } else {
+        std::cout << "Cast failed! (as expected)\n"; // This will run
+    }
+
+    delete basePtr;
+    delete basePtr2;
+    return 0;
+}
+#+end_src
+
+** const_cast compile time check
+Removing const to call a legacy C function that takes a non-const pointer but doesn't modify the data.
+void legacyPrint(char* str) {
+    std::cout << str << std::endl;
+}
+
+void modernPrint(const char* str) {
+    ///  /legacyPrint(str); // Error! Can't convert 'const char*' to 'char*'
+    legacyPrint(const_cast<char*>(str)); // OK, we promise it's safe
+}

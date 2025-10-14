@@ -179,3 +179,77 @@ HWND CreateLabel(HWND parent, LPCWSTR text, int x, int y, int w, int h, UINT_PTR
 }
 
 #+END_SRC
+
+* double buffering
+## The Problem: Flicker
+
+When you **paint directly onto the screen ("single buffering")**, every action is immediately visible:
+
+- You draw the background.
+- You draw the text.
+- You draw decorations.
+
+If the process is slow, or involves several steps, the user might see partial updates (e.g. background drawn, then text appears, then highlight, etc). This is called **flicker**.
+
+---
+
+## The Solution: Double Buffering
+
+**Double buffering** means you **draw everything into a memory-based image (off-screen)** first, then copy the final result in one step to the screen.
+
+### Steps:
+
+1. **Create a memory device context (DC)**
+   This is an area in RAM where you can draw just like you would on the visible screen.
+
+2. **Draw your graphics to the memory DC**
+   All background and text goes to this “hidden canvas”, not the screen.
+
+3. **Copy that finished image to the visible window**
+   “Blitting” (“BitBlt”) is a fast operation that copies the result all at once.
+
+**Result:**
+The user only ever sees **the final product**, never the intermediate work, and flicker is eliminated.
+
+---
+
+## In Your Code
+
+Your code implements double buffering as follows:
+
+```cpp
+HDC hdcMem = CreateCompatibleDC(hdc); // Create off-screen DC in memory
+HBITMAP hbmMem = CreateCompatibleBitmap(hdc, width, height); // Make bitmap for drawing
+HBITMAP hbmOld = (HBITMAP)SelectObject(hdcMem, hbmMem); // Attach bitmap to DC
+
+// You draw everything to hdcMem—background, text, rectangle, etc.
+
+// Finally, copy to visible DC in one fast operation:
+BitBlt(hdc, rc.left, rc.top, width, height, hdcMem, 0, 0, SRCCOPY);
+
+// Clean up memory DC and bitmap (important for resources)
+SelectObject(hdcMem, hbmOld);
+DeleteObject(hbmMem);
+DeleteDC(hdcMem);
+```
+
+- **hdc:** The original windows-provided drawing context (on-screen).
+- **hdcMem:** The off-screen memory context where you draw.
+- **BitBlt:** Bulk copy from memory ("buffer") to the screen.
+
+---
+
+## Analogy
+
+**Think of double buffering as painting on a sheet of paper, then instantly showing the complete painting to your audience**—instead of having them watch you draw each line as you go.
+
+---
+
+## Why It Matters for Owner-Drawn Controls
+
+- Owner-drawn controls (like your ListView) require painting very frequently and may involve complex graphics.
+- Without double buffering, windows may flicker badly, especially when resizing, scrolling, or selecting items quickly.
+
+Double buffering is the canonical solution for **smooth UI drawing** in Win32 and other platforms.
+
+---
