@@ -1,0 +1,499 @@
+* 智能指针使用场景和原理
+unique_ptr（独占式智能指针）
+
+独占对象的所有权，不允许拷贝，只允许移动
+当unique_ptr被销毁时，自动删除所指向的对象
+基于RAII（资源获取即初始化）原则
+
+使用场景：
+
+#+BEGIN_SRC cpp
+// 替代原始指针，避免内存泄漏
+std::unique_ptr<int> ptr = std::make_unique<int>(42);
+
+// 作为函数参数传递所有权
+void process(std::unique_ptr<Data> data) {
+    // 接管所有权
+}
+
+// 容器中存储多态对象
+std::vector<std::unique_ptr<Shape>> shapes;
+shapes.push_back(std::make_unique<Circle>());
+
+#+END_SRC
+2. shared_ptr（共享式智能指针）
+
+使用引用计数机制，多个shared_ptr可以指向同一对象
+当最后一个shared_ptr被销毁时，对象才被删除
+内部包含控制块，存储引用计数和删除器
+使用场景：
+
+// 多个对象需要共享同一资源
+std::shared_ptr<Database> db = std::make_shared<Database>();
+Service1 service1(db);  // 共享数据库连接
+Service2 service2(db);
+
+// 观察者模式
+class Observer {
+    std::shared_ptr<Subject> subject_;
+public:
+    Observer(std::shared_ptr<Subject> s) : subject_(s) {}
+};
+
+// 缓存机制
+std::map<std::string, std::shared_ptr<ExpensiveResource>> cache;
+3. weak_ptr（弱引用智能指针）
+原理：
+
+不影响对象的生命周期，不增加引用计数
+可以检测所指向的对象是否还存在
+主要用于打破shared_ptr的循环引用
+使用场景：
+
+// 打破循环引用
+class Parent {
+    std::vector<std::shared_ptr<Child>> children;
+};
+
+class Child {
+    std::weak_ptr<Parent> parent;  // 使用weak_ptr避免循环
+};
+
+// 缓存机制中的观察
+class Cache {
+    std::map<int, std::weak_ptr<Resource>> cache_;
+public:
+    std::shared_ptr<Resource> get(int id) {
+        auto it = cache_.find(id);
+        if (it != cache_.end()) {
+            if (auto resource = it->second.lock()) {
+                return resource;  // 对象仍然存在
+            } else {
+                cache_.erase(it);  // 对象已被销毁
+            }
+        }
+        // 创建新对象...
+    }
+};
+
+// 回调机制
+class EventSource {
+    std::vector<std::weak_ptr<EventHandler>> handlers_;
+public:
+    void notify() {
+        for (auto it = handlers_.begin(); it != handlers_.end();) {
+            if (auto handler = it->lock()) {
+                handler->handle();
+                ++it;
+            } else {
+                it = handlers_.erase(it);  // 清理失效的weak_ptr
+            }
+        }
+    }
+};
+
+选择建议
+默认使用unique_ptr - 当对象只需要一个所有者时
+需要共享时使用shared_ptr - 多个对象需要访问同一资源
+避免循环引用使用weak_ptr - 配合shared_ptr使用，不影响对象生命周期
+
+
+
+** 循环引用
+循环引用指两个或多个对象相互持有对方的shared_ptr，导致它们的引用计数永远不会降到0，从而造成内存泄漏。
+#+BEGIN_SRC cpp
+#include <memory>
+#include <iostream>
+
+class Child;
+
+class Parent {
+public:
+    std::shared_ptr<Child> child;
+    ~Parent() {
+        std::cout << "Parent析构" << std::endl;
+    }
+};
+
+class Child {
+public:
+    std::shared_ptr<Parent> parent;  // 问题所在！
+    ~Child() {
+        std::cout << "Child析构" << std::endl;
+    }
+};
+
+int main() {
+    {
+        auto parent = std::make_shared<Parent>();
+        auto child = std::make_shared<Child>();
+
+        parent->child = child;   // parent引用计数: child=2
+        child->parent = parent;  // child引用计数: parent=2
+
+        // 离开作用域时：
+        // parent的引用计数从2变为1（还有child->parent持有）
+        // child的引用计数从2变为1（还有parent->child持有）
+        // 两者都不为0，所以都不会被销毁！
+    }
+
+    std::cout << "main结束" << std::endl;
+    // 输出只有 "main结束"，没有析构函数被调用！
+    // 发生内存泄漏！
+
+    return 0;
+}
+
+#+END_SRC
+
+** 使用weak_ptr解决循环引用
+#+BEGIN_SRC cpp
+#include <memory>
+#include <iostream>
+
+class Child;
+
+class Parent {
+public:
+    std::shared_ptr<Child> child;
+    ~Parent() {
+        std::cout << "Parent析构" << std::endl;
+    }
+};
+
+class Child {
+public:
+    std::weak_ptr<Parent> parent;  // 使用weak_ptr！
+    ~Child() {
+        std::cout << "Child析构" << std::endl;
+    }
+
+    void doSomething() {
+        // 使用weak_ptr时需要先检查对象是否还存在
+        if (auto p = parent.lock()) {
+            std::cout << "Parent还存在，可以安全使用" << std::endl;
+            // 使用p进行操作...
+        } else {
+            std::cout << "Parent已被销毁" << std::endl;
+        }
+    }
+};
+
+int main() {
+    {
+        auto parent = std::make_shared<Parent>();
+        auto child = std::make_shared<Child>();
+
+        parent->child = child;   // child引用计数变为2
+        child->parent = parent;  // parent引用计数仍为1（weak_ptr不增加引用计数）
+
+        // 离开作用域时：
+        // parent引用计数从1变为0 -> Parent被销毁
+        // child引用计数从2变为1 -> 但parent->child也随Parent一起销毁
+        // child引用计数变为0 -> Child被销毁
+    }
+
+    std::cout << "main结束" << std::endl;
+
+    return 0;
+}
+
+// 输出:
+// Parent析构
+// Child析构
+// main结束
+#+END_SRC
+
+** 观察者模式 weak_ptr
+#+BEGIN_SRC cpp
+// 双向链表节点
+class ListNode {
+public:
+    int data;
+    std::shared_ptr<ListNode> next;
+    std::weak_ptr<ListNode> prev;  // 使用weak_ptr避免循环
+
+    ListNode(int val) : data(val) {}
+    ~ListNode() {
+        std::cout << "Node " << data << " 析构" << std::endl;
+    }
+};
+
+// 观察者模式
+// eventsource
+class Subject {
+    std::vector<std::weak_ptr<Observer>> observers;  // weak_ptr列表
+public:
+    void attach(std::shared_ptr<Observer> obs) {
+        observers.push_back(obs);
+    }
+
+    void notify() {
+        // 清理失效的观察者
+        for (auto it = observers.begin(); it != observers.end();) {
+            if (auto obs = it->lock()) {
+                obs->update();
+                ++it;
+            } else {
+                it = observers.erase(it);  // 自动清理
+            }
+        }
+    }
+};
+#+END_SRC
+
+
+** std::shared_ptr 的控制块（Control Block）里有什么？线程安全性如何？
+控制块的内容
+控制块是一个动态分配的内置对象，通常包含：
+
+- 引用计数（Use Count）：记录有多少个 shared_ptr 正指向这个对象。
+
+- 弱引用计数（Weak Count）：记录有多少个 weak_ptr 正在观察这个对象。注意：弱引用计数本身也需要被管理，当弱引用计数也降为0时，控制块本身的内存才会被释放。
+
+- 删除器（Deleter）：通常是函数指针或函数对象，用于定制对象的销毁方式（如 delete[], fclose 等）。在构造 shared_ptr 时如果传入，会保存在控制块中。
+
+- 分配器（Allocator）：用于定制控制块本身的分配和释放方式，比较少见。
+
+*** 线程安全性
+std::shared_ptr 的线程安全性需要从两个层面理解：
+
+- 引用计数的原子性：
+
+是的，引用计数的修改是线程安全的。标准规定 shared_ptr 的引用计数操作是原子操作（通常使用 std::atomic 相关的操作实现）。这意味着多个线程同时拷贝或销毁指向同一对象的 shared_ptr 不会导致引用计数的竞争条件（Race Condition）。这是 shared_ptr 最重要的线程安全保证。
+
+- 指向对象的访问：
+
+不是线程安全的。shared_ptr 只保证了控制块数据的安全，但并不保证其管理的对象本身是线程安全的。如果多个线程同时通过不同的 shared_ptr 实例（即使是拷贝的）去读写同一个对象，你仍然需要额外的同步机制（如互斥锁）来保护该对象。
+
+总结：
+同一个 shared_ptr 实例的读写（例如，在一个线程里 reset，在另一个线程里读它）不是线程安全的，需要加锁。
+不同的 shared_ptr 实例指向同一个对象，它们的引用计数操作是线程安全的，但对对象的访问不是。
+
+** std::enable_shared_from_this
+继承enable_shared_from_this就是在声明"我的对象必须被shared_ptr管理"
+解决的核心问题是：如何在对象内部安全地获取指向自己的shared_ptr
+
+#+BEGIN_SRC cpp
+#include <memory>
+#include <iostream>
+
+class BadExample {
+public:
+    void register_callback() {
+        // 错误！用this创建新的shared_ptr
+        auto self = std::shared_ptr<BadExample>(this);
+
+        // 假设某个异步操作需要持有对象
+        async_operation(self);
+    }
+
+    ~BadExample() {
+        std::cout << "BadExample析构" << std::endl;
+    }
+};
+
+void test_bad_example() {
+    auto obj = std::make_shared<BadExample>();  // 引用计数=1
+    obj->register_callback();                   // 创建了另一个shared_ptr管理同一对象！
+
+    // 现在有两个独立的shared_ptr管理同一个对象
+    // 它们的引用计数是分开的！
+    // obj销毁时：第一个shared_ptr的引用计数变为0 -> 对象被删除
+    // 但async_operation中的shared_ptr还持有已被删除的对象！
+    // 程序崩溃！
+}
+
+// 初始状态：
+// obj -> Object (引用计数=1)
+
+// 调用register_callback后：
+// obj -> Object (引用计数=1)
+// self -> Object (引用计数=1)  // 独立的控制块！
+
+// 实际上是两个shared_ptr管理同一个原始指针，但控制块不同！
+#+END_SRC
+
+*** enable_shared_from_this的解决方案
+#+BEGIN_SRC cpp
+#include <memory>
+#include <iostream>
+#include <vector>
+#include <functional>
+
+class GoodExample : public std::enable_shared_from_this<GoodExample> {
+public:
+    void register_callback() {
+        // 正确！获取已存在的shared_ptr
+        auto self = shared_from_this();
+
+        // 现在可以安全地传递给异步操作
+        async_operation(self);
+    }
+
+    void start_timer() {
+        auto self = shared_from_this();
+
+        // 模拟定时器回调
+        timer_callback = [self]() {
+            self->on_timer();  // 对象在回调期间保持存活
+        };
+    }
+
+    void on_timer() {
+        std::cout << "定时器触发" << std::endl;
+    }
+
+    ~GoodExample() {
+        std::cout << "GoodExample析构" << std::endl;
+    }
+
+private:
+    std::function<void()> timer_callback;
+};
+
+void test_example() {
+    auto obj = std::make_shared<GoodExample>();  // 引用计数=1
+    obj->register_callback();                    // shared_from_this()返回相同控制块的shared_ptr
+    // 现在引用计数=2（obj + async_operation中的副本）
+
+    GoodExample obj2;
+    obj2.register_callback();  // 错误, obj2 栈对象，不是shared_ptr管理
+}
+#+END_SRC
+
+*** enable_shared_from_thi实际应用场景
+1. 异步操作回调
+class HttpClient : public std::enable_shared_from_this<HttpClient> {
+public:
+    void async_get(const std::string& url) {
+        // 发起异步HTTP请求
+        auto self = shared_from_this();
+
+        http_library::async_get(url, [self](const Response& resp) {
+            // 回调执行时，对象仍然存在
+            self->on_response(resp);
+        });
+
+        // 即使HttpClient对象在这里离开作用域，
+        // 由于回调持有shared_ptr，对象不会被提前销毁
+    }
+
+private:
+    void on_response(const Response& resp) {
+        std::cout << "收到响应: " << resp.status_code << std::endl;
+    }
+};
+
+2. 观察者模式
+#+BEGIN_SRC cpp
+class EventSource;
+
+class Observer : public std::enable_shared_from_this<Observer> {
+public:
+    void subscribe_to(std::shared_ptr<EventSource> source) {
+        source_ = source;
+
+        // 将自己注册为观察者
+        auto self = shared_from_this();
+        source->add_observer(self);
+    }
+
+    void handle_event(int event_data) {
+        std::cout << "处理事件: " << event_data << std::endl;
+    }
+
+private:
+    std::weak_ptr<EventSource> source_;
+};
+
+class EventSource {
+public:
+    void add_observer(std::shared_ptr<Observer> obs) {
+        observers_.push_back(obs);
+    }
+    // 如果不继承enable_shared_from_this，可以这样设计：
+    // void add_observer(Observer* obs) { observers_.push_back(obs); }
+    // void add_observer(Observer& obs) { observers_.push_back(&obs); }
+    void notify(int data) {
+        for (auto& obs : observers_) {
+            if (auto observer = obs.lock()) {
+                observer->handle_event(data);
+            }
+        }
+    }
+
+private:
+    std::vector<std::weak_ptr<Observer>> observers_;
+};
+
+#+END_SRC
+
+3. 递归数据结构
+class TreeNode : public std::enable_shared_from_this<TreeNode> {
+public:
+    int value;
+    std::vector<std::shared_ptr<TreeNode>> children;
+    std::weak_ptr<TreeNode> parent;
+
+    TreeNode(int val) : value(val) {}
+
+    void add_child(int child_value) {
+        auto child = std::make_shared<TreeNode>(child_value);
+        child->parent = shared_from_this();  // 设置父节点
+        children.push_back(child);
+    }
+
+    void traverse() {
+        std::cout << value << " ";
+        for (auto& child : children) {
+            child->traverse();
+        }
+    }
+
+    std::shared_ptr<TreeNode> get_root() {
+        if (auto p = parent.lock()) {
+            return p->get_root();
+        }
+        return shared_from_this();  // 返回根节点
+    }
+};
+
+最佳实践：配合工厂函数使用，确保对象总是被正确管理
+class SafeClass : public std::enable_shared_from_this<SafeClass> {
+private:
+    SafeClass() = default;  // 私有构造函数
+
+public:
+    // 工厂方法确保对象总是被shared_ptr管理
+    static std::shared_ptr<SafeClass> create() {
+        // 使用std::shared_ptr的构造函数
+        return std::shared_ptr<SafeClass>(new SafeClass());
+    }
+
+    void safe_method() {
+        auto self = shared_from_this();  // 总是安全的
+        // 使用self...
+    }
+};
+
+**** 实现原理
+#+BEGIN_SRC cpp
+// enable_shared_from_this的简化实现原理
+template<class T>
+class enable_shared_from_this {
+private:
+    mutable std::weak_ptr<T> weak_this_;  // 存储指向自己的weak_ptr
+
+public:
+    std::shared_ptr<T> shared_from_this() {
+        return weak_this_.lock();  // 从weak_ptr获取shared_ptr
+    }
+
+    // shared_ptr在构造时会调用这个方法设置weak_this_
+    template<class Y>
+    void _internal_accept_owner(const std::shared_ptr<Y>* owner) {
+        weak_this_ = *owner;
+    }
+};
+#+END_SRC

@@ -849,3 +849,155 @@ void HistoryManager::save() {
     for (const auto& s : *items_) out << s << L"\n";
 }
 #+end_src
+
+
+* job queue/ threadfun may be called frequently, often before the prevois call has finished
+std::thread(...).detach() // bad
+
+ * better pattern: Job Queues (Thread Pools)
+A highly scalable pattern is the job queue:
+
+One background thread (or a small pool) takes jobs off a queue and processes them.
+Every call to threadfun just submits a job to the queue, not a new thread.
+Example skeleton:
+
+#+begin_src cpp
+#include <functional>
+
+class HistoryManager {
+    std::thread worker_;
+    std::queue<std::function<void()>> tasks_;
+    std::mutex mutex_;
+    std::condition_variable cv_;
+    std::atomic<bool> stop_{false};
+
+public:
+    HistoryManager() {
+        worker_ = std::thread([this]() {
+            for (;;) {
+                std::function<void()> task;
+                {
+                    std::unique_lock<std::mutex> lock(mutex_);
+                    cv_.wait(lock, [this]{ return stop_ || !tasks_.empty(); });
+                    if (stop_ && tasks_.empty()) return;
+                    task = std::move(tasks_.front());
+                    tasks_.pop();
+                }
+                task();
+            }
+        });
+    }
+
+    ~HistoryManager() {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            stop_ = true;
+        }
+        cv_.notify_one();
+        if (worker_.joinable()) worker_.join();
+    }
+
+    void threadfun(cb_type cb) {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            tasks_.push([cb](){ cb(); }); // can use captures as needed
+        }
+        cv_.notify_one();
+    }
+};
+
+// Every call to threadfun(cb) just adds a job (e.g. a callback) to the queue.
+// Only ONE thread processes jobs, so there won't be dozens of threads.
+
+// If You Actually Need Every Operation To Be Parallel
+// If you really want a separate thread per call, you must:
+
+// Control the maximum number of concurrent threads (e.g. with a thread pool)
+// Make sure each thread does not access shared data unsafely. Use mutexes, etc.
+// Realize user experience and performance may degrade as threads multiply.
+#+end_src
+
+* filter working thread with restart/cancle
+#+begin_src cpp
+class HistoryManager {
+public:
+    using FilterCallback = std::function<void()>; // Called on main thread after filtering?
+    // You may need to adjust for context (pass result, etc.).
+private:
+    std::thread filter_worker_;
+    std::mutex filter_mutex_;
+    std::condition_variable filter_cv_;
+    bool stop_ = false;
+
+    std::wstring pending_pattern_;
+    FilterCallback pending_callback_;
+    bool new_request_ = false;
+
+    // ... (Your items_, filtered_items_, ... and their mutexes remain)
+
+public:
+    HistoryManager() {
+        filter_worker_ = std::thread([this]{
+            std::unique_lock<std::mutex> lock(filter_mutex_);
+            while (!stop_) {
+                filter_cv_.wait(lock, [this] { return stop_ || new_request_; });
+
+                if (stop_) break;
+
+                // Copy pending job to local vars for thread safety
+                auto pattern = pending_pattern_;
+                auto callback = pending_callback_;
+                new_request_ = false; // Mark current job as taken
+
+                lock.unlock();
+
+                // Do filtering
+                if (pattern.empty()) {
+                    std::lock_guard<std::mutex> lck(filtered_items_mtx);
+                    this->filtered_items_ = this->items_; // Restore all
+                } else {
+                    // Filter: this->items_ to this->filtered_items_
+                    std::vector<FileType> tmp; // or whatever container
+                    {
+                        std::lock_guard<std::mutex> lck(items_mtx);
+                        for (const auto& item : this->items_) {
+                            if (/* match item vs pattern */) tmp.push_back(item);
+                        }
+                    }
+                    {
+                        std::lock_guard<std::mutex> lck(filtered_items_mtx);
+                        this->filtered_items_ = std::move(tmp);
+                    }
+                }
+
+                // Optional: check for new request _here_ to abort result delivery
+                lock.lock();
+                if (!stop_ && !new_request_ && callback) {
+                    lock.unlock();
+                    callback(); // safe to signal GUI
+                } else {
+                    lock.unlock();
+                }
+            }
+        });
+    }
+
+    ~HistoryManager() {
+        {
+            std::lock_guard<std::mutex> lock(filter_mutex_);
+            stop_ = true;
+        }
+        filter_cv_.notify_one();
+        if (filter_worker_.joinable()) filter_worker_.join();
+    }
+
+    // Instead of functhread(), use this:
+    void request_filter(const std::wstring& pat, FilterCallback filterDone) {
+        std::lock_guard<std::mutex> lock(filter_mutex_);
+        pending_pattern_ = pat;
+        pending_callback_ = filterDone;
+        new_request_ = true;
+        filter_cv_.notify_one();
+    }
+};
+#+end_src

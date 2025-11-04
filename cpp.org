@@ -567,6 +567,14 @@ std::vector<std::unique_ptr<T>> vec2 = vec1; // ❌ 编译报错
 std::vector<std::unique_ptr<T>> vec2 = std::move(vec1); // ✅
 #+end_src
 * share_ptr 操作
+// Allocates the MyClass object and the reference counter in a single memory allocation (more efficient, avoids some thread-safety issues).
+auto ptr1 = std::make_shared<MyClass>();
+
+// Allocates the MyClass object and the control block separately (two allocations)
+std::shared_ptr<MyClass> ptr2(new MyClass());
+= auto ptr2 = std::shared_ptr<MyClass>(new MyClass());
+// new的方式可以自定义deleter
+std::shared_ptr<MyClass> ptr2(new MyClass(), my_deleter);
 
 ** 容器类型改为 share_ptr 后代码修改
 #+begin_src cpp
@@ -1484,3 +1492,56 @@ void modernPrint(const char* str) {
     ///  /legacyPrint(str); // Error! Can't convert 'const char*' to 'char*'
     legacyPrint(const_cast<char*>(str)); // OK, we promise it's safe
 }
+
+* dotdotdot
+template<typename... Args>
+void emplace_back(Args&&... args) {
+    // ...
+    new(data + size_) T(std::forward<Args>(args)...);
+}
+
+1. template<typename... Args>
+作用：声明一个可变参数模板，表示 Args 是一个模板参数包（template parameter pack）
+
+含义：可以接受任意数量、任意类型的模板参数
+
+2. void emplace_back(Args&&... args)
+作用：将模板参数包 Args 展开为函数参数包 args
+
+含义：函数接受与模板参数数量对应的右值引用参数
+
+示例：如果调用 emplace_back(1, 2.0, "hello")，则：
+
+Args = int, double, const char*
+
+args = int&&, double&&, const char*&&
+
+3. std::forward<Args>(args)...
+作用：参数包展开（parameter pack expansion）
+
+含义：将参数包 args 中的每个参数分别用 std::forward 转发
+
+展开结果：相当于：
+std::forward<Arg1>(arg1), std::forward<Arg2>(arg2), ..., std::forward<ArgN>(argN)
+* map unordered_map
+- map：
+优点：
+map元素有序（这是map最大的优点，其元素的有序性在很多应用中都会简化很多的操作）；
+其红黑树的结构使得map的很多操作都可在O(logn)下完成；
+map的各项性能较为稳定，与元素插入顺序无关；
+map支持范围查找。
+缺点：
+占用的空间大：红黑树的每一个节点需要保存其父节点位置、孩子节点位置及红/黑性质，因此每一个节点占用空间大。
+查询平均时间不如unordered_map。
+适用场景：
+元素需要有序；
+对于单次查询时间较为敏感，必须保持查询性能的稳定性，比如实时应用等等。
+- unordered_map
+优点：
+查询速度快，平均性能接近于常数时间O(1)；
+缺点：
+元素无序；
+unordered_map相对于map空间占用更大，且其利用率不高；
+查询性能不太稳定，最坏时间复杂度可达到O(n)。
+适用场景：
+要求查找速率快，且对单次查询性能要求不敏感。

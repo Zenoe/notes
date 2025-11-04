@@ -1,0 +1,3 @@
+Cloudflare R2 Storage
+AI画图套壳的go后端，日活2k，月活3w单体程序50M，运行虚拟内存400MB，常驻内存160MB。免费的cloudflare pages 跑页面，免费的R2放资源10$/mo的vps 跑后端+pgsql绰绰有余！穷逼只能用go，用java的话，这活都没法干！
+https://www.zhihu.com/question/284088129/answer/3627473470

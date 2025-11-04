@@ -1,0 +1,22 @@
+#+title: Grpc
+* grpc components
+
+| Component              | Description              | Role                                 |
+| .proto files           | API & message definition | Defines communication schema         |
+| protoc                 | Proto compiler           | Code gen for messages & APIs         |
+| protoc-gen-grpc-<lang> | gRPC plugin for protoc   | Generates service/stub classes       |
+| gRPC Core Library      | Transport/runtime        | Handles network, serialization, etc. |
+| gRPC C++ Library       | C++ language bindings    | User-facing API for server/client    |
+
+helloworld.pb.cc (.h)	Message types	Classes for proto messages; serialization logic
+helloworld.grpc.pb.cc (.h)	Service stubs & interfaces	Server interface, Client stub, service registration, etc.
+
+** gRPC Plugin for Protoc (protoc-gen-grpc-cpp)
+Takes service definitions in your .proto file, and outputs corresponding C++ stub/service classes in helloworld.grpc.pb.cc/.h.
+
+** Protobuf C++ Runtime
+It is a C++ library (libprotobuf) that implements reading, writing, and manipulating messages defined in .proto files.
+Purpose:
+Lets your application create, parse, and serialize Protocol Buffer messages.
+Example:
+Code generated in helloworld.pb.cc will use the Protobuf C++ runtime to work with messages.

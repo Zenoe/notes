@@ -1,4 +1,5 @@
 
+* s step in
 * b
 info b: 查看所有
 del 8: delete 第8个断点

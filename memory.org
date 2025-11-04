@@ -1,0 +1,139 @@
+
+// wrong
+MyVector& operator = (const MyVector& other){
+    if(this != &other){
+      this.size_ = other.size_;
+      this.capacity_ = other.capacity_;
+      T* tmp = std::malloc(sizeof(T)* other.capacity_);
+      std::copy(other.data, other.data+size_, tmp);
+      this.data = tmp;
+    }
+    return *this;
+  }
+
+
+- std::malloc 只适用于 POD 类型，对 C++ 对象不安全
+- 类型转换错误：std::malloc 需要类型转换 T* tmp = static_cast<T*>(std::malloc(sizeof(T) * other.capacity_));
+- if T 是复杂类型，std::copy会正确调用拷贝构造，malloc不能
+
+  // corrected
+  MyVector& operator=(const MyVector& other) {
+    if (this != &other) {
+        // 先释放旧资源
+        delete[] data;
+        // 再分配新资源
+        data = new T[other.capacity_];
+        data = static_cast<T*>(std::malloc(sizeof(T) * other.capacity_));
+        size_ = other.size_;
+        capacity_ = other.capacity_;
+        // 拷贝元素
+        std::copy(other.data, other.data + size_, data);
+    }
+    return *this;
+}
+
+// better
+void swap(MyVector& other) {
+    std::swap(data, other.data);
+    std::swap(size_, other.size_);
+    std::swap(capacity_, other.capacity_);
+}
+MyVector& operator=(const MyVector& other) {
+    if (this != &other) {
+        MyVector tmp(other); // 利用拷贝构造
+        swap(tmp);
+    }
+    return *this;
+}
+
+* placement new
+template<typename... Args>
+    void emplace_back(Args&&... args) {
+        if (size_ == capacity_) {
+            reallocate();
+        }
+        new(data + size_) T(std::forward<Args>(args)...); placement new
+        ++size_;
+    }
+为什么需要 placement new？
+- 内存已预分配：data 指向的内存已经在 reallocate() 中分配好了, 这里不在堆上分配内存
+- 避免额外拷贝：直接在目标位置构造，不需要先构造再移动
+- 支持不可拷贝/移动的类型：有些类型只能原地构造
+
+* operator new 内存对齐
+C++17开始，operator new保证足够的对齐 --- C++标准规定它分配的内存要能保存任何类型的对象，包括对齐要求较大的类型（如alignas(16)）。
+会查询类型的对齐要求，确保分配满足这一要求（实际实现可能通过posix_memalign等）。
+
+* vec.push_back(std::move(item))
+std::move 把item变为右值引用
+push_back call vector 移动构造函数
+// 移动构造示例
+  MyVector(MyVector&& other) noexcept : data(other.data), size_(other.size_), capacity_(other.capacity_){
+    other.data = nullptr;
+    other.size_ = 0;
+    other.capacity_ = 0;
+  }
+
+
+* reallocate  move 之后的对象依然需要析构
+std::move 的本质
+实际"移动"任何东西，它只是将对象转换为右值引用，使得可以调用移动构造函数。但原对象仍然存在，只是处于"被移动"的状态。
+
+new (new_data + i) T(std::move(data[i]));
+这行代码：
+在 new_data[i] 位置调用 T 的移动构造函数
+将 data[i] 的内容"移动"到新位置
+但 data[i] 这个对象仍然存在，只是可能处于有效但未指定的状态
+
+为什么需要析构旧对象？
+1. 资源管理责任
+每个通过 new 创建的对象都必须通过 delete（或显式析构）来销毁
+即使对象的内容被移动走了，对象本身仍然占用内存，需要正确清理
+1. 可能的剩余资源
+- 即使主要资源被移动，原对象可能仍然持有：
+
+- 空的智能指针
+
+- 设置为 nullptr 的原始指针
+
+- 重置的句柄
+
+- 其他需要清理的成员变量
+#+begin_src cpp
+void reallocate(size_t new_capacity = 0) {
+    if (new_capacity == 0) {
+        new_capacity = capacity_ == 0 ? 1 : static_cast<size_t>(capacity_ * GROWTH_FACTOR);
+    }
+
+    T* new_data = allocate(new_capacity);
+    size_t new_size = 0;
+
+    try {
+        if (data) {
+            for (; new_size < size_; new_size++) {
+                new (new_data + new_size) T(std::move(data[new_size]));
+            }
+        }
+    } catch (...) {
+        // 回滚：只销毁成功构造的对象
+        for (size_t i = 0; i < new_size; i++) {
+            new_data[i].~T();
+        }
+        deallocate(new_data, new_capacity);
+        throw;
+    }
+
+    // 替换旧存储
+    if (data) {
+        // 必须先销毁旧对象，再释放内存
+        for (size_t i = 0; i < size_; i++) {
+            data[i].~T();  // 正确：清理被移动的对象
+        }
+        deallocate(data, capacity_);
+    }
+
+    data = new_data;
+    capacity_ = new_capacity;
+    // size_ 保持不变，因为只是重新分配，没有添加/删除元素
+}
+#+end_src

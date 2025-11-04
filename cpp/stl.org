@@ -1,0 +1,24 @@
+* vector deque list
+| Feature                        | std::vector             | std::deque                  | std::list                    |
+| Memory Layout                  | Single contiguous block | Multiple contiguous blocks  | double linked list           |
+| Random Access ([], at())       | Fast (O(1))             | Fast (O(1))                 | Slow (O(n))                  |
+| Insert/Remove at End           | Fast (O(1) amortized)   | Fast (O(1) amortized)       | Fast (O(1))                  |
+| Insert/Remove at Beginning     | Slow (O(n))             | Fast (O(1) amortized)       | Fast (O(1))                  |
+| Insert/Remove in Middle        | Slow (O(n))             | Slow (O(n))                 | Fast (O(1) with iterator)    |
+| Memory Usage per Element       | Low                     | Low+ (block pointers)       | High (pointers for links)    |
+| Iterator Validity After Insert | May invalidate all      | May invalidate all          | Stable except erased element |
+| When to Use                    | Fast access, resizing   | Fast both ends, queue/stack | Frequent inserts/removes     |
+
+* 迭代器失效场景
+** 迭代器失效规律：
+vector/deque: 插入/删除可能导致迭代器失效
+list: 只有被删除元素的迭代器失效
+map/set: 只有被删除元素的迭代器失效
+unordered容器: 插入可能触发rehash导致所有迭代器失效
+
+** 避免迭代器失效的方法：
+使用erase()的返回值
+使用算法如remove_if
+反向遍历删除
+重新获取迭代器
+使用索引而非迭代器（适用于vector）
