@@ -23,38 +23,6 @@ emacs 在 cygwin 中不识别 C-; C->等,在option 中把 terminal 改为 xterm.
 https://unix.stackexchange.com/questions/161719/why-cant-emacs-running-in-a-terminal-distinguish-ctrl-from
 https://stackoverflow.com/questions/30680362/how-to-use-ctrl-semicolon-for-prefix-in-tmux
 
-** xkb 重新映射
-My workaround, for Linux, was to remap Ctrl-; to Ctrl-B at the xkb level. Xkb is the Xorg subsystem which handles keyboard layouts.
-
-I'm using the us layout, so I modified the /usr/share/X11/xkb/symbols/us at line 42:
-
-key <AC10> {     [ semicolon,    colon           ]       };
-to
-
-//  key <AC10> {     [ semicolon,    colon           ]       };
-key <AC10> {
-   type="BABEL_CONTROL_LEVEL3",
-   symbols[Group1]= [ semicolon, colon, b ]
-};
-This tells Xkb to generate for AC10 (the 10-th button in the C row) semicolon at level 1 (no modifiers), colon at level 2 (shift modifier) and b at level 3 (Ctrl modifier).
-
-Level 3 in Xkb is not activated by Ctrl generally, for this reason I created a new key type, which I called BABEL_CONTROL_LEVEL3. You need to put its definition in /usr/share/X11/xkb/types/pc:
-
-type "BABEL_CONTROL_LEVEL3" {
-    modifiers = Shift+Control;
-    map[Shift] = Level2;
-    map[Control] = Level3;
-    level_name[Level1] = "Base";
-    level_name[Level2] = "Shift";
-    level_name[Level3] = "Control";
-};
-You'll need to restart X or reboot.
-
-List of resources which helped me with this:
-
-https://unix.stackexchange.com/questions/205226/xkb-make-ctrlbackspace-behave-as-delete
-https://help.ubuntu.com/community/Custom%20keyboard%20layout%20definitions
-https://wiki.archlinux.org/index.php/X_KeyBoard_extension
 * VcXsrv as XServer
 git bash accept key bindings such as C>, C-
 but git bash cann't use xwin server. That's why I turn to VcXsrv

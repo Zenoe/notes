@@ -1,3 +1,16 @@
+* pipe
+** ConnectNamedPipe
+Scenario	Does it wait?	How to know a client is connected
+Synchronous (Default)	Yes (Blocks thread)	Function returns TRUE.
+Asynchronous (Overlapped)	No (Returns instantly)	GetLastError() == ERROR_IO_PENDING; wait for the OVERLAPPED event.
+Client connected too fast	No (Fails instantly)	GetLastError() == ERROR_PIPE_CONNECTED (Treat as success).
+
+Even in synchronous mode, the function can fail immediately (return FALSE + ERROR_PIPE_CONNECTED) if a client connects in the tiny window between CreateNamedPipe and ConnectNamedPipe
+
+** client connect deined
+CreateNamedPipe时最后一个参数为null
+When you pass nullptr (or NULL) as the last parameter to CreateNamedPipe, Windows applies the default security from the creating process. This frequently denies access to client processes (especially when the server runs as a service under SYSTEM/NetworkService and the client runs as a normal user).
+这是客户端如果没有用管理员权限开启，就会出现error 5 (ERROR_ACCESS_DENIED)
 * debug print
 Windows GUI applications (using WinMain) don't automatically create a console window
 Output to std::cout goes to the standard output stream, which isn't visible
@@ -10,6 +23,17 @@ if (!input.empty()) {
     wchar_t debugMsg[2] = { input.back(), L'\0' };
     OutputDebugStringW(debugMsg);
 }
+*** OutputDebugStringW with params
+#define DEBUG_PRINT(fmt, ...) \
+    { \
+        WCHAR buf[512]; \
+        swprintf(buf, 512, fmt, __VA_ARGS__); \
+        OutputDebugString(buf); \
+    }
+
+// Usage:
+DEBUG_PRINT(L"[SERVICE] ConnectNamedPipe failed with unexpected error %d\n", GetLastError());
+
 ** attach a console
 AllocConsole();
 FILE* f;

@@ -1,3 +1,132 @@
+* minhook
+find_package(minhook REQUIRED)
+target_link_libraries(MiniSandbox PRIVATE
+    Qt6::Core
+    Qt6::Widgets
+    kernel32
+    user32
+    minhook::minhook
+)
+* preset
+CMakePresets.json = 项目配置（提交到 Git）
+CMakeUserPresets.json = 个人配置（不提交）
+
+{
+  "configurePresets": [
+    {
+      "name": "msvc-qt-debug",
+      "generator": "Visual Studio 17 2022",
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "C:/Qt/6.10.0/msvc2022_64"
+      }
+    }
+  ]
+}
+==等价于
+cmake -B build -S . -DCMAKE_PREFIX_PATH=...
+
+# 比如CMakePresets.json 里写
+{
+  "configurePresets": [
+    {
+      "name": "msvc",
+      "generator": "Visual Studio 17 2022"
+    }
+  ]
+}
+# CMakeUserPresets.json 里写自己的配置
+{
+  "configurePresets": [
+    {
+      "name": "msvc",
+      "inherits": "msvc",
+      "cacheVariables": {
+        "CMAKE_PREFIX_PATH": "C:/Qt/6.10.0/msvc2022_64"
+      }
+    }
+  ]
+}
+* Configure preset and build preset
+如果项目只需要一两种固定的构建方式（比如总是构建所有目标，且配置类型已经由 Configure Preset 确定），
+Build Preset 可以省略。
+当你发现需要反复输入 --target xxx --config yyy --parallel 8 这类参数时，再考虑添加 Build Preset 来提高效率。
+{
+  "buildPresets": [
+    {
+      "name": "release-build",
+      "configurePreset": "base-config",
+      "configuration": "Release",      // 自动指定 Release
+      "targets": ["all"]                // 构建所有目标
+    },
+    {
+      "name": "test-only",
+      "configurePreset": "base-config",
+      "targets": ["unit_tests"],        // 只构建测试
+      "jobs": 8                         // 并行任务数
+    }
+  ]
+}
+{
+  "buildPresets": [
+    {
+      "name": "windows-build",
+      "configurePreset": "windows-config",
+      "configuration": "Debug",
+      "verbose": true                    // Windows 上显示详细输出
+    },
+    {
+      "name": "linux-build",
+      "configurePreset": "linux-config",
+      "cleanFirst": true                 // Linux 上构建前先清理
+    }
+  ]
+}
+* cmake --preset msvc-qt-release
+* cmake vars
+cmakelist.txt 这个指令project(XYApp VERSION 1.0) cmake 定义了如下变量
+
+PROJECT_NAME            # XYApp
+PROJECT_SOURCE_DIR      # root source dir
+PROJECT_BINARY_DIR      # build dir
+PROJECT_VERSION         # 1.0
+
+So this works:
+qt_add_executable(${PROJECT_NAME} main.cpp)
+👉 ${PROJECT_NAME} just expands to "XYApp"
+* add_executable and qt_add_executable
+add_executable is pure CMake. It just:
+
+Creates a binary target
+Compiles the listed sources
+
+👉 It does NOT:
+Run Qt’s MOC (Meta-Object Compiler)
+Handle .ui files (from Qt Designer)
+Handle .qrc resource files
+Add Qt-specific build steps
+
+So if you use this with Qt, you must manually enable things:
+
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
+* generator
+Generator（生成器） 告诉 CMake 生成什么样的原生构建系统文件，然后由对应的构建工具去执行编译。
+
+简单理解：
+text
+CMakeLists.txt  →  [CMake + Generator]  →  原生构建文件  →  [构建工具]  →  可执行文件
+                      ↑
+                   你在这里选择
+常见 Generator 及其作用：
+Generator	生成的文件	使用的构建工具	适用场景
+Visual Studio 17 2022	.sln 解决方案文件	MSBuild	Windows + VS开发
+Ninja	build.ninja 文件	Ninja	跨平台、追求速度
+MinGW Makefiles	Makefile	mingw32-make	Windows + MinGW
+Unix Makefiles	Makefile	make	Linux/macOS
+
+prompt: Ninja 构建后用什么工具打开
+都可以
 * cmake ../
 ../   - Specifies the path to the CMake project's root directory (one level up from the current directory)
 ../.. -The path to the root of your project's source directory (two levels up from the current directory).

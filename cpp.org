@@ -778,6 +778,37 @@ cout << sv1; //  string object already destroyed!
 
 MyClass a(5);
 MyClass b = std::move(a);
+** &&
+vec getVec() && { return std::move(v_); }
+or vec && getVec() && { return std::move(v_); }
+
+✅ vec&& getVec() && { return std::move(v_); }   // correct
+This is a ref-qualified member function where:
+
+vec&& is the return type (rvalue reference)
+
+&& after the parameter list is the ref-qualifier, meaning this function can only be called on rvalue objects (temporary objects or objects being moved from)
+The first version you showed (vec getVec() && { return std::move(v_); }) would work but returns by value, which would involve an extra copy/move. Returning vec&& is more efficient as it directly returns an rvalue reference to the moved-from object.
+
+Here's a complete example:
+
+class MyClass {
+private:
+    vec v_;
+public:
+    // For lvalue objects - returns lvalue reference
+    vec& getVec() & { return v_; }
+
+    // For rvalue objects - returns rvalue reference after moving
+    vec&& getVec() && { return std::move(v_); }
+};
+
+// Usage:
+MyClass obj;
+vec& ref = obj.getVec();           // calls lvalue version
+vec&& rref = std::move(obj).getVec(); // calls rvalue version
+The ref-qualifier && ensures this overload is only called when the object itself is an rvalue, which is typically when you want to move from its members.
+
 * forwarding reference and move ctor
 #include <iostream>
 #include <string>
@@ -1545,3 +1576,25 @@ unordered_map相对于map空间占用更大，且其利用率不高；
 查询性能不太稳定，最坏时间复杂度可达到O(n)。
 适用场景：
 要求查找速率快，且对单次查询性能要求不敏感。
+
+* 空对象传递
+函数参数是一个对象，传递空对象 fun(const Obj& obj){}
+✅fun({}) 它会调用 Obj 的默认构造函数来创建一个临时对象，然后绑定到 const 左值引用上。要求：Obj 必须是可默认构造的（Obj() 可用）
+✅fun(Obj()) OK
+
+对简单对象时 qt 里可以 emit loginFinished({});
+emit loginFinished(Obj()) ✔️️
+
+在声明变量时，Obj obj() 会被解析为函数声明，而不是对象定义：
+
+// ❌ 错误：这不是对象定义，而是函数声明
+Obj obj();   // 声明了一个返回 Obj、无参数的函数 obj
+
+// ✅ 正确的方式
+Obj obj1;    // 默认构造
+Obj obj2{};  // C++11 起，值初始化
+
+* 定义变量被认为是函数声明
+QNetworkRequest request(QUrl(url));  // 编译错误
+QUrl qurl(url);
+QNetworkRequest request; // 显式默认构造 // OK
