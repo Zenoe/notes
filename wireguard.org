@@ -1,0 +1,133 @@
+* dumpbin
+dumpbin /exports .\wireguard.dll
+         WireGuardCloseAdapter
+         WireGuardCreateAdapter
+         WireGuardDeleteDriver
+         WireGuardGetAdapterLUID
+         WireGuardGetAdapterState
+         WireGuardGetConfiguration
+         WireGuardGetRunningDriverVersion
+         WireGuardOpenAdapter
+         WireGuardSetAdapterLogging
+         WireGuardSetAdapterState
+         WireGuardSetConfiguration
+         WireGuardSetLogger
+dumpbin /exports .\tunnel.dll
+    WireGuardGenerateKeypair
+    WireGuardTunnelService
+* install
+sudo apt update
+sudo apt install wireguard
+
+服务端其实就是：
+生成密钥
+写 /etc/wireguard/wg0.conf
+启动：
+sudo wg-quick up wg0
+
+install.sh
+https://github.com/angristan/wireguard-install
+* command
+/etc/wireguard/wg0.conf
+sudo ip link show wg0
+or
+sudo wg show
+If it exists, remove it first:
+
+sudo ip link delete wg0
+
+- Then restart the service:
+  systemctl restart wg-quick@wg0
+
+- check status
+  systemctl status wg-quick@wg0
+
+ sudo journalctl -u pritunl --lines=30
+ modprobe wireguard
+
+ dnf install kmod-wireguard wireguard-tools
+
+** manually
+mkdir -p /etc/wireguard
+cd /etc/wireguard
+2. 生成密钥
+wg genkey | tee server_private.key | wg pubkey > server_public.key
+
+查看：
+cat server_private.key
+cat server_public.key
+3. 创建 wg0.conf
+sudo nano /etc/wireguard/wg0.conf
+
+填一个最小可用服务端配置：
+
+[Interface]
+PrivateKey = <这里填 server_private.key 内容>
+Address = 10.0.0.1/24
+ListenPort = 51820
+
+# 开启转发（很重要）
+PostUp = sysctl -w net.ipv4.ip_forward=1
+PostDown = sysctl -w net.ipv4.ip_forward=0
+4. 设置权限（必须）
+sudo chmod 600 /etc/wireguard/wg0.conf
+5. 启动
+sudo wg-quick up wg0
+
+如果成功，会看到类似：
+
+interface: wg0
+* curl -O https://raw.githubusercontent.com/angristan/wireguard-install/master/wireguard-install.sh
+sudo bash wireguard-install.sh
+自动
+生成 server
+生成 client
+配好 NAT
+
+* network
+tracert -d 8.8.8.8
+
+* ip 转发
+# 临时开启
+sudo sysctl -w net.ipv4.ip_forward=1
+
+# 永久开启
+echo "net.ipv4.ip_forward = 1" | sudo tee -a /etc/sysctl.conf
+sudo sysctl -p
+
+nat
+# 假设虚拟机的外网接口是 eth0（通常是连接宿主机的网卡）
+sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+* protocol
+the client should generate its own private key locally so it never travels over the network, even via HTTPS.
+
+one time exchange process
+    Client: Runs wg genkey to make a private key.
+    Client: Runs wg pubkey on that private key to get the public key.
+    Client: Requests the server's public key via HTTPS (or a config file).
+    Client: Sends only its public key back to the server (via an API call or email).
+    Server: Updates its config to include that public key.
+
+Client-side: Uses its own Private Key + Server's Public Key $\rightarrow$ Secret AServer-side: Uses its own Private Key + Client's Public Key $\rightarrow$ Secret BBecause of the underlying Curve25519 properties, Secret A will always equal Secret B.
+
+Feature	WireGuard Approach
+Exchange Type	Out-of-band (Manual/External)
+Trust Model	Static (Public keys must be pre-shared)
+Protocol Stealth	High (No response to unknown keys)
+Config Delivery	Flexible (HTTPS, QR Codes, MDM, or USB)
+
+* dispatch conf:
+Common Implementation Methods:
+Self-Hosted Portals: Tools like WG-Easy, Firezone, or Netmaker provide a web interface behind HTTPS. A user logs in (via SSO or password), and the portal generates a config file or a QR code for them to download.
+
+MDM Distribution: In corporate environments, the HTTPS-based Mobile Device Management (MDM) system pushes the .conf file directly to the user's device.
+
+Manual Web Server: You could technically host the .conf files on a private, authenticated web server, though this is less secure than a dedicated management tool.
+
+A Note on Security:
+If you use HTTPS to deliver the config, ensure:
+
+Mutual Authentication: Only authorized users can access the URL.
+
+TLS Security: Use strong encryption so the private key (if included in the generated download) isn't intercepted.

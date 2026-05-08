@@ -1,0 +1,161 @@
+#+title: Driver
+* 驱动虚拟机测试
+禁用安全启动
+
+bcdedit /set testsigning on
+bcdedit /set nointegritychecks on
+运行后要重启，然后可以在桌面看到水印
+
+sc create WfpHello type= kernel binPath= "C:\<full-path>\x64\Debug\WfpHello.sys"
+sc start WfpHello
+sc query WfpHello
+sc stop WfpHello
+sc delete WfpHello
+查看
+msinfo32
+在左侧导航到：软件环境 → 系统驱动程序
+
+Step 1: Project Setup in VS2022
+Open Visual Studio 2022
+File → New → Project
+Search for "Kernel Mode Driver, Empty (KMDF)" → select it → Next
+Name it WfpHello, location of your choice → Create
+Right-click the project → Properties → confirm:
+
+Configuration: All Configurations
+Platform: x64
+Driver Settings → Target OS Version: Windows 10 or later
+Driver Settings → Target Platform: Desktop
+Step 2: Add the Source Files
+
+Step 3: VS2022 Project Configuration
+After adding the files, set these project properties (right-click project → Properties):
+C/C++ → General
+
+Additional Include Directories: (already handled by WDK integration)
+
+Linker → Input → Additional Dependencies, add:
+fwpkclnt.lib
+fwpuclnt.lib
+ndis.lib
+Driver Settings → Inf2Cat
+
+Run Inf2Cat: Yes
+
+
+* cmd
+** pnputil /add-driver C:\你的驱动路径\minifilterHello.inf /install
+末尾加 /install 或者inf文件右键安装 会触发 INF 中的 DefaultInstall 部分，从而执行文件拷贝和注册表写入
+或者 RUNDLL32.EXE setupapi.dll,InstallHinfSection DefaultInstall 128 .\HelloMinifilter.inf
+
+如果没有 /install 只是把驱动程序“挂号”到了系统的驱动库中，并没有执行“安装”或“复制文件”的动作
+
+*** pnputil /add-driver 时，Windows 执行的是 Stage（暂存） 操作：
+动作： 系统验证 INF 文件和签名，然后将整个驱动包拷贝到 C:\Windows\System32\DriverStore\FileRepository 下的一个随机命名文件夹中（例如 oem10.inf 对应的目录）。
+结果： 系统“知道”了这个驱动的存在，但它不会触发 INF 文件中的 [CopyFiles] 指令。只有当驱动被正式“安装”或“加载”到特定设备/服务时，文件才会根据 DestinationDirs 复制到 drivers 目录。
+** add 时Windows 会自动重命名为 oem0.inf、oem1.inf、oem2.inf……这样确保每个驱动包有唯一的名字
+pnputil /delete-driver HelloMinifilter.inf /uninstall
+
+pnputil /enum-drivers
+fltmc unload minifilterHello
+* 启动驱动
+sc start HelloMinifilter
+# 或者使用专门用于过滤驱动的命令
+fltmc load HelloMinifilter
+启动报错打开 debugview capture kernal 可以看到更本质的错误信号
+
+load时说文件找不到，但是debugview 显示的是注册失败
+FltRegisterFilter 会报 0xC0000034？
+对于 Minifilter 驱动，这个错误通常不是指“文件找不到”，而是指 “注册表里的实例（Instance）配置信息找不到”。
+
+当 FltRegisterFilter 运行时，它会去 HKEY_LOCAL_MACHINE\System\CurrentControlSet\Services\HelloMinifilter 下面寻找该驱动的 Instances 定义。如果找不到，就会报这个错
+
+* win10 不兼容
+win11 上开发时，编译器要求放在 Parameters 下
+[HelloMinifilter.AddRegistry]
+HKR,"Parameters",                          "SupportedFeatures", 0x00010001, 0x3
+HKR,"Parameters\Instances",                "DefaultInstance",   0x00000000, %DefaultInstance%
+HKR,"Parameters\Instances\%DefaultInstance%","Altitude",        0x00000000, %FilterAltitude%
+HKR,"Parameters\Instances\%DefaultInstance%","Flags",           0x00010001, 0x0
+但是放到win10上启动时
+需要
+HKR,,"SupportedFeatures",0x00010001,0x3
+HKR,"Instances","DefaultInstance",0x00000000,%DefaultInstance%
+HKR,"Instances\"%DefaultInstance%,"Altitude",0x00000000,%FilterAltitude%
+HKR,"Instances\"%DefaultInstance%,"Flags",0x00010001,0x0
+
+现代 Windows 驱动标准（Primitive INF）中，微软为了规范化，强制要求所有自定义的服务项必须放在 Parameters 子键下。这产生了一个矛盾：WDK 要求你在 INF 里写在 Parameters 下，但 Minifilter 运行时的 FltRegisterFilter 又必须在根目录下找实例。
+# solutin
+If it's older than Windows 10 1903, try putting the keys at both locations:
+在win10上执行以下就可以启动驱动了
+#+begin_src
+:: Legacy path (no Parameters)
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\HelloMinifilter\Instances" ^
+    /v DefaultInstance /t REG_SZ /d "HelloMinifilter Instance" /f
+
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\HelloMinifilter\Instances\HelloMinifilter Instance" ^
+    /v Altitude /t REG_SZ /d "370000" /f
+
+reg add "HKLM\SYSTEM\CurrentControlSet\Services\HelloMinifilter\Instances\HelloMinifilter Instance" ^
+    /v Flags /t REG_DWORD /d 0 /f
+#+end_src
+
+
+* 注册表 ImagePath 指向\SystemRoot\System32\drivers\HelloMinifilter.sys
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\HelloMinifilter
+
+* 查看
+sc query HelloMinifilter
+fltmc instances
+fltmc filters
+# enumerate
+pnputil -e
+pnputil /enum-devices /instanceid "你的设备实例ID"
+* inf
+[DefaultUninstall.NT*] section should set LegacyUninstall=1 to support both Primitive INF and downlevel install compatibility.
+#+begin_src
+[DefaultUninstall.NTamd64]
+LegacyUninstall = 1       ; ← this line
+#+end_src
+* delete a sys
+TrustedInstaller（正式名称为 NT SERVICE\TrustedInstaller）是 Windows 系统中拥有最高权限的安全主体，其权限甚至高于内置的 Administrator 账户和 SYSTEM 账户
+不是一个可以登录的用户账户，而是与“Windows Modules Installer”服务关联的一个安全主体。
+保护范围：它拥有对系统分区下、Windows、Program Files 等核心文件夹内系统文件的完全控制权
+
+takewon 指定文件失败后
+takeown /f C:\Windows\System32\drivers\HelloMinifilter.sys /r /d Y
+错误: 指定的路径不是有效的目录路径。
+
+takeown 文件夹
+takeown /f C:\Windows\System32\drivers\ /r /d Y
+
+
+icacls "C:\Windows\System32\drivers\HelloMinifilter.sys" /grant administrators:F
+已处理的文件: C:\Windows\System32\drivers\HelloMinifilter.sys
+已成功处理 1 个文件; 处理 0 个文件时失败
+
+del C:\Windows\System32\drivers\HelloMinifilter.sys /f
+** 恢复被takeown 的文件夹
+如果你只修改了少数几个文件，用图形界面操作最安全：
+
+右键点击文件 → 属性 → 安全 选项卡 → 高级
+
+恢复所有者：
+
+点击所有者旁边的 更改 链接
+
+在输入框中输入 NT SERVICE\TrustedInstaller
+
+点击 检查名称（它会自动补全并验证）
+
+点击 确定
+
+恢复权限（可选，通常 takeover 后管理员已有完全控制权）：
+
+在“权限条目”列表中，找到你之前添加的 Administrators 条目
+
+选中它，点击 删除（或将其权限从“完全控制”改为更严格的设置）
+
+确保 SYSTEM 和 TrustedInstaller 拥有完全控制权（通常是默认的）
+
+点击确定保存

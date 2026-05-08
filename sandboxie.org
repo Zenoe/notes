@@ -1,0 +1,39 @@
+* code structure
+core/drvSboxDrv内核驱动，Hook 系统调用
+core/dllSboxDll注入 DLL，拦截 API
+core/svcSboxSvc用户态服务，IPC 通信
+core/lowLowLevel注入辅助 DLL
+SandMan/Qt UIPlus 版图形界面
+apps/controlSbieCtrlClassic MFC UI
+msgs/SboxMsg多语言消息资源
+
+修改沙箱行为（API 拦截）
+
+入口：core/dll/（SbieDll），是注入到沙箱进程的 DLL
+适合：修改文件/注册表/网络等重定向规则
+难度：中，需了解 Windows API Hook 机制
+
+③ 修改隔离策略（内核层）
+
+入口：core/drv/（SbieDrv），Windows 内核驱动
+适合：修改进程/线程/IPC 隔离策略
+难度：高，需要 Windows 内核开发经验，出错会蓝屏
+
+④ 服务层 IPC 扩展
+
+入口：core/svc/（SbieSvc）
+适合：扩展驱动与 UI 之间的通信协议、添加新的服务接口
+
+* 沙箱内可见、外部不可见
+二次开发——在驱动层拦截外部访问
+这是真正意义上的"外部不可见"，需要在 SbieDrv（内核驱动） 层做修改。
+思路是在驱动的文件系统过滤回调中，判断访问方的进程是否属于沙箱，如果不是沙箱进程则拒绝访问或返回"文件不存在"。
+核心代码位置：
+core/drv/file.c         ← 文件访问拦截逻辑
+core/drv/file_flt.c     ← 文件系统微过滤驱动
+core/drv/process.c      ← 判断进程是否在沙箱内
+大致改动思路：
+c// 在文件过滤回调中
+// 判断当前访问进程是否是沙箱进程
+// 如果不是，且目标路径在沙箱目录下，则返回 STATUS_ACCESS_DENIED 或 STATUS_OBJECT_NAME_NOT_FOUND
+难点：要避免把系统进程、资源管理器等也误拦截，需要精细的白名单逻辑。

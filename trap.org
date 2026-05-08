@@ -1,0 +1,12 @@
+connect(m_captchaImageLabel, &ClickableLabel::clicked, this, &LoginWidget::refreshCaptcha);
+m_captchaImageLabel 鏄疩Label,瀵艰嚧connect鍑洪敊
+
+
+logger.h 里包含了windows.h
+other.cpp #include "logger.h"
+然后再包含的头文件里包含了
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <ws2ipdef.h>
+
+就会出错。因为windows.h不能包含在那些头文件之前

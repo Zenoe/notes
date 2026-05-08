@@ -1,0 +1,13 @@
+
+* 应用程序无法正常启动(0xc000007b)
+DetourCreateProcessWithDllEx 无法启动target.exe
+需要在dll加入def文件导出
+Visual Studio: Project Properties → Linker → Input → Module Definition File → xxx.def
+** Detours quirk?
+This is a known Detours quirk. When DetourCreateProcessWithDllExA launches the target, it internally re-launches a copy of Launcher.exe itself as a helper process to do the import table patching. That helper process must be able to find and load HookDLL.dll too. The real cause: the helper invocation uses a different working directory, so relative or even some absolute path resolutions fail inside the helper, causing it to crash with 0xc000007b.
+# xxx.def
+EXPORTS
+    DetourFinishHelperProcess   @1
+
+    Why it's required
+When DetourCreateProcessWithDllEx patches the target process, it inserts a small bootstrap routine that runs before the real entry point. Part of that bootstrap calls DetourFinishHelperProcess exported from your DLL to finalize the injection setup. If the export doesn't exist, the bootstrap crashes the process before anything else runs — which is exactly the silent death / 0xc000007b you're seeing.

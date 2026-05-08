@@ -1,3 +1,6 @@
+* vcpkg integrate with vs
+run: vcpkg integrate install
+项目 -> 选择 “属性” 就有了“vcpkg” 配置页
 * The Windows escape character is ^, for some reason.
 echo some string ^< with angle ^> brackets >>myfile.txt
 * Command-line to compile Win32 “hello world” 
@@ -652,11 +655,7 @@ https://msdn.microsoft.com/en-us/magazine/cc500647.aspx#S4
 * Win32 paint
 ** Beginners
 http://www.codeproject.com/Articles/1988/Guide-to-WIN32-Paint-for-beginners
-In reading the forums and answering the questions, I have found that many beginners would like to learn the fundamental concepts of painting in WIN32 programs. Developing applications for windows can be challenging and frustrating. it can also be rewarding if you know some of the basic techniques that are required to take advantage of the WIN32 operating system. This tutorial is for beginners, and will cover the basic techniques and knowledge required to get started with painting in WIN32.
-
 The code and the concepts are all at the SDK level, as most of the other techniques that are used to paint to windows are based on the SDK. The WIN32 SDK is used inside of the MFC and ATL/WTL objects that represent those frameworks. I believe the more you know about the base technology, the SDK, the more you can take advantage of the frameworks that are written to encapsulate the technology. In order to help developers that are developing in MFC and WTL, the corresponding classes from those frameworks will be explained in the appropriate sections.
-
-This tutorial is the first in a series of five. This one is for beginners, the next three will cover more advanced topics at the intermediate level, and the final tutorial will cover WIN32 paint internals at the advanced level.
 
 Device Context
 At the simplest level, the device context (DC) is a surface that can be painted on. However, the DC is also the operating system resource that coordinates the brushes, pens and fonts that are used to render the images on the display. It is also the layer of abstraction that the Windows Graphics Device Interface (GDI) uses to abstract the details of a display device from a developer. This means that it is possible to paint to the screen, a printer, or even a bitmap in memory with the same code, initialized with a different DC that is created for a particular purpose. This makes coding very simple compared to the development that is required to program directly to a particular video card, or printer driver.

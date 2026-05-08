@@ -1,0 +1,16 @@
+
+* Signals Bubble Up
+GrandchildWidget  →(signal)→  ChildWidget  →(signal)→  MainWindow  →(slot: handleLogout)
+Signals go up. Logic lives at the top.
+Child widgets communicate intent via signals
+* connect() inside a slot — likely a repeated-connection bug
+Fix — use Qt::SingleShotConnection (Qt 6.0+):
+
+#+begin_src cpp
+// ✅ Fires once, then disconnects automatically
+connect(&VpnManager::instance(), &VpnManager::disconnected,
+        this, [this](const QString&) {
+            SessionManager::instance().clearSession();
+            switchToPage(1);
+        }, Qt::SingleShotConnection);
+#+end_src
